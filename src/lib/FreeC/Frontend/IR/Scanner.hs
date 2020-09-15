@@ -2,46 +2,30 @@
 --   the source code and converts it into a token stream.
 --
 --   We convert the source code to a token stream such that
---   "FreeC.Frontend.IR.Parser" does not have to handle white
---   space explicitly.
+--   "FreeC.Frontend.IR.Parser" does not have to handle whitespace explicitly.
+module FreeC.Frontend.IR.Scanner ( TokenWithPos(..), scan ) where
 
-module FreeC.Frontend.IR.Scanner
-  ( TokenWithPos(..)
-  , scan
-  )
-where
-
-import           Data.Char                      ( isNumber
-                                                , isPunctuation
-                                                , isSymbol
-                                                )
-import           Text.Parsec                    ( Parsec
-                                                , (<|>)
-                                                )
-import qualified Text.Parsec                   as Parsec
-import qualified Text.Parsec.Token             as Parsec
+import           Data.Char               ( isNumber, isPunctuation, isSymbol )
+import           Text.Parsec             ( (<|>), Parsec )
+import qualified Text.Parsec             as Parsec
+import qualified Text.Parsec.Token       as Parsec
 
 import           FreeC.Frontend.IR.Token
 import           FreeC.IR.SrcSpan
-import           FreeC.Util.Predicate           ( (.||.)
-                                                , (.&&.)
-                                                )
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 import           FreeC.Util.Parsec
+import           FreeC.Util.Predicate    ( (.&&.), (.||.) )
 
 -------------------------------------------------------------------------------
--- Type synonyms                                                             --
+-- Type Synonyms                                                             --
 -------------------------------------------------------------------------------
-
 -- | Type of parsers for IR lexeme of type @a@.
 type Scanner a = Parsec String () a
 
 -- | A 'Token' and its position in the source code.
-data TokenWithPos = TokenWithPos
-  { getTokenPos :: Parsec.SourcePos
-  , getToken    :: Token
-  }
+data TokenWithPos
+  = TokenWithPos { getTokenPos :: Parsec.SourcePos, getToken :: Token }
 
 -- | We need a show instance for tokens with positions such that the parser
 --   can print unexpected tokens.
@@ -54,9 +38,8 @@ tokenWithPos :: Scanner Token -> Scanner TokenWithPos
 tokenWithPos scanner = TokenWithPos <$> Parsec.getPosition <*> scanner
 
 -------------------------------------------------------------------------------
--- Character classes                                                         --
+-- Character Classes                                                         --
 -------------------------------------------------------------------------------
-
 -- | Scanner for a lowercase character.
 --
 --   > <lower> ::= "a" | … | "z" | <any lowercase Unicode letter>
@@ -78,7 +61,6 @@ numericScanner = Parsec.satisfy isNumber
 -------------------------------------------------------------------------------
 -- Language Definition                                                       --
 -------------------------------------------------------------------------------
-
 -- | Block comments start with @"{- "@ and can be nested.
 --
 --   Block comments start and end with a space such that we are still
@@ -126,8 +108,8 @@ conIdentStart = upperScanner
 --   The start of identifiers is scanned by 'varIdentStart' and 'conIdentStart'
 --   respectively.
 identLetter :: Scanner Char
-identLetter =
-  lowerScanner <|> upperScanner <|> numericScanner <|> Parsec.oneOf "_'"
+identLetter
+  = lowerScanner <|> upperScanner <|> numericScanner <|> Parsec.oneOf "_'"
 
 -- | Valid characters in symbolic names (i.e., in @<varsym>@ and @<consym>@,
 --   see also VarIdent and 'ConIdent').
@@ -139,8 +121,8 @@ identLetter =
 --   > <symbol>     ::= <any Unicode symbol or punctuation>
 --   > <namesymbol> ::= <symbol> \ ( "(" | ")" )
 nameSymbolChar :: Scanner Char
-nameSymbolChar =
-  Parsec.satisfy ((isSymbol .||. isPunctuation) .&&. (`notElem` ['(', ')']))
+nameSymbolChar = Parsec.satisfy
+  ((isSymbol .||. isPunctuation) .&&. (`notElem` ['(', ')']))
 
 -- | Language definition for the intermediate language.
 --
@@ -161,16 +143,15 @@ languageDef = Parsec.LanguageDef
   }
 
 -------------------------------------------------------------------------------
--- Generated lexical parsers                                                 --
+-- Generated Lexical Parsers                                                 --
 -------------------------------------------------------------------------------
-
 -- | Contains lexical parsers for the intermediate language.
 tokenParser :: Parsec.TokenParser ()
 tokenParser = Parsec.makeTokenParser languageDef
 
--- | Scanner for zero or more white space characters or comments.
-whiteSpaceScanner :: Scanner ()
-whiteSpaceScanner = Parsec.whiteSpace tokenParser
+-- | Scanner for zero or more whitespace characters or comments.
+whitespaceScanner :: Scanner ()
+whitespaceScanner = Parsec.whiteSpace tokenParser
 
 -- | Scanner for 'ConIdent' and 'VarIdent' tokens.
 identScanner :: Scanner Token
@@ -178,9 +159,7 @@ identScanner = mkIdentToken <$> Parsec.identifier tokenParser
 
 -- | Scanner for 'ConSymbol' and 'VarSymbol' tokens.
 symbolScanner :: Scanner Token
-symbolScanner = Parsec.between
-  (Parsec.char '(')
-  (Parsec.char ')')
+symbolScanner = Parsec.between (Parsec.char '(') (Parsec.char ')')
   (mkSymbolToken <$> Parsec.option "" (Parsec.operator tokenParser))
 
 -- | Scanner for 'IntToken's.
@@ -199,28 +178,26 @@ specialSymbolScanners = map
 
 -- | Scanner for a single 'Token'.
 tokenScanner :: Scanner TokenWithPos
-tokenScanner =
-  tokenWithPos
-    $ Parsec.choice
-    $ map Parsec.try
-    $ identScanner
-    : symbolScanner
-    : integerScanner
-    : stringScanner
-    : specialSymbolScanners
+tokenScanner = tokenWithPos
+  $ Parsec.choice
+  $ map Parsec.try
+  $ identScanner
+  : symbolScanner
+  : integerScanner
+  : stringScanner
+  : specialSymbolScanners
 
 -- | A scanner for zero or more 'Token's.
 --
---   White spaces and comments before and between tokens are ignored.
+--   Whitespaces and comments before and between tokens are ignored.
 tokenListScanner :: Scanner [TokenWithPos]
-tokenListScanner =
-  whiteSpaceScanner
-    *> Parsec.many (Parsec.lexeme tokenParser tokenScanner)
-    <* Parsec.eof
+tokenListScanner = whitespaceScanner
+  *> Parsec.many (Parsec.lexeme tokenParser tokenScanner)
+  <* Parsec.eof
 
 -- | Converts the given IR source code to a stream of IR tokens.
 --
 --   Reports a fatal error if there are unknown tokens.
 scan :: MonadReporter r => SrcFile -> r [TokenWithPos]
-scan srcFile =
-  runParsecOrFail srcFile (srcFileContents srcFile) tokenListScanner
+scan srcFile = runParsecOrFail srcFile (srcFileContents srcFile)
+  tokenListScanner

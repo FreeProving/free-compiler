@@ -1,14 +1,7 @@
 -- | This module contains tests for the 'Reporter' monad.
+module FreeC.Monad.ReporterTests ( testReporter ) where
 
-module FreeC.Monad.ReporterTests
-  ( testReporter
-  )
-where
-
-import           System.IO.Error                ( ioError
-                                                , userError
-                                                )
-
+import           System.IO.Error      ( ioError, userError )
 import           Test.Hspec
 
 import           FreeC.IR.SrcSpan
@@ -23,9 +16,8 @@ testReporter = describe "FreeC.Monad.Reporter" $ do
   testLiftIO
 
 -------------------------------------------------------------------------------
--- Tests for @runReporter@                                                  --
+-- Tests for @runReporter@                                                   --
 -------------------------------------------------------------------------------
-
 -- | Test group for 'runReporter' tests.
 testRunReporter :: Spec
 testRunReporter = describe "runReporter" $ do
@@ -39,9 +31,8 @@ testRunReporter = describe "runReporter" $ do
       `shouldBe` (Nothing :: Maybe (), [testMessage1])
 
 -------------------------------------------------------------------------------
--- Test data                                                                 --
+-- Test Data                                                                 --
 -------------------------------------------------------------------------------
-
 -- | A message that is reported by some reporters for testing purposes.
 testMessage1 :: Message
 testMessage1 = Message NoSrcSpan Error "Keyboard not found\nPress F1 to Resume"
@@ -50,14 +41,13 @@ testMessage1 = Message NoSrcSpan Error "Keyboard not found\nPress F1 to Resume"
 testMessage2 :: Message
 testMessage2 = Message NoSrcSpan Error "Maximum call stack size exceeded!"
 
--- | A value that is returned some reporters for testing purposes.
+-- | A value that is returned by some reporters for testing purposes.
 testValue :: Int
 testValue = 42
 
 -------------------------------------------------------------------------------
 -- Tests for @isFatal@                                                       --
 -------------------------------------------------------------------------------
-
 -- | Test group for 'isFatal' tests.
 testIsFatal :: Spec
 testIsFatal = describe "isFatal" $ do
@@ -73,7 +63,6 @@ testIsFatal = describe "isFatal" $ do
 -------------------------------------------------------------------------------
 -- Tests for @messages@                                                      --
 -------------------------------------------------------------------------------
-
 -- | Test group for 'messages' tests.
 testMessages :: Spec
 testMessages = describe "messages" $ do
@@ -93,7 +82,6 @@ testMessages = describe "messages" $ do
 -------------------------------------------------------------------------------
 -- Tests for @liftIO@                                                        --
 -------------------------------------------------------------------------------
-
 -- | Test group for 'liftIO' tests.
 testLiftIO :: Spec
 testLiftIO = describe "liftIO reports IO errors" $ do

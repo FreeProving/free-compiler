@@ -1,5 +1,4 @@
 -- | This module contains tests for modules below @FreeC.Backend.Coq.Converter@.
-
 module FreeC.Backend.Coq.ConverterTests where
 
 import           Test.Hspec
@@ -12,8 +11,8 @@ import           FreeC.Backend.Coq.Converter.TypeTests
 -- | Test group for all @FreeC.Backend.Coq.Converter@ tests.
 testConverter :: Spec
 testConverter = do
-  testConvertType
-  testConvertTypeDecl
   testConvertDataDecls
   testConvertExpr
   testConvertFuncDecl
+  testConvertType
+  testConvertTypeDecl

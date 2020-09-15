@@ -9,16 +9,10 @@
 --
 --   There are instances for the actual node of commonly pretty printed types
 --   of nodes.
-module FreeC.Backend.Coq.Pretty
-  ( PrettyCoq(..)
-  , prettyCoq
-  )
-where
+module FreeC.Backend.Coq.Pretty ( PrettyCoq(..), prettyCoq ) where
 
-import qualified Language.Coq.Gallina          as Coq
-import           Language.Coq.Pretty            ( Gallina
-                                                , renderGallina
-                                                )
+import qualified Language.Coq.Gallina as Coq
+import           Language.Coq.Pretty  ( Gallina, renderGallina )
 
 import           FreeC.Pretty
 
@@ -31,6 +25,7 @@ newtype PrettyCoq a = PrettyCoq { unPrettyCoq :: a }
 --   concatenated with newlines.
 instance Gallina a => Pretty (PrettyCoq a) where
   pretty     = renderGallina . unPrettyCoq
+
   prettyList = prettySeparated (line <> line)
 
 -- | Pretty prints the given Coq AST node.
@@ -40,10 +35,12 @@ prettyCoq = pretty . PrettyCoq
 -- | Terms often need to be pretty printed in the tests.
 instance Pretty Coq.Term where
   pretty     = prettyCoq
+
   prettyList = prettyList . map PrettyCoq
 
 -- | Sentences often need to be pretty printed in the tests and when writing
 --   the generated Coq code to the console or a file.
 instance Pretty Coq.Sentence where
   pretty     = prettyCoq
+
   prettyList = prettyList . map PrettyCoq

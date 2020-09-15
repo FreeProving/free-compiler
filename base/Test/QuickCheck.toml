@@ -7,7 +7,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
-version = 3
+version = 4
 module-name = 'Test.QuickCheck'
 library-name = 'Base'
 exported-types = [
@@ -29,6 +29,7 @@ exported-values = [
 [[types]]
   haskell-name = 'Test.QuickCheck.Property'
   coq-name     = 'Property'
+  agda-name    = 'Property'
   arity        = 0
   cons-names   = []
 
@@ -40,8 +41,9 @@ exported-values = [
   haskell-type    = 'Prelude.Bool -> Test.QuickCheck.Property'
   haskell-name    = 'Test.QuickCheck.property'
   coq-name        = 'boolProp'
+  agda-name       = 'boolProp'
   arity           = 1
-  partial         = false
+  effects         = []
   needs-free-args = true
 
 ##############################################################################
@@ -52,40 +54,45 @@ exported-values = [
   haskell-type    = 'Prelude.Bool -> Test.QuickCheck.Property -> Test.QuickCheck.Property'
   haskell-name    = 'Test.QuickCheck.(==>)'
   coq-name        = 'preProp'
+  agda-name       = 'preProp'
   arity           = 2
-  partial         = false
+  effects         = []
   needs-free-args = true
 
 [[functions]]
   haskell-type    = 'a -> a -> Test.QuickCheck.Property'
   haskell-name    = 'Test.QuickCheck.(===)'
   coq-name        = 'eqProp'
+  agda-name       = 'eqProp'
   arity           = 2
-  partial         = false
+  effects         = []
   needs-free-args = true
 
 [[functions]]
   haskell-type    = 'a -> a -> Test.QuickCheck.Property'
   haskell-name    = 'Test.QuickCheck.(=/=)'
   coq-name        = 'neqProp'
+  agda-name        = 'neqProp'
   arity           = 2
-  partial         = false
+  effects         = []
   needs-free-args = true
 
 [[functions]]
   haskell-type    = 'Test.QuickCheck.Property -> Test.QuickCheck.Property -> Test.QuickCheck.Property'
   haskell-name    = 'Test.QuickCheck.(.&&.)'
   coq-name        = 'conjProp'
+  agda-name       = 'conjProp'
   arity           = 2
-  partial         = false
+  effects         = []
   needs-free-args = true
 
 [[functions]]
   haskell-type    = 'Test.QuickCheck.Property -> Test.QuickCheck.Property -> Test.QuickCheck.Property'
   haskell-name    = 'Test.QuickCheck.(.||.)'
   coq-name        = 'disjProp'
+  agda-name       = 'disjProp'
   arity           = 2
-  partial         = false
+  effects         = []
   needs-free-args = true
 
 ##############################################################################
@@ -95,6 +102,7 @@ exported-values = [
 [[types]]
   haskell-name = 'Prelude.Bool'
   coq-name     = 'Bool'
+  agda-name    = 'Bool'
   arity        = 0
   cons-names   = [
       'Prelude.True',

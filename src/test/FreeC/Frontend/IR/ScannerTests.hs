@@ -1,8 +1,7 @@
 -- | This module contains tests for "FreeC.Frontend.IR.Scanner".
-
 module FreeC.Frontend.IR.ScannerTests where
 
-import           Test.Hspec              hiding ( shouldReturn )
+import           Test.Hspec                 hiding ( shouldReturn )
 
 import           FreeC.Frontend.IR.Scanner
 import           FreeC.Frontend.IR.Token
@@ -34,9 +33,9 @@ testIRScanner = describe "FreeC.Frontend.IR.Scanner" $ do
     "x{- ... {- ... -} ... -}y" `shouldScan` [VarIdent "x", VarIdent "y"]
   it "skips line comments" $ do
     "x-- ...\ny" `shouldScan` [VarIdent "x", VarIdent "y"]
-  it "skips leading white space" $ do
+  it "skips leading whitespace" $ do
     "  x" `shouldScan` [VarIdent "x"]
-  it "skips trailing white space" $ do
+  it "skips trailing whitespace" $ do
     "x  " `shouldScan` [VarIdent "x"]
   it "uses longest prefix matching" $ do
     "ifbthenxelsey" `shouldScan` [VarIdent "ifbthenxelsey"]

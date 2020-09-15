@@ -1,8 +1,9 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 -- | This module contains a definition of substitutions for expressions and
 --   type expressions.
-
 module FreeC.IR.Subst
   ( -- * Substitutions
     Subst
@@ -10,60 +11,56 @@ module FreeC.IR.Subst
   , identitySubst
   , singleSubst
   , singleSubst'
-  -- * Composition
+    -- * Composition
   , composeSubst
   , composeSubsts
-  -- * Modification
+    -- * Modification
   , filterSubst
   , substWithout
     -- * Application
   , ApplySubst(..)
-    -- * Rename arguments
+    -- * Rename Arguments
   , renameTypeArgsSubst
   , renameTypeArgs
   , renameArgsSubst
   , renameArgs
-  )
-where
+  ) where
 
-import           Data.Composition               ( (.:) )
-import           Data.Map.Strict                ( Map )
-import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( mapMaybe )
-import           Data.Set                       ( Set )
-import qualified Data.Set                      as Set
+import           Data.Composition        ( (.:) )
+import           Data.Map.Strict         ( Map )
+import qualified Data.Map.Strict         as Map
+import           Data.Maybe              ( mapMaybe )
+import           Data.Set                ( Set )
+import qualified Data.Set                as Set
 
 import           FreeC.Environment.Fresh
 import           FreeC.IR.Reference
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax         as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
 -- Substitutions                                                             --
 -------------------------------------------------------------------------------
-
 -- | A substitution is a mapping from Haskell variable names to expressions
 --   (i.e. @'Subst' 'IR.Expr'@) or type expressions (i.e. @'Subst' 'IR.Type'@).
 --
---   When the substitution is applied (see 'applySubst') the source span of
+--   When the substitution is applied (see 'applySubst'), the source span of
 --   the substituted variable can be inserted into the (type) expression it is
 --   replaced by (e.g. to rename a variable without loosing source spans).
 newtype Subst a = Subst (Map IR.QName (SrcSpan -> a))
 
 -- | Substitutions can be pretty printed for testing purposes.
 instance Pretty a => Pretty (Subst a) where
-  pretty (Subst m) =
-    braces
-      $ prettySeparated (comma <> space)
-      $ flip map (Map.assocs m)
-      $ \(v, f) -> pretty v <+> prettyString "↦" <+> pretty (f NoSrcSpan)
+  pretty (Subst m) = braces
+    $ prettySeparated (comma <> space)
+    $ flip map (Map.assocs m)
+    $ \(v, f) -> pretty v <+> prettyString "↦" <+> pretty (f NoSrcSpan)
 
 -------------------------------------------------------------------------------
 -- Construction                                                              --
 -------------------------------------------------------------------------------
-
 -- | A substitution that does not change an expression.
 identitySubst :: Subst a
 identitySubst = Subst Map.empty
@@ -81,14 +78,13 @@ singleSubst' = Subst .: Map.singleton
 -------------------------------------------------------------------------------
 -- Composition                                                               --
 -------------------------------------------------------------------------------
-
 -- | Creates a new substitution that applies both given substitutions after
 --   each other.
 composeSubst :: ApplySubst a a => Subst a -> Subst a -> Subst a
-composeSubst s2@(Subst m2) (Subst m1) =
-  let m1' = fmap (\f srcSpan -> applySubst s2 (f srcSpan)) m1
-      m2' = Map.filterWithKey (const . (`Map.notMember` m1)) m2
-  in  Subst (m2' `Map.union` m1')
+composeSubst s2@(Subst m2) (Subst m1)
+  = let m1' = fmap (\f srcSpan -> applySubst s2 (f srcSpan)) m1
+        m2' = Map.filterWithKey (const . (`Map.notMember` m1)) m2
+    in Subst (m2' `Map.union` m1')
 
 -- | Creates a new substitution that applies all given substitutions after
 --   each other.
@@ -98,7 +94,6 @@ composeSubsts = foldl composeSubst identitySubst
 -------------------------------------------------------------------------------
 -- Modification                                                              --
 -------------------------------------------------------------------------------
-
 -- | Creates a new substitution whose domain does not contain the names
 --   that match the given predicate.
 filterSubst :: (IR.QName -> Bool) -> Subst a -> Subst a
@@ -109,9 +104,8 @@ substWithout :: Subst a -> [IR.QName] -> Subst a
 substWithout subst names = filterSubst (`notElem` names) subst
 
 -------------------------------------------------------------------------------
--- Application of substitutions                                              --
+-- Application of Substitutions                                              --
 -------------------------------------------------------------------------------
-
 -- | Type class for applying a substitution that replaces variables by
 --   values of type @a@ on values of type @b@.
 class ApplySubst a b where
@@ -122,9 +116,8 @@ instance (ApplySubst a b, Functor f) => ApplySubst a (f b) where
   applySubst = fmap . applySubst
 
 -------------------------------------------------------------------------------
--- Application to expressions                                                --
+-- Application to Expressions                                                --
 -------------------------------------------------------------------------------
-
 -- | Applies the given expression substitution to an expression.
 --
 --   This function uses the 'Converter' monad, because we need to create fresh
@@ -135,180 +128,194 @@ instance ApplySubst IR.Expr IR.Expr where
   applySubst subst@(Subst substMap) = applySubst'
    where
     applySubst' :: IR.Expr -> IR.Expr
-    applySubst' var@(IR.Var srcSpan name _) =
-      maybe var ($ srcSpan) (Map.lookup name substMap)
-
+    applySubst' var@(IR.Var srcSpan name _) = maybe var ($ srcSpan)
+      (Map.lookup name substMap)
     -- Substitute recursively.
-    applySubst' (IR.App srcSpan e1 e2 exprType) =
-      let e1' = applySubst' e1
-          e2' = applySubst' e2
-      in  IR.App srcSpan e1' e2' exprType
-    applySubst' (IR.TypeAppExpr srcSpan expr typeExpr exprType) =
-      let expr' = applySubst' expr
-      in  IR.TypeAppExpr srcSpan expr' typeExpr exprType
-    applySubst' (IR.If srcSpan e1 e2 e3 exprType) =
-      let e1' = applySubst' e1
-          e2' = applySubst' e2
-          e3' = applySubst' e3
-      in  IR.If srcSpan e1' e2' e3' exprType
-    applySubst' (IR.Case srcSpan expr alts exprType) =
-      let expr' = applySubst' expr
-          alts' = map (applySubst subst) alts
-      in  IR.Case srcSpan expr' alts' exprType
-    applySubst' (IR.Lambda srcSpan args expr exprType) =
-      let (subst', args') = newRenameArgs subst args
-          expr'           = applySubst subst' expr
-      in  IR.Lambda srcSpan args' expr' exprType
-
+    applySubst' (IR.App srcSpan e1 e2 exprType)
+      = let e1' = applySubst' e1
+            e2' = applySubst' e2
+        in IR.App srcSpan e1' e2' exprType
+    applySubst' (IR.TypeAppExpr srcSpan expr typeExpr exprType)
+      = let expr' = applySubst' expr
+        in IR.TypeAppExpr srcSpan expr' typeExpr exprType
+    applySubst' (IR.If srcSpan e1 e2 e3 exprType)
+      = let e1' = applySubst' e1
+            e2' = applySubst' e2
+            e3' = applySubst' e3
+        in IR.If srcSpan e1' e2' e3' exprType
+    applySubst' (IR.Case srcSpan expr alts exprType)
+      = let expr' = applySubst' expr
+            alts' = map (applySubst subst) alts
+        in IR.Case srcSpan expr' alts' exprType
+    applySubst' (IR.Lambda srcSpan args expr exprType)
+      = let (subst', args') = newRenameArgs subst args
+            expr'           = applySubst subst' expr
+        in IR.Lambda srcSpan args' expr' exprType
+    applySubst' (IR.Let srcSpan binds expr exprType)
+      = let (subst', varpats') = newRenameArgs subst (map IR.bindVarPat binds)
+            binds'             = zipWith (\v (IR.Bind s _ e) -> IR.Bind s v e)
+              varpats' binds
+            binds''            = map (applySubst subst') binds'
+            expr'              = applySubst subst' expr
+        in IR.Let srcSpan binds'' expr' exprType
     -- All other expressions remain unchanged.
-    applySubst' expr@(IR.Con _ _ _       ) = expr
-    applySubst' expr@(IR.Undefined _ _   ) = expr
-    applySubst' expr@(IR.ErrorExpr  _ _ _) = expr
+    applySubst' expr@(IR.Con _ _ _) = expr
+    applySubst' expr@(IR.Undefined _ _) = expr
+    applySubst' expr@(IR.ErrorExpr _ _ _) = expr
     applySubst' expr@(IR.IntLiteral _ _ _) = expr
 
 -- | Applies the given expression substitution to the right-hand side of the
---   given @case@-expression alterntaive.
+--   given @case@-expression alternative.
 instance ApplySubst IR.Expr IR.Alt where
-  applySubst subst (IR.Alt srcSpan conPat varPats expr) =
-    let (subst', varPats') = newRenameArgs subst varPats
-        expr'              = applySubst subst' expr
-    in  IR.Alt srcSpan conPat varPats' expr'
+  applySubst subst (IR.Alt srcSpan conPat varPats expr)
+    = let (subst', varPats') = newRenameArgs subst varPats
+          expr'              = applySubst subst' expr
+      in IR.Alt srcSpan conPat varPats' expr'
+
+-- | Applies the given expression substitution to an the right-hand side of a
+--   @let@ binding.
+--
+--   The variable that is bound by the binding is not renamed by this instance.
+--   The 'ApplySubst' instance for expressions renames all variables that are
+--   bound by @let@ expressions.
+instance ApplySubst IR.Expr IR.Bind where
+  applySubst subst (IR.Bind srcSpan varPat expr)
+    = let expr' = applySubst subst expr
+      in IR.Bind srcSpan varPat expr'
 
 -------------------------------------------------------------------------------
--- Application to types in expressions                                       --
+-- Application to Types in Expressions                                       --
 -------------------------------------------------------------------------------
-
 -- | Applies the given type substitution to an expression.
 instance ApplySubst IR.Type IR.Expr where
   applySubst subst = applySubst'
    where
     applySubst' :: IR.Expr -> IR.Expr
-
-    applySubst' (IR.Con srcSpan conName exprType) =
-      let exprType' = applySubst subst exprType
-      in  IR.Con srcSpan conName exprType'
-
-    applySubst' (IR.Var srcSpan varName exprType) =
-      let exprType' = applySubst subst exprType
-      in  IR.Var srcSpan varName exprType'
-
-    applySubst' (IR.App srcSpan e1 e2 exprType) =
-      let e1'       = applySubst' e1
-          e2'       = applySubst' e2
-          exprType' = applySubst subst exprType
-      in  IR.App srcSpan e1' e2' exprType'
-
-    applySubst' (IR.TypeAppExpr srcSpan expr typeExpr exprType) =
-      let expr'     = applySubst' expr
-          typeExpr' = applySubst subst typeExpr
-          exprType' = applySubst subst exprType
-      in  IR.TypeAppExpr srcSpan expr' typeExpr' exprType'
-
-    applySubst' (IR.If srcSpan e1 e2 e3 exprType) =
-      let e1'       = applySubst' e1
-          e2'       = applySubst' e2
-          e3'       = applySubst' e3
-          exprType' = applySubst subst exprType
-      in  IR.If srcSpan e1' e2' e3' exprType'
-
-    applySubst' (IR.Case srcSpan expr alts exprType) =
-      let expr'     = applySubst' expr
-          alts'     = applySubst subst alts
-          exprType' = applySubst subst exprType
-      in  IR.Case srcSpan expr' alts' exprType'
-
-    applySubst' (IR.Undefined srcSpan exprType) =
-      let exprType' = applySubst subst exprType
-      in  IR.Undefined srcSpan exprType'
-
-    applySubst' (IR.ErrorExpr srcSpan msg exprType) =
-      let exprType' = applySubst subst exprType
-      in  IR.ErrorExpr srcSpan msg exprType'
-
-    applySubst' (IR.IntLiteral srcSpan value exprType) =
-      let exprType' = applySubst subst exprType
-      in  IR.IntLiteral srcSpan value exprType'
-
-    applySubst' (IR.Lambda srcSpan args expr exprType) =
-      let args'     = applySubst subst args
-          expr'     = applySubst' expr
-          exprType' = applySubst subst exprType
-      in  IR.Lambda srcSpan args' expr' exprType'
+    applySubst' (IR.Con srcSpan conName exprType)
+      = let exprType' = applySubst subst exprType
+        in IR.Con srcSpan conName exprType'
+    applySubst' (IR.Var srcSpan varName exprType)
+      = let exprType' = applySubst subst exprType
+        in IR.Var srcSpan varName exprType'
+    applySubst' (IR.App srcSpan e1 e2 exprType)
+      = let e1'       = applySubst' e1
+            e2'       = applySubst' e2
+            exprType' = applySubst subst exprType
+        in IR.App srcSpan e1' e2' exprType'
+    applySubst' (IR.TypeAppExpr srcSpan expr typeExpr exprType)
+      = let expr'     = applySubst' expr
+            typeExpr' = applySubst subst typeExpr
+            exprType' = applySubst subst exprType
+        in IR.TypeAppExpr srcSpan expr' typeExpr' exprType'
+    applySubst' (IR.If srcSpan e1 e2 e3 exprType)
+      = let e1'       = applySubst' e1
+            e2'       = applySubst' e2
+            e3'       = applySubst' e3
+            exprType' = applySubst subst exprType
+        in IR.If srcSpan e1' e2' e3' exprType'
+    applySubst' (IR.Case srcSpan expr alts exprType)
+      = let expr'     = applySubst' expr
+            alts'     = applySubst subst alts
+            exprType' = applySubst subst exprType
+        in IR.Case srcSpan expr' alts' exprType'
+    applySubst' (IR.Undefined srcSpan exprType)
+      = let exprType' = applySubst subst exprType
+        in IR.Undefined srcSpan exprType'
+    applySubst' (IR.ErrorExpr srcSpan msg exprType)
+      = let exprType' = applySubst subst exprType
+        in IR.ErrorExpr srcSpan msg exprType'
+    applySubst' (IR.IntLiteral srcSpan value exprType)
+      = let exprType' = applySubst subst exprType
+        in IR.IntLiteral srcSpan value exprType'
+    applySubst' (IR.Lambda srcSpan args expr exprType)
+      = let args'     = applySubst subst args
+            expr'     = applySubst' expr
+            exprType' = applySubst subst exprType
+        in IR.Lambda srcSpan args' expr' exprType'
+    applySubst' (IR.Let srcSpan binds expr exprType)
+      = let binds'    = applySubst subst binds
+            expr'     = applySubst subst expr
+            exprType' = applySubst subst exprType
+        in IR.Let srcSpan binds' expr' exprType'
 
 -- | Applies the given type substitution to the right-hand side of the
---   given @case@-expression alterntaive.
+--   given @case@-expression alternative.
 instance ApplySubst IR.Type IR.Alt where
-  applySubst subst (IR.Alt srcSpan conPat varPats expr) =
-    let varPats' = applySubst subst varPats
-        expr'    = applySubst subst expr
-    in  IR.Alt srcSpan conPat varPats' expr'
+  applySubst subst (IR.Alt srcSpan conPat varPats expr)
+    = let varPats' = applySubst subst varPats
+          expr'    = applySubst subst expr
+      in IR.Alt srcSpan conPat varPats' expr'
 
 -- | Applies the given type substitution to the type annotation of the given
 --   variable pattern.
 instance ApplySubst IR.Type IR.VarPat where
-  applySubst subst (IR.VarPat srcSpan varIdent maybeVarType isStrict) =
-    let maybeVarType' = applySubst subst maybeVarType
-    in  IR.VarPat srcSpan varIdent maybeVarType' isStrict
+  applySubst subst (IR.VarPat srcSpan varIdent maybeVarType isStrict)
+    = let maybeVarType' = applySubst subst maybeVarType
+      in IR.VarPat srcSpan varIdent maybeVarType' isStrict
+
+-- | Applies the given type substitution to the variable pattern and expression
+--   of the given @let@ binding.
+instance ApplySubst IR.Type IR.Bind where
+  applySubst subst (IR.Bind srcSpan varPat expr)
+    = let varPat' = applySubst subst varPat
+          expr'   = applySubst subst expr
+      in IR.Bind srcSpan varPat' expr'
 
 -------------------------------------------------------------------------------
--- Application to function declarations.                                     --
+-- Application to Function Declarations                                      --
 -------------------------------------------------------------------------------
-
 -- | Applies the given expression substitution to the right-hand side of a
 --   function declaration.
 instance ApplySubst IR.Expr IR.FuncDecl where
-  applySubst subst (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs)
+  applySubst subst
+    (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs)
     = let (subst', args') = newRenameArgs subst args
           rhs'            = applySubst subst' rhs
-      in  IR.FuncDecl srcSpan declIdent typeArgs args' maybeRetType rhs'
+      in IR.FuncDecl srcSpan declIdent typeArgs args' maybeRetType rhs'
 
 -- | Applies the given type substitution to the right-hand side of a
 --   function declaration.
 instance ApplySubst IR.Type IR.FuncDecl where
-  applySubst subst (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs)
+  applySubst subst
+    (IR.FuncDecl srcSpan declIdent typeArgs args maybeRetType rhs)
     = let args'         = applySubst subst args
           rhs'          = applySubst subst rhs
           maybeRetType' = applySubst subst maybeRetType
-      in  IR.FuncDecl srcSpan declIdent typeArgs args' maybeRetType' rhs'
+      in IR.FuncDecl srcSpan declIdent typeArgs args' maybeRetType' rhs'
 
 -------------------------------------------------------------------------------
--- Application to type expressions                                           --
+-- Application to Type Expressions                                           --
 -------------------------------------------------------------------------------
-
 -- | Applies the given type substitution to a type expression.
 instance ApplySubst IR.Type IR.Type where
   applySubst (Subst substMap) = applySubst'
    where
     applySubst' :: IR.Type -> IR.Type
-    applySubst' typeCon@(IR.TypeCon _       _    ) = typeCon
-    applySubst' typeVar@(IR.TypeVar srcSpan ident) = maybe
-      typeVar
-      ($ srcSpan)
+    applySubst' typeCon@(IR.TypeCon _ _)           = typeCon
+    applySubst' typeVar@(IR.TypeVar srcSpan ident) = maybe typeVar ($ srcSpan)
       (Map.lookup (IR.UnQual (IR.Ident ident)) substMap)
-    applySubst' (IR.TypeApp srcSpan t1 t2) =
-      let t1' = applySubst' t1
-          t2' = applySubst' t2
-      in  IR.TypeApp srcSpan t1' t2'
-    applySubst' (IR.FuncType srcSpan t1 t2) =
-      let t1' = applySubst' t1
-          t2' = applySubst' t2
-      in  IR.FuncType srcSpan t1' t2'
+    applySubst' (IR.TypeApp srcSpan t1 t2)
+      = let t1' = applySubst' t1
+            t2' = applySubst' t2
+        in IR.TypeApp srcSpan t1' t2'
+    applySubst' (IR.FuncType srcSpan t1 t2)
+      = let t1' = applySubst' t1
+            t2' = applySubst' t2
+        in IR.FuncType srcSpan t1' t2'
 
 -------------------------------------------------------------------------------
--- Application to type schemas                                           --
+-- Application to Type Schemes                                               --
 -------------------------------------------------------------------------------
-
--- | Applies the given type substitution to a type schema.
-instance ApplySubst IR.Type IR.TypeSchema where
-  applySubst subst (IR.TypeSchema srcSpan typeArgs typeExpr) =
-    let (subst', typeArgs') = newRenameArgs subst typeArgs
-        typeExpr'           = applySubst subst' typeExpr
-    in  IR.TypeSchema srcSpan typeArgs' typeExpr'
+-- | Applies the given type substitution to a type scheme.
+instance ApplySubst IR.Type IR.TypeScheme where
+  applySubst subst (IR.TypeScheme srcSpan typeArgs typeExpr)
+    = let (subst', typeArgs') = newRenameArgs subst typeArgs
+          typeExpr'           = applySubst subst' typeExpr
+      in IR.TypeScheme srcSpan typeArgs' typeExpr'
 
 -------------------------------------------------------------------------------
--- Renaming arguments                                                        --
+-- Renaming Arguments                                                        --
 -------------------------------------------------------------------------------
-
 -- | Type class for (type) arguments of type @arg@ that can be renamed in
 --   (type) expressions of type @expr@.
 class Renamable arg expr | arg -> expr, expr -> arg where
@@ -328,40 +335,45 @@ class Renamable arg expr | arg -> expr, expr -> arg where
 -- | Type variable declarations bind type variables in type expressions and
 --   can be renamed.
 instance Renamable IR.TypeVarDecl IR.Type where
-  getIdent = IR.typeVarDeclIdent
+  getIdent                = IR.typeVarDeclIdent
+
   setIdent typeArg ident' = typeArg { IR.typeVarDeclIdent = ident' }
-  getScope = const IR.TypeScope
-  toExpr   = flip IR.TypeVar . getIdent
+
+  getScope                = const IR.TypeScope
+
+  toExpr                  = flip IR.TypeVar . getIdent
 
 -- | Variable patterns bind variables in expressions and can be renamed.
 instance Renamable IR.VarPat IR.Expr where
-  getIdent = IR.varPatIdent
+  getIdent               = IR.varPatIdent
+
   setIdent varPat ident' = varPat { IR.varPatIdent = ident' }
-  getScope = const IR.ValueScope
-  toExpr   = flip IR.untypedVar . IR.UnQual . IR.Ident . getIdent
+
+  getScope               = const IR.ValueScope
+
+  toExpr                 = flip IR.untypedVar . IR.UnQual . IR.Ident . getIdent
 
 -- | Renames the given (type) arguments such that there are no name conflicts
 --   with the given substitution.
 --
 --   Returns the renamed (type) arguments as well as a modified substitution
 --   that replaces the renamed (type) arguments appropriately.
-newRenameArgs
-  :: (HasRefs expr, Renamable arg expr, ApplySubst expr expr)
-  => Subst expr
-  -> [arg]
-  -> (Subst expr, [arg])
-newRenameArgs subst args =
-  let subst' = subst `substWithout` map (IR.UnQual . IR.Ident . getIdent) args
-  in  newRenameArgs' subst' args
+newRenameArgs :: (HasRefs expr, Renamable arg expr, ApplySubst expr expr)
+              => Subst expr
+              -> [arg]
+              -> (Subst expr, [arg])
+newRenameArgs subst args
+  = let subst' = subst
+          `substWithout` map (IR.UnQual . IR.Ident . getIdent) args
+    in newRenameArgs' subst' args
 
 -- | Like 'newRenameArgs' but the domain of the given substitution does not
 --   contain any of the given type arguments.
-newRenameArgs'
-  :: (HasRefs expr, Renamable arg expr, ApplySubst expr expr)
-  => Subst expr
-  -> [arg]
-  -> (Subst expr, [arg])
-newRenameArgs' subst []           = (subst, [])
+newRenameArgs' :: (HasRefs expr, Renamable arg expr, ApplySubst expr expr)
+               => Subst expr
+               -> [arg]
+               -> (Subst expr, [arg])
+newRenameArgs' subst [] = (subst, [])
 newRenameArgs' subst (arg : args) = (arg' :) <$> newRenameArgs' subst' args
  where
   -- | The original identifier of the argument.
@@ -387,21 +399,20 @@ newRenameArgs' subst (arg : args) = (arg' :) <$> newRenameArgs' subst' args
   -- | Before the actual substitution is applied, all occurrences of the
   --   original (type) variable must be replaced by the renamed (type) variable.
   {- subst' :: Subst expr -}
-  subst'    = subst `composeSubst` singleSubst' argName (toExpr arg')
+  subst' = subst `composeSubst` singleSubst' argName (toExpr arg')
 
   -- | The renamed argument.
   {- arg' :: arg -}
-  arg'      = setIdent arg argIdent'
+  arg' = setIdent arg argIdent'
 
--- | Gets the identifiers that occur freely on in the specified scope of the
---   given substitution.
+-- | Gets the identifiers that occur freely in the specified scope of the given
+--   substitution.
 freeSubstIdents :: HasRefs a => IR.Scope -> Subst a -> Set String
-freeSubstIdents scope (Subst substMap) =
-  Set.fromList
-    $ mapMaybe (IR.identFromQName . refName)
-    $ filter ((== scope) . refScope)
-    $ concatMap (refs . ($ NoSrcSpan))
-    $ Map.elems substMap
+freeSubstIdents scope (Subst substMap) = Set.fromList
+  $ mapMaybe (IR.identFromQName . refName)
+  $ filter ((== scope) . refScope)
+  $ concatMap (refs . ($ NoSrcSpan))
+  $ Map.elems substMap
 
 -- | Generates identifiers that start with the given prefix and can be used as
 --   fresh identifiers.
@@ -413,9 +424,8 @@ freshIdentsWithPrefix :: String -> [String]
 freshIdentsWithPrefix prefix = map (prefix ++) ("" : map show [0 :: Int ..])
 
 -------------------------------------------------------------------------------
--- Rename arguments (old)                                                    --
+-- Rename Arguments (old)                                                    --
 -------------------------------------------------------------------------------
-
 -- | Creates a substitution that renames the given type variables to fresh
 --   variables.
 --
@@ -439,11 +449,10 @@ renameTypeArgsSubst typeArgDecls = do
 
 -- | Renames the given type variables in the given expression or type
 --   to fresh type variables.
-renameTypeArgs
-  :: ApplySubst IR.Type a
-  => [IR.TypeVarDecl]
-  -> a
-  -> Converter ([IR.TypeVarDecl], a)
+renameTypeArgs :: ApplySubst IR.Type a
+               => [IR.TypeVarDecl]
+               -> a
+               -> Converter ([IR.TypeVarDecl], a)
 renameTypeArgs typeArgDecls x = do
   (typeArgDecls', subst) <- renameTypeArgsSubst typeArgDecls
   return (typeArgDecls', applySubst subst x)

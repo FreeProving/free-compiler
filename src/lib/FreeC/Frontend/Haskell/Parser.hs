@@ -4,7 +4,6 @@
 --   We are using the @haskell-src-ext@ package for parsing. This module just
 --   provides an interface for the actual parser and configures the parser
 --   appropriately.
-
 module FreeC.Frontend.Haskell.Parser
   ( parseHaskell
     -- * Modules
@@ -12,33 +11,22 @@ module FreeC.Frontend.Haskell.Parser
   , parseHaskellModuleWithComments
   , parseHaskellModuleFile
   , parseHaskellModuleFileWithComments
-  )
-where
+  ) where
 
-import           Control.Monad.IO.Class         ( MonadIO(..) )
-
-import qualified Language.Haskell.Exts.Comments
-                                               as HSE
+import           Control.Monad.IO.Class                  ( MonadIO(..) )
+import qualified Language.Haskell.Exts.Comments          as HSE
 import           Language.Haskell.Exts.Extension
-                                                ( Language(..)
-                                                , Extension(..)
-                                                , KnownExtension(..)
-                                                )
-import           Language.Haskell.Exts.Fixity   ( Fixity
-                                                , infix_
-                                                , infixl_
-                                                , infixr_
-                                                )
-import           Language.Haskell.Exts.Parser   ( ParseMode(..)
-                                                , ParseResult(..)
-                                                , Parseable(..)
-                                                )
-import           Language.Haskell.Exts.SrcLoc   ( SrcSpanInfo )
-import qualified Language.Haskell.Exts.Syntax  as HSE
+  ( Extension(..), KnownExtension(..), Language(..) )
+import           Language.Haskell.Exts.Fixity
+  ( Fixity, infix_, infixl_, infixr_ )
+import           Language.Haskell.Exts.Parser
+  ( ParseMode(..), ParseResult(..), Parseable(..) )
+import           Language.Haskell.Exts.SrcLoc            ( SrcSpanInfo )
+import qualified Language.Haskell.Exts.Syntax            as HSE
 
 import           FreeC.Frontend.Haskell.SrcSpanConverter
 import           FreeC.IR.SrcSpan
-import           FreeC.IR.Syntax               as IR
+import           FreeC.IR.Syntax                         as IR
 import           FreeC.Monad.Reporter
 
 -- | Custom parameters for parsing a Haskell source file with the given name.
@@ -69,7 +57,7 @@ predefinedFixities = concat
   , infix_ 4 ["==", "/=", "<", "<=", ">=", ">"]
   , infixr_ 3 ["&&"]
   , infixr_ 2 ["||"]
-  -- QuickCheck.
+    -- QuickCheck.
   , infixr_ 0 ["==>"]
   , infixr_ 1 [".&&.", ".||."]
   , infix_ 4 ["===", "=/="]
@@ -96,14 +84,14 @@ parseHaskellWithCommentsAndExts
   => [KnownExtension] -- ^ The extensions to enable.
   -> SrcFile          -- ^ The name and contents of the Haskell source file.
   -> r (ast SrcSpan, [IR.Comment])
-parseHaskellWithCommentsAndExts enabledExts srcFile =
-  case parseWithComments parseMode (srcFileContents srcFile) of
+parseHaskellWithCommentsAndExts enabledExts srcFile
+  = case parseWithComments parseMode (srcFileContents srcFile) of
     ParseOk (node, comments) -> return
       ( fmap (toMessageSrcSpan :: SrcSpanInfo -> SrcSpan) node
       , map convertComment comments
       )
-    ParseFailed loc msg ->
-      reportFatal $ Message (toMessageSrcSpan loc) Error msg
+    ParseFailed loc msg      -> reportFatal
+      $ Message (toMessageSrcSpan loc) Error msg
  where
   -- | Configuration of the Haskell parser.
   parseMode :: ParseMode
@@ -119,7 +107,7 @@ parseHaskellWithCommentsAndExts enabledExts srcFile =
   --
   --   The 'srcFiles' are needed because when pretty printing a message,
   --   an excerpt of the code that caused the message to be reported is shown.
-  toMessageSrcSpan :: ConvertableSrcSpan l => l -> SrcSpan
+  toMessageSrcSpan :: ConvertibleSrcSpan l => l -> SrcSpan
   toMessageSrcSpan = convertSrcSpanWithCode srcFiles
 
   -- | Unlike all other AST nodes of @haskell-src-exts@, the
@@ -129,12 +117,11 @@ parseHaskellWithCommentsAndExts enabledExts srcFile =
   convertComment :: HSE.Comment -> IR.Comment
   convertComment (HSE.Comment isBlockComment srcSpan text)
     | isBlockComment = IR.BlockComment (toMessageSrcSpan srcSpan) text
-    | otherwise      = IR.LineComment (toMessageSrcSpan srcSpan) text
+    | otherwise = IR.LineComment (toMessageSrcSpan srcSpan) text
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
-
 -- | Parses a Haskell module.
 --
 --   Syntax errors cause a fatal error message to be reported.
@@ -144,7 +131,7 @@ parseHaskellModule
   -> r (HSE.Module SrcSpan)
 parseHaskellModule = parseHaskell
 
--- | Like 'parseHaskellModule' but returns the comments in addtion to the AST.
+-- | Like 'parseHaskellModule' but returns the comments in addition to the AST.
 parseHaskellModuleWithComments
   :: MonadReporter r
   => SrcFile -- ^ The name and contents of the Haskell source file.
@@ -152,13 +139,13 @@ parseHaskellModuleWithComments
 parseHaskellModuleWithComments = parseHaskellWithComments
 
 -- | Loads and parses a Haskell module from the file with the given name.
-parseHaskellModuleFile
-  :: (MonadIO r, MonadReporter r)
-  => FilePath -- ^ The name of the Haskell source file.
-  -> r (HSE.Module SrcSpan)
+parseHaskellModuleFile :: (MonadIO r, MonadReporter r)
+                       => FilePath -- ^ The name of the Haskell source file.
+                       -> r (HSE.Module SrcSpan)
 parseHaskellModuleFile = fmap fst . parseHaskellModuleFileWithComments
 
--- | Like 'parseHaskellModuleFile' but returns the comments in addtion to the AST.
+-- | Like 'parseHaskellModuleFile' but returns the comments in addition to
+--   the AST.
 parseHaskellModuleFileWithComments
   :: (MonadIO r, MonadReporter r)
   => FilePath -- ^ The name of the Haskell source file.
