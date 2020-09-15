@@ -2,6 +2,7 @@
    some data types in a nondeterministic context. *)
 
 From Base Require Import Free.
+From Base Require Import Free.Handlers.
 From Base Require Import Free.Instance.Identity.
 From Base Require Import Free.Instance.ND.
 From Base Require Import Free.Util.Search.
@@ -11,18 +12,6 @@ From Generated Require Import Proofs.Normalform.
 
 Require Import Lists.List.
 Import List.ListNotations.
-
-(* Shortcuts to handle a program. *)
-
-(* Shortcut to evaluate a non-deterministic program to a result list.
-   list without normalization. *)
-Definition evalND {A : Type} (p : Free _ _ A)
-:= @collectVals A (run (runChoice p)).
-
-(* Handle a non-deterministic program after normalization. *)
-Definition evalNDNF {A B : Type} 
-                    `{Normalform _ _ A B}
-  p := evalND (nf p).
 
 (* Shortcuts for the Identity effect (i.e. the lack of an effect). *)
 Notation IdS := Identity.Shape.
@@ -50,6 +39,12 @@ Section Data.
           (True' ? False')
              (MyNil Shape Pos)).
 
+  (* [true ? false] *)
+  Definition ndList2 `{ND} : Free Shape Pos (MyList Shape Pos Bool_)
+   := MyCons Shape Pos
+        (True' ? False')
+        (MyNil Shape Pos).
+
   (* (foo (bar (foo baz))) ? (foo baz) *)
   Definition ndFoo `{ND} : Free Shape Pos (Foo Shape Pos Bool_)
    := Foo0 Shape Pos
@@ -69,6 +64,14 @@ Section Data.
               (Leaf Shape Pos)
               (Nil Shape Pos))).
 
+  (* branch true [branch true ? false []] *)
+  Definition ndTree2 `{ND} : Free Shape Pos (Tree Shape Pos Bool_)
+   := Branch Shape Pos
+        True'
+        (Cons Shape Pos
+          (Branch Shape Pos (True' ? False') (Nil Shape Pos))
+          (Nil Shape Pos)).
+
   (* (true -> (true ? false)) : ([] ? [(true ? false) -> false]) *)
   Definition ndMap `{ND} : Free Shape Pos (Map Shape Pos Bool_ Bool_)
    := Entry0 Shape Pos
@@ -83,13 +86,17 @@ Section Data.
 End Data.
 
 Arguments ndList {_} {_} {_}.
+Arguments ndList2 {_} {_} {_}.
 Arguments ndFoo {_} {_} {_}.
 Arguments ndTree {_} {_} {_}.
+Arguments ndTree2 {_} {_} {_}.
 Arguments ndMap {_} {_} {_}.
+
+(* Tests for the generated Normalform instances. *)
 
 (* true : ([] ? [true ? false])
    --> [ [true], [true, true], [true, false] ] *)
-Example nondeterministic_list : evalNDNF ndList
+Example nondeterministic_list : handleND ndList
   = [ myCons (pure true) (MyNil IdS IdP)
     ; myCons (pure true) (MyCons IdS IdP (pure true) (MyNil IdS IdP))
     ; myCons (pure true) (MyCons IdS IdP (pure false) (MyNil IdS IdP))
@@ -98,7 +105,7 @@ Proof. trivial. Qed.
 
 (* (foo baz) ? (foo (bar (foo baz)))
    --> [ foo baz, foo (bar (foo baz)) ] *)
-Example nondeterministic_foo : evalNDNF ndFoo
+Example nondeterministic_foo : handleND ndFoo
   = [ foo (Bar0 IdS IdP (Foo0 IdS IdP (Baz IdS IdP)))
     ; foo (Baz IdS IdP)
     ].
@@ -107,7 +114,7 @@ Proof. trivial. Qed.
 (* branch (true ? false) (leaf : ([] ? [leaf]))
    --> [ branch true leaf, branch true [leaf, leaf]
        , branch false leaf, branch false [leaf, leaf] ] *)
-Example nondeterministic_tree : evalNDNF ndTree
+Example nondeterministic_tree : handleND ndTree
   = [ branch (pure true) (Cons IdS IdP (Leaf IdS IdP) (Nil IdS IdP))
     ; branch (pure true) (Cons IdS IdP (Leaf IdS IdP)
         (Cons IdS IdP (Leaf IdS IdP) (Nil IdS IdP)))
@@ -121,7 +128,7 @@ Proof. trivial. Qed.
    --> [ [true -> true]                , [true -> true, true -> false]
        , [true -> true, false -> false], [false -> true]
        , [false -> true, true -> false], [false -> true, false -> false] ] *)
-Example nondeterministic_map : evalNDNF ndMap
+Example nondeterministic_map : handleND ndMap
  = [ entry (pure true) (pure true) (Empty IdS IdP)
    ; entry (pure true) (pure true)
       (Entry0 IdS IdP (pure true) (pure false) (Empty IdS IdP))
@@ -133,4 +140,41 @@ Example nondeterministic_map : evalNDNF ndMap
    ; entry (pure true) (pure false)
       (Entry0 IdS IdP (pure false) (pure false) (Empty IdS IdP))
    ].
+Proof. trivial. Qed.
+
+(* Tests for the generated ShareableArgs instances. *)
+
+(* let x = [true ? false] in myHead x || myHead x 
+   --> true || true ? false || false
+   --> true ? false *)
+Example deepSharingNDList 
+: handleShareND (doubleDisjunctionHead _ _ (Cbneed _ _) (ND.Partial _ _) ndList2)
+= [true;false].
+Proof. trivial. Qed.
+
+(* let x = branch (true ? false) (leaf : ([] ? [leaf]))
+   in root x || root x
+   --> true || true ? false || false
+   --> true ? false *)
+Example deepSharingNDTree 
+: handleShareND (doubleDisjunctionRoot _ _ (Cbneed _ _) (ND.Partial _ _) ndTree)
+= [true;false].
+Proof. trivial. Qed.
+
+(* let x = branch true [branch true ? false []]
+   in headRoot x || headRoot x
+   --> true || true ? false || false
+   --> true ? false *)
+Example deepSharingNDTree2
+: handleShareND (doubleDisjunctionHeadRoot _ _ (Cbneed _ _) (ND.Partial _ _) ndTree2)
+= [true;false].
+Proof. trivial. Qed.
+
+(* let x = true -> (true ? false)) : ([] ? [(true ? false) -> false]
+   in firstMapEntry x || firstMapEntry x
+   --> true || true ? false || false
+   --> true ? false *)
+Example deepSharingNDMap
+: handleShareND (doubleDisjunctionMap _ _ (Cbneed _ _) (ND.Partial _ _) ndMap)
+= [true;false].
 Proof. trivial. Qed.
