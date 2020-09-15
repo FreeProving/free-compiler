@@ -13,6 +13,7 @@ module FreeC.Backend.Coq.Base
   , freeImpureCon
   , freeBind
   , freeArgs
+  , forFree
     -- * Partiality
   , partial
   , partialArg
@@ -38,6 +39,8 @@ module FreeC.Backend.Coq.Base
     -- * Literal Scopes
   , integerScope
   , stringScope
+    -- * Tactics
+  , proveInd
     -- * Reserved Identifiers
   , reservedIdents
   ) where
@@ -102,6 +105,10 @@ freeArgs :: [(Coq.Qualid, Coq.Term)]
 freeArgs = [ (shape, Coq.Sort Coq.Type)
            , (pos, Coq.Arrow (Coq.Qualid shape) (Coq.Sort Coq.Type))
            ]
+
+-- | The Coq identifier for the @ForFree@ property.
+forFree :: Coq.Qualid
+forFree = Coq.bare "ForFree"
 
 -------------------------------------------------------------------------------
 -- Partiality                                                                --
@@ -229,6 +236,13 @@ stringScope :: Coq.Ident
 stringScope = Coq.ident "string"
 
 -------------------------------------------------------------------------------
+-- Tactics                                                                   --
+-------------------------------------------------------------------------------
+-- | The tactic that is needed to prove induction schemes.
+proveInd :: Coq.Qualid
+proveInd = Coq.bare "prove_ind"
+
+-------------------------------------------------------------------------------
 -- Reserved Identifiers                                                      --
 -------------------------------------------------------------------------------
 -- | All Coq identifiers that are reserved for the Base library.
@@ -240,6 +254,7 @@ reservedIdents
       free
     , freePureCon
     , freeImpureCon
+    , forFree
       -- Partiality
     , partial
     , partialArg
