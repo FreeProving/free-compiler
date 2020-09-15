@@ -17,6 +17,6 @@
    declarations for each constructor declaration of the given data types.
    Qualified smart constructor notations are packed into a separate list.</p></div></div><div class="top"><p class="src"><a id="v:convertDataDecl" class="def">convertDataDecl</a> :: <a href="FreeC-IR-Syntax-TypeDecl.html#t:TypeDecl" title="FreeC.IR.Syntax.TypeDecl">TypeDecl</a> -&gt; <a href="FreeC-Monad-Converter.html#t:Converter" title="FreeC.Monad.Converter">Converter</a> (IndBody, ([Sentence], [Sentence])) <a href="src/FreeC.Backend.Coq.Converter.TypeDecl.html#convertDataDecl" class="link">Source</a> <a href="#v:convertDataDecl" class="selflink">#</a></p><div class="doc"><p>Converts a Haskell data type declaration to the body of a Coq <code>Inductive</code>
    sentence, the <code>Arguments</code> sentences for it's constructors and the smart
-   constructor notations.
+   constructor notations and creates an induction scheme.
    Qualified smart constructor notations are packed into a separate list.</p><p>Type variables declared by the data type or the smart constructors are
    not visible outside of this function.</p></div></div></div></div><div id="footer"><p>Produced by <a href="http://www.haskell.org/haddock/">Haddock</a> version 2.22.0</p></div></body></html>
