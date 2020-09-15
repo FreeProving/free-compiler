@@ -219,7 +219,8 @@ countVarNames IR.IntLiteral {}           = Map.empty
 countVarNames (IR.Case _ e alts _)
   = let altVars     = concatMap (map IR.varPatQName . IR.altVarPats) alts
         completeMap = countVarNames e
-          `mergeMap` foldr (mergeMap . countVarNames . IR.altRhs) Map.empty alts
+          `mergeMap` foldr (Map.unionWith max . countVarNames . IR.altRhs)
+          Map.empty alts
     in completeMap `Map.withoutKeys` Set.fromList altVars
 countVarNames (IR.Lambda _ args rhs _)   = countVarNames rhs
   `Map.withoutKeys` Set.fromList (map IR.varPatQName args)
