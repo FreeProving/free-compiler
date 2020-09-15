@@ -39,8 +39,9 @@ firstMapEntry (Entry _ v _) = v
 -- A function that shares a data structure, transforms
 -- it into a Bool twice and connects the results with a
 -- disjunction.
-doubleDisjunction ::  a -> (a -> Bool) -> Bool
-doubleDisjunction x f = let y = x in f y || f y
+doubleDisjunction :: a -> (a -> Bool) -> Bool
+doubleDisjunction x f = let y = x
+                        in f y || f y
 
 -- doubleDisjunction specialized for MyList
 doubleDisjunctionHead :: MyList Bool -> Bool
