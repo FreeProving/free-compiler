@@ -31,7 +31,8 @@ import           FreeC.Backend.Coq.Converter.Type
 import qualified FreeC.Backend.Coq.Syntax         as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
-import           FreeC.Environment.Fresh   ( freshArgPrefix, freshCoqIdent, freshCoqQualid, freshHaskellIdent )
+import           FreeC.Environment.Fresh
+  ( freshArgPrefix, freshCoqIdent, freshCoqQualid, freshHaskellIdent )
 import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.Renamer        ( renameAndDefineTypeVar )
 import           FreeC.IR.DependencyGraph
@@ -360,7 +361,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     fArgTypes <- mapM convertType argTypes
     (argIdents, argBinders) <- mapAndUnzipM convertAnonymousArg
       (map Just argTypes)
-    let
+    let 
       -- We need an induction hypothesis for every argument that has the same
       -- type as the constructor but lifted into the free monad.
       addHypotheses' :: [(Coq.Term, Coq.Qualid)] -> Coq.Term -> Coq.Term
