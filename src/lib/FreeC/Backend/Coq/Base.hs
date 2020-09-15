@@ -30,6 +30,8 @@ module FreeC.Backend.Coq.Base
   , strategyArg
   , shareableArgs
   , shareableArgsBinder
+  , normalform
+  , normalformBinder
   , implicitArg
   , share
     -- * Effect Selection
@@ -177,7 +179,7 @@ strategyBinder :: Coq.Binder
 strategyBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit strategyArg
   $ Coq.app (Coq.Qualid strategy) [Coq.Qualid shape, Coq.Qualid pos]
 
--- | The Coq binder for the @ShareableArgs@ type class.
+-- | The Coq identifier for the @ShareableArgs@ type class.
 shareableArgs :: Coq.Qualid
 shareableArgs = Coq.bare "ShareableArgs"
 
@@ -187,6 +189,17 @@ shareableArgsBinder :: Coq.Qualid -> Coq.Binder
 shareableArgsBinder typeArg = Coq.Generalized Coq.Implicit
   $ Coq.app (Coq.Qualid shareableArgs)
   $ map Coq.Qualid [shape, pos, typeArg]
+
+-- | The Coq identifier for the @Normalform@ type class.
+normalform :: Coq.Qualid
+normalform = Coq.bare "Normalform"
+
+-- | The Coq binder for the @Normalform@ type class with the source and target
+--   type variable with the given names.
+normalformBinder :: Coq.Qualid -> Coq.Qualid -> Coq.Binder
+normalformBinder sourceType targetType = Coq.Generalized Coq.Implicit
+  $ Coq.app (Coq.Qualid normalform)
+  $ map Coq.Qualid [shape, pos, sourceType, targetType]
 
 -- | The Coq identifier for an implicit argument.
 implicitArg :: Coq.Term
@@ -269,6 +282,7 @@ reservedIdents
     , strategy
     , strategyArg
     , shareableArgs
+    , normalform
     , share
     ]
   ++ map fst freeArgs

@@ -505,8 +505,12 @@ generateTypeclassInstances dataDecls = do
   let recTypeList = map
         (filter (\t -> not (t `elem` declTypes || IR.isTypeVar t))) reducedTypes
   -- Construct Normalform instances.
-  buildInstances recTypeList normalformFuncName normalformClassName
-    nfBindersAndReturnType buildNormalformValue
+  nfInstances <- buildInstances recTypeList normalformFuncName
+    normalformClassName nfBindersAndReturnType buildNormalformValue
+  -- Construct ShareableArgs instances.
+  shareableArgsInstances <- buildInstances recTypeList shareableArgsFuncName
+    shareableArgsClassName shareArgsBindersAndReturnType buildShareArgsValue
+  return (nfInstances ++ shareableArgsInstances)
  where
   -- The (mutually recursive) data types for which we are defining
   -- instances, converted to types.
@@ -695,19 +699,22 @@ generateTypeclassInstances dataDecls = do
   normalformFuncName :: String
   normalformFuncName = "nf'"
 
+  -- | The function nf.
+  normalformFunc :: Coq.Term
+  normalformFunc = Coq.Qualid (Coq.bare "nf")
+
   -- | The binders and return types for the Normalform class function and instance.
   nfBindersAndReturnType
     ::
-    -- The type for which we are defining an instance.
+    -- The type @t@ for which we are defining an instance.
     IR.Type
     -> Coq.Qualid
     -> Converter
     ( [Coq.Binder] -- Type variable binders and Normalform constraints.
     , Coq.Binder -- Binder for the argument of type @t@.
-    , Coq.Term -- Return type of nf'.
-    , Coq.Term
-    ) -- Return type of the Normalform instance.
-
+    , Coq.Term -- Return type of @nf'@.
+    , Coq.Term -- Return type of the Normalform instance.
+    )
   nfBindersAndReturnType t varName = do
     -- For each type variable in the type, generate two type variables.
     -- One represents the type's variable itself, the other the result
@@ -719,11 +726,11 @@ generateTypeclassInstances dataDecls = do
     (targetType, targetVars) <- toCoqType "b" idShapeAndPos t
     -- For each type variable ai, build a constraint
     -- `{Normalform Shape Pos ai bi}.
-    let constraints = map (buildConstraint normalformClassName)
-          (zipWith (\v1 v2 -> [v1, v2]) sourceVars targetVars)
-    let varBinders
+    let constraints = map (uncurry Coq.Base.normalformBinder)
+          (zip sourceVars targetVars)
+    let varBinder
           = [typeVarBinder (sourceVars ++ targetVars) | not (null sourceVars)]
-    let binders = varBinders ++ constraints
+    let binders = varBinder ++ constraints
     -- Create an explicit argument binder for the value to be normalized.
     let topLevelVarBinder
           = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit varName sourceType
@@ -737,7 +744,10 @@ generateTypeclassInstances dataDecls = do
   buildNormalformValue
     ::
     -- A map to associate types with the appropriate functions to call.
-    TypeMap -> Coq.Qualid -> [(IR.Type, Coq.Qualid)] -> Converter Coq.Term
+    TypeMap
+    -> Coq.Qualid
+    -> [(IR.Type, Coq.Qualid)]
+    -> Converter Coq.Term
   buildNormalformValue nameMap consName = buildNormalformValue' []
    where
     -- | Like 'buildNormalformValue', but with an additional parameter to accumulate
@@ -775,9 +785,69 @@ generateTypeclassInstances dataDecls = do
           nx <- freshCoqQualid ("n" ++ freshArgPrefix)
           rhs <- buildNormalformValue' (nx : boundVars) consVars
           let c = Coq.fun [nx] [Nothing] rhs
+          return $ applyBind (Coq.app normalformFunc [Coq.Qualid varName]) c
+
+  -------------------------------------------------------------------------------
+  -- Functions to produce ShareableArgs instances                              --
+  -------------------------------------------------------------------------------
+    -- | The name of the Normalform class.
+  shareableArgsClassName :: String
+  shareableArgsClassName = "ShareableArgs"
+
+  -- | The name of the Normalform class function.
+  shareableArgsFuncName :: String
+  shareableArgsFuncName = "shareArgs"
+
+  -- | The name of the cbneed operator.
+  cbneedFunc :: Coq.Term
+  cbneedFunc = Coq.Qualid (Coq.bare "cbneed")
+
+  -- | The binders and return types for the ShareableArgs class function and instance.
+  shareArgsBindersAndReturnType
+    :: IR.Type
+    -> Coq.Qualid
+    -> Converter ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term)
+  shareArgsBindersAndReturnType t varName = do
+    (coqType, vars) <- toCoqType "a" shapeAndPos t
+    let constraints
+          = Coq.Base.injectableBinder : map Coq.Base.shareableArgsBinder vars
+    let varBinder = [typeVarBinder vars | not (null vars)]
+    let binders = varBinder ++ constraints
+    let topLevelVarBinder
+          = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit varName coqType
+    let instanceRetType = Coq.app (Coq.Qualid Coq.Base.shareableArgs)
+          (shapeAndPos ++ [coqType])
+    let funcRetType = applyFree coqType
+    return (binders, topLevelVarBinder, funcRetType, instanceRetType)
+
+   -- | Shares all arguments of the given constructor and reconstructs the
+   --   value with the shared components.
+  buildShareArgsValue
+    :: TypeMap -> Coq.Qualid -> [(IR.Type, Coq.Qualid)] -> Converter Coq.Term
+  buildShareArgsValue nameMap consName = buildShareArgsValue' []
+   where
+    buildShareArgsValue'
+      :: [Coq.Qualid] -> [(IR.Type, Coq.Qualid)] -> Converter Coq.Term
+    buildShareArgsValue' vals []
+      = (generatePure (Coq.app (Coq.Qualid consName)
+                       (map Coq.Qualid (reverse vals))))
+    buildShareArgsValue' vals ((t, varName) : consVars) = do
+      sx <- freshCoqQualid ("s" ++ freshArgPrefix)
+      rhs <- buildShareArgsValue' (sx : vals) consVars
+      case Map.lookup t nameMap of
+        Just funcName -> do
           return
             $ applyBind
-            (Coq.app (Coq.Qualid (Coq.bare "nf")) [Coq.Qualid varName]) c
+            (Coq.app cbneedFunc
+             (shapeAndPos ++ [Coq.Qualid funcName, Coq.Qualid varName]))
+            (Coq.fun [sx] [Nothing] rhs)
+        Nothing       -> do
+          return
+            $ applyBind (Coq.app cbneedFunc
+                         (shapeAndPos
+                          ++ [ Coq.Qualid (Coq.bare shareableArgsFuncName)
+                             , Coq.Qualid varName
+                             ])) (Coq.fun [sx] [Nothing] rhs)
 
   -------------------------------------------------------------------------------
   -- Helper functions                                                          --
@@ -910,13 +980,6 @@ generateTypeclassInstances dataDecls = do
   typeVarBinder :: [Coq.Qualid] -> Coq.Binder
   typeVarBinder typeVars
     = Coq.typedBinder Coq.Ungeneralizable Coq.Implicit typeVars Coq.sortType
-
-  -- | Constructs a type class constraint.
-  --   > buildConstraint name [a1 ... an] = `{name Shape Pos a1 ... an}.
-  buildConstraint :: String -> [Coq.Qualid] -> Coq.Binder
-  buildConstraint className args = Coq.Generalized Coq.Implicit
-    (Coq.app (Coq.Qualid (Coq.bare className))
-     (shapeAndPos ++ map Coq.Qualid args))
 
   -- | Shortcut for the application of >>=.
   applyBind :: Coq.Term -> Coq.Term -> Coq.Term
