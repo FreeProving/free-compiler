@@ -744,10 +744,7 @@ generateTypeclassInstances dataDecls = do
   buildNormalformValue
     ::
     -- A map to associate types with the appropriate functions to call.
-    TypeMap
-    -> Coq.Qualid
-    -> [(IR.Type, Coq.Qualid)]
-    -> Converter Coq.Term
+    TypeMap -> Coq.Qualid -> [(IR.Type, Coq.Qualid)] -> Converter Coq.Term
   buildNormalformValue nameMap consName = buildNormalformValue' []
    where
     -- | Like 'buildNormalformValue', but with an additional parameter to accumulate
