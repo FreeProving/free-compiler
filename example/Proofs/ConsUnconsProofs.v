@@ -41,7 +41,7 @@ Section ErrorMessages.
      an [error] with a specific message. *)
   Definition EmptyListError {A : Type} := @error _ _ (Error.Partial _ _) A "unconsE: empty list"%string.
 
-  (* If we weren't looking for an actual [error] but for an [undefined] in haskell
+  (* If we weren't looking for an actual [error] but for an [undefined] in Haskell
      we could use the following definition. *)
   Definition Undefined {A : Type} := @undefined _ _ (Error.Partial _ _) A.
 
