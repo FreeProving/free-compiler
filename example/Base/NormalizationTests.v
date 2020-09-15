@@ -45,7 +45,7 @@ Definition evalNDMaybe {A : Type} p
 Definition IdS := Identity.Shape.
 Definition IdP := Identity.Pos.
 
-(* Infer Shape and Pos for Partial instances for convenience- *)
+(* Infer Shape and Pos for Partial instances for convenience. *)
 Arguments Maybe.Partial {_} {_} {_}.
 Arguments Error.Partial {_} {_} {_}.
 
