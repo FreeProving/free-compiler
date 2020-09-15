@@ -726,8 +726,7 @@ generateTypeclassInstances dataDecls = do
     (targetType, targetVars) <- toCoqType "b" idShapeAndPos t
     -- For each type variable ai, build a constraint
     -- `{Normalform Shape Pos ai bi}.
-    let constraints = map (uncurry Coq.Base.normalformBinder)
-          (zip sourceVars targetVars)
+    let constraints = zipWith Coq.Base.normalformBinder sourceVars targetVars
     let varBinder
           = [typeVarBinder (sourceVars ++ targetVars) | not (null sourceVars)]
     let binders = varBinder ++ constraints
@@ -825,9 +824,8 @@ generateTypeclassInstances dataDecls = do
    where
     buildShareArgsValue'
       :: [Coq.Qualid] -> [(IR.Type, Coq.Qualid)] -> Converter Coq.Term
-    buildShareArgsValue' vals []
-      = (generatePure (Coq.app (Coq.Qualid consName)
-                       (map Coq.Qualid (reverse vals))))
+    buildShareArgsValue' vals [] = generatePure
+      (Coq.app (Coq.Qualid consName) (map Coq.Qualid (reverse vals)))
     buildShareArgsValue' vals ((t, varName) : consVars) = do
       sx <- freshCoqQualid ("s" ++ freshArgPrefix)
       rhs <- buildShareArgsValue' (sx : vals) consVars
