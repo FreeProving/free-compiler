@@ -361,7 +361,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     fArgTypes <- mapM convertType argTypes
     (argIdents, argBinders) <- mapAndUnzipM convertAnonymousArg
       (map Just argTypes)
-    let
+    let 
       -- We need an induction hypothesis for every argument that has the same
       -- type as the constructor but lifted into the free monad.
       addHypotheses' :: [(Coq.Term, Coq.Qualid)] -> Coq.Term -> Coq.Term
