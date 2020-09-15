@@ -13,7 +13,8 @@ Proof.
 Qed.
 
 (* The second QuickCheck property holds provably for the [Maybe] instance of [Partial]. *)
-Lemma unconsE_fst_Maybe : quickCheck (@prop_unconsE_fst Maybe.Shape Maybe.Pos Maybe.Partial).
+Lemma unconsE_fst_Maybe : quickCheck 
+  (@prop_unconsE_fst Maybe.Shape Maybe.Pos (Maybe.Partial Maybe.Shape Maybe.Pos)).
 Proof.
   intros A fxs.
   simpl.
