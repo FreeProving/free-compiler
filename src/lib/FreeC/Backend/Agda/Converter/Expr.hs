@@ -36,8 +36,9 @@ convertLiftedExpr (LIR.Bind _ arg k)
   = bind <$> convertLiftedExpr arg <*> convertLiftedExpr k
 convertLiftedExpr (LIR.Undefined _)           = return undefinedExpr
 convertLiftedExpr (LIR.ErrorExpr _)           = return errorExpr
-convertLiftedExpr (LIR.Trace srcSpan)           = do
-  reportFatal $ Message srcSpan Warning $ "The tracing effect is not supported by the Agda backend."
+convertLiftedExpr (LIR.Trace srcSpan)         = reportFatal
+  $ Message srcSpan Error
+  $ "The tracing effect is not supported by the Agda backend."
 convertLiftedExpr (LIR.Share _ expr _)
   = generatePure <$> convertLiftedExpr expr
 

@@ -734,7 +734,7 @@ applyExprVisibly expr@(IR.Undefined srcSpan exprType)   = do
 applyExprVisibly expr@(IR.ErrorExpr srcSpan _ exprType) = do
   let Just (IR.TypeScheme _ [] typeArg) = exprType
   return (IR.TypeAppExpr srcSpan expr typeArg exprType)
-applyExprVisibly (IR.Trace srcSpan msg e exprType) = do
+applyExprVisibly (IR.Trace srcSpan msg e exprType)      = do
   e' <- applyExprVisibly e
   let Just (IR.TypeScheme _ [] typeArg) = exprType
       expr' = IR.Trace srcSpan msg e' exprType

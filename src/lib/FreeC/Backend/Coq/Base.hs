@@ -141,7 +141,6 @@ partialError = Coq.bare "error"
 -------------------------------------------------------------------------------
 -- Tracing                                                                   --
 -------------------------------------------------------------------------------
-
 -- | The Coq identifier for the @Traceable@ type class.
 traceable :: Coq.Qualid
 traceable = Coq.bare "Traceable"

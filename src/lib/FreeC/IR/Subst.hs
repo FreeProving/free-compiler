@@ -228,7 +228,7 @@ instance ApplySubst IR.Type IR.Expr where
       = let exprType' = applySubst subst exprType
         in IR.ErrorExpr srcSpan msg exprType'
     applySubst' (IR.Trace srcSpan msg expr exprType)
-      = let expr' = applySubst subst expr
+      = let expr'     = applySubst subst expr
             exprType' = applySubst subst exprType
         in IR.Trace srcSpan msg expr' exprType'
     applySubst' (IR.IntLiteral srcSpan value exprType)
