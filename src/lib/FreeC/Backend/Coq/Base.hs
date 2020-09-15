@@ -19,6 +19,10 @@ module FreeC.Backend.Coq.Base
   , partialArg
   , partialUndefined
   , partialError
+    -- * Tracing
+  , traceable
+  , traceableArg
+  , trace
     -- * Modules
   , qualifiedSmartConstructorModule
     -- * Sharing
@@ -133,6 +137,22 @@ partialUndefined = Coq.bare "undefined"
 -- | The identifier for the error term @error@.
 partialError :: Coq.Qualid
 partialError = Coq.bare "error"
+
+-------------------------------------------------------------------------------
+-- Tracing                                                                   --
+-------------------------------------------------------------------------------
+
+-- | The Coq identifier for the @Traceable@ type class.
+traceable :: Coq.Qualid
+traceable = Coq.bare "Traceable"
+
+-- | The Coq identifier for the argument of the @Traceable@ type class.
+traceableArg :: Coq.Qualid
+traceableArg = Coq.bare "T"
+
+-- | The identifier for the effect @trace@.
+trace :: Coq.Qualid
+trace = Coq.bare "trace"
 
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
@@ -260,6 +280,10 @@ reservedIdents
     , partialArg
     , partialUndefined
     , partialError
+      -- Tracing
+    , traceable
+    , traceableArg
+    , trace
       -- Notations
     , Coq.Bare qualifiedSmartConstructorModule
       -- Sharing
