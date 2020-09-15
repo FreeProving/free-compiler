@@ -57,6 +57,12 @@ data Expr
               , errorExprMsg   :: String
               , exprTypeScheme :: Maybe TypeScheme
               }
+    -- | Effect @trace "<message>" expr@.
+  | Trace { exprSrcSpan    :: SrcSpan
+          , traceMsg       :: String
+          , traceExpr      :: Expr
+          , exprTypeScheme :: Maybe TypeScheme
+          }
     -- | An integer literal.
   | IntLiteral { exprSrcSpan     :: SrcSpan
                , intLiteralValue :: Integer
@@ -250,7 +256,10 @@ prettyExprPred' n expr@(TypeAppExpr _ e t _)
   | n <= 1 = prettyExprPred 1 e <+> char '@' <> prettyTypePred 2 t
   | otherwise = parens (prettyExprPred' 1 expr)
 prettyExprPred' n expr@(ErrorExpr _ msg _)
-  | n <= 1 = prettyString "error" <+> prettyString (show msg)
+  | n <= 1 = prettyString "error" <+> prettyString msg
+  | otherwise = parens (prettyExprPred' 1 expr)
+prettyExprPred' n expr@(Trace _ msg e _)
+  | n <= 1 = prettyString "trace" <+> prettyString msg <+> prettyExprPred' 2 e
   | otherwise = parens (prettyExprPred' 1 expr)
 -- No parentheses are needed around variable and constructor names and
 -- integer literals.
