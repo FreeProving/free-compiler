@@ -8,7 +8,7 @@ From Base Require Import Free.Instance.ND.
 From Base Require Import Free.Util.Search.
 From Base Require Import Prelude.
 
-From Generated Require Import Proofs.Normalform.
+From Generated Require Import Proofs.TypeclassInstances.
 
 Require Import Lists.List.
 Import List.ListNotations.
@@ -124,7 +124,7 @@ Example nondeterministic_tree : handleND ndTree
     ].
 Proof. trivial. Qed.
 
-(* (true -> (true ? false)) : ([] ? [(true ? false) -> false]) 
+(* (true -> (true ? false)) : ([] ? [(true ? false) -> false])
    --> [ [true -> true]                , [true -> true, true -> false]
        , [true -> true, false -> false], [false -> true]
        , [false -> true, true -> false], [false -> true, false -> false] ] *)
@@ -144,10 +144,10 @@ Proof. trivial. Qed.
 
 (* Tests for the generated ShareableArgs instances. *)
 
-(* let x = [true ? false] in myHead x || myHead x 
+(* let x = [true ? false] in myHead x || myHead x
    --> true || true ? false || false
    --> true ? false *)
-Example deepSharingNDList 
+Example deepSharingNDList
 : handleShareND (doubleDisjunctionHead _ _ (Cbneed _ _) (ND.Partial _ _) ndList2)
 = [true;false].
 Proof. trivial. Qed.
@@ -156,7 +156,7 @@ Proof. trivial. Qed.
    in root x || root x
    --> true || true ? false || false
    --> true ? false *)
-Example deepSharingNDTree 
+Example deepSharingNDTree
 : handleShareND (doubleDisjunctionRoot _ _ (Cbneed _ _) (ND.Partial _ _) ndTree)
 = [true;false].
 Proof. trivial. Qed.

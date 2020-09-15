@@ -1,6 +1,6 @@
 -- | This example defines some data types to check whether the [Normalform]
---   instances are generated correctly.
-module Proofs.Normalform where
+--   and [ShareableArgs] instances are generated correctly.
+module Proofs.TypeclassInstances where
 
 -- Prelude head function
 head :: [a] -> a
