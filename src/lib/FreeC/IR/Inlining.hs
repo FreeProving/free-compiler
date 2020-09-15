@@ -138,6 +138,9 @@ inlineExpr decls = inlineAndBind
       binds' <- mapM inlineBind binds
       expr' <- inlineAndBind expr
       return ([], [], IR.Let srcSpan binds' expr' exprType)
+  inlineExpr' (IR.Trace srcSpan msg expr exprType) = do
+    expr' <- inlineAndBind expr
+    return ([], [], IR.Trace srcSpan msg expr' exprType)
   -- All other expressions remain unchanged.
   inlineExpr' expr@(IR.Con _ _ _) = return ([], [], expr)
   inlineExpr' expr@(IR.Undefined _ _) = return ([], [], expr)

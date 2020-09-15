@@ -103,7 +103,7 @@ makeConstArgGraph decls = do
         guard (callsG rhs)
         -- Test whether @x_i@ is passed unchanged to @y_j@ in every call
         -- to @g@ in the right-hand side of @f@.
-        let 
+        let
           -- | Tests whether the given expression (a value passed as the @j@-th
           --   argument to a call to @g@) is the argument @x_i@.
           checkArg :: IR.Expr -> Bool
@@ -143,6 +143,8 @@ makeConstArgGraph decls = do
             | otherwise = checkExpr expr []
           -- Check visibly applied expression recursively.
           checkExpr (IR.TypeAppExpr _ expr _ _) args = checkExpr expr args
+          -- Check traced expressions recursively.
+          checkExpr (IR.Trace _ _ expr _) _ = checkExpr expr []
           -- Constructors, literals and error terms cannot contain further
           -- calls to @g@.
           checkExpr (IR.Con _ _ _) _                 = True

@@ -101,6 +101,7 @@ instance Subterm IR.Expr where
   childTerms (IR.Var _ _ _)              = []
   childTerms (IR.Undefined _ _)          = []
   childTerms (IR.ErrorExpr _ _ _)        = []
+  childTerms (IR.Trace _ _ e _)          = [e]
   childTerms (IR.IntLiteral _ _ _)       = []
   childTerms (IR.Let _ binds e _)        = e : map IR.bindExpr binds
 
@@ -133,6 +134,8 @@ instance Subterm IR.Expr where
   replaceChildTerms expr@(IR.Var _ _ _) = nullary expr
   replaceChildTerms expr@(IR.Undefined _ _) = nullary expr
   replaceChildTerms expr@(IR.ErrorExpr _ _ _) = nullary expr
+  replaceChildTerms (IR.Trace srcSpan msg _ exprType)
+    = checkArity 1 $ \[e'] -> IR.Trace srcSpan msg e' exprType
   replaceChildTerms expr@(IR.IntLiteral _ _ _) = nullary expr
 
 -- | Type expressions have subterms.
