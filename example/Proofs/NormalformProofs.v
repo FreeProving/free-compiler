@@ -36,18 +36,18 @@ Section Data.
   Notation "'ND'" := (Injectable ND.Shape ND.Pos Shape Pos).
 
   Notation Bool_ := (Bool Shape Pos).
-  Notation True_ := (True_ Shape Pos).
-  Notation False_ := (False_ Shape Pos).
+  Notation True' := (True_ Shape Pos).
+  Notation False' := (False_ Shape Pos).
 
   Notation "x ? y" := (Choice Shape Pos x y) (at level 50).
 
   (* true : ([] ? [true ? false]) *)
   Definition ndList `{ND} : Free Shape Pos (MyList Shape Pos Bool_)
    := MyCons Shape Pos
-        True_
+        True'
         ( MyNil Shape Pos
         ? MyCons Shape Pos
-          (True_ ? False_)
+          (True' ? False')
              (MyNil Shape Pos)).
 
   (* (foo (bar (foo baz))) ? (foo baz) *)
@@ -61,10 +61,10 @@ Section Data.
   (* branch (true ? false) (leaf : ([] ? [leaf])) *)
   Definition ndTree `{ND} : Free Shape Pos (Tree Shape Pos Bool_)
    := Branch Shape Pos
-        (True_ ? False_)
+        (True' ? False')
         (Cons Shape Pos
           (Leaf Shape Pos)
-          ( Nil Shape Pos
+          (Nil Shape Pos
           ? Cons Shape Pos
               (Leaf Shape Pos)
               (Nil Shape Pos))).
@@ -72,12 +72,12 @@ Section Data.
   (* (true -> (true ? false)) : ([] ? [(true ? false) -> false]) *)
   Definition ndMap `{ND} : Free Shape Pos (Map Shape Pos Bool_ Bool_)
    := Entry0 Shape Pos
-        True_
-        (True_ ? False_)
+        True'
+        (True' ? False')
         ( Empty Shape Pos
         ? Entry0 Shape Pos
-            (True_ ? False_)
-            False_
+            (True' ? False')
+            False'
             (Empty Shape Pos)).
 
 End Data.

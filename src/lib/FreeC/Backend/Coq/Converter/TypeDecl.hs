@@ -32,8 +32,6 @@ import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
 import           FreeC.Environment.LookupOrFail
-import           FreeC.Environment.Fresh
-  ( freshArgPrefix, freshCoqIdent )
 import           FreeC.Environment.Renamer        ( renameAndDefineTypeVar )
 import           FreeC.IR.DependencyGraph
 import           FreeC.IR.SrcSpan                 ( SrcSpan(NoSrcSpan) )
