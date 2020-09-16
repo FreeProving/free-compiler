@@ -174,6 +174,7 @@ library freec-internal
                       , FreeC.Pass.DependencyAnalysisPass
                       , FreeC.Pass.EtaConversionPass
                       , FreeC.Pass.ExportPass
+                      , FreeC.Pass.FlattenExprPass
                       , FreeC.Pass.ImplicitPreludePass
                       , FreeC.Pass.ImportPass
                       , FreeC.Pass.KindCheckPass
@@ -182,7 +183,6 @@ library freec-internal
                       , FreeC.Pass.TypeSignaturePass
                       , FreeC.Pass.QualifierPass
                       , FreeC.Pass.ResolverPass
-                      , FreeC.Pass.SharingAnalysisPass
                       , FreeC.Pipeline
                       , FreeC.Pretty
                       , FreeC.Util.Config
@@ -255,6 +255,7 @@ test-suite freec-unit-tests
                     , FreeC.Pass.CompletePatternPassTests
                     , FreeC.Pass.EtaConversionPassTests
                     , FreeC.Pass.ExportPassTests
+                    , FreeC.Pass.FlattenExprPassTests
                     , FreeC.Pass.KindCheckPassTests
                     , FreeC.Pass.PartialityAnalysisPassTests
                     , FreeC.Pass.ResolverPassTests

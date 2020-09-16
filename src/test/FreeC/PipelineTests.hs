@@ -7,6 +7,7 @@ import           Test.Hspec
 import           FreeC.Pass.CompletePatternPassTests
 import           FreeC.Pass.EtaConversionPassTests
 import           FreeC.Pass.ExportPassTests
+import           FreeC.Pass.FlattenExprPassTests
 import           FreeC.Pass.KindCheckPassTests
 import           FreeC.Pass.PartialityAnalysisPassTests
 import           FreeC.Pass.ResolverPassTests
@@ -18,6 +19,7 @@ testPipeline = do
   testCompletePatternPass
   testEtaConversionPass
   testExportPass
+  testFlattenExprPass
   testKindCheckPass
   testPartialityAnalysisPass
   testResolverPass
