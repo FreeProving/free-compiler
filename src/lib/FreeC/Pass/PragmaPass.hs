@@ -20,7 +20,7 @@
 --
 --   == Error Cases
 --
---    * If there is a pragmaof the form @{-# FreeC f DECREASES ON xᵢ #-}@ or
+--    * If there is a pragma of the form @{-# FreeC f DECREASES ON xᵢ #-}@ or
 --      @{-# FreeC f DECREASES ON ARGUMENT i #-}@, but there is no such
 --      function declaration or the function does not have an argument with
 --      the specified name or at the specified position, a fatal error is
