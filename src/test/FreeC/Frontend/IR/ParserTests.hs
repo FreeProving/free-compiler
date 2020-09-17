@@ -1,3 +1,4 @@
+-- | This module contains tests for "FreeC.Frontend.IR.Parser".
 module FreeC.Frontend.IR.ParserTests where
 
 import           Test.Hspec                 hiding ( shouldReturn )

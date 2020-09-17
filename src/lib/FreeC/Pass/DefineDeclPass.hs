@@ -3,8 +3,8 @@
 --   environment.
 --
 --   Subsequent passes can still modify entries added by this pass.
---   For example, whether functions are partial or not is determined after
---   this pass (See "FreeC.Pass.PartialityAnalysisPass").
+--   For example, which effects are used by which functions is determined
+--   after this pass (see "FreeC.Pass.EffectAnalysisPass").
 --
 --   = Specification
 --
