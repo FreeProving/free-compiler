@@ -2,6 +2,8 @@ From Base Require Import Free.
 From Base Require Import Free.Instance.Identity.
 From Base Require Import Free.Malias.
 
+From Base Require Import Prelude.Bool.
+
 Section SecPair.
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
@@ -30,22 +32,22 @@ Section SecNFPair.
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
 
-  Variable A B C D : Type.
+  Variable A B : Type.
 
-  Definition nf'Pair `{Normalform Shape Pos A C}
-                     `{Normalform Shape Pos B D}
+  Definition nf'Pair `{Normalform Shape Pos A}
+                     `{Normalform Shape Pos B}
                      (p : Pair Shape Pos A B)
-    : Free Shape Pos (Pair Identity.Shape Identity.Pos C D)
+    : Free Shape Pos (Pair Identity.Shape Identity.Pos 
+                     (@nType Shape Pos A _) (@nType Shape Pos B _))
    := match p with
        | pair_ fa fb => nf fa >>= fun na =>
                         nf fb >>= fun nb =>
                         pure (pair_ (pure na) (pure nb))
        end.
 
-  Global Instance NormalformPair `{Normalform Shape Pos A C}
-                                 `{Normalform Shape Pos B D}
+  Global Instance NormalformPair `{Normalform Shape Pos A}
+                                 `{Normalform Shape Pos B}
     : Normalform Shape Pos (Pair Shape Pos A B)
-                           (Pair Identity.Shape Identity.Pos C D)
    := { nf' := nf'Pair }.
 
 End SecNFPair.
