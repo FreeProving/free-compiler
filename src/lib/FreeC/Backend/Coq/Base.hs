@@ -149,6 +149,11 @@ traceable = Coq.bare "Traceable"
 traceableArg :: Coq.Qualid
 traceableArg = Coq.bare "T"
 
+-- | The Coq binder for the @Traceable@ type class.
+tracableBinder :: Coq.Binder
+tracableBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit traceableArg
+  $ Coq.app (Coq.Qualid traceable) [Coq.Qualid shape, Coq.Qualid pos]
+
 -- | The identifier for the effect @trace@.
 trace :: Coq.Qualid
 trace = Coq.bare "trace"
@@ -220,28 +225,33 @@ share = Coq.bare "share"
 selectExplicitArgs :: Effect -> [Coq.Term]
 selectExplicitArgs Partiality = [Coq.Qualid partialArg]
 selectExplicitArgs Sharing    = [Coq.Qualid strategyArg]
+selectExplicitArgs Tracing    = [Coq.Qualid traceableArg]
 
 -- | Selects the correct implicit function arguments for the given effect.
 selectImplicitArgs :: Effect -> [Coq.Term]
 selectImplicitArgs Partiality = []
 selectImplicitArgs Sharing    = [implicitArg]
+selectImplicitArgs Tracing    = []
 
 -- | Like 'selectImplicitArgs' but the arguments have to be inserted after
 --   the type arguments the specified number of times.
 selectTypedImplicitArgs :: Effect -> Int -> [Coq.Term]
 selectTypedImplicitArgs Partiality = const []
 selectTypedImplicitArgs Sharing    = flip replicate implicitArg
+selectTypedImplicitArgs Tracing    = const []
 
 -- | Selects the correct binder for the given effect.
 selectBinders :: Effect -> [Coq.Binder]
 selectBinders Partiality = [partialBinder]
 selectBinders Sharing    = [injectableBinder, strategyBinder]
+selectBinders Tracing    = [tracableBinder]
 
 -- | Like 'selectBinders' but the binders are dependent on the type variables
 --   with the given names.
 selectTypedBinders :: Effect -> [Coq.Qualid] -> [Coq.Binder]
 selectTypedBinders Partiality = const []
 selectTypedBinders Sharing    = map shareableArgsBinder
+selectTypedBinders Tracing    = const []
 
 -------------------------------------------------------------------------------
 -- Literal Scopes                                                            --
