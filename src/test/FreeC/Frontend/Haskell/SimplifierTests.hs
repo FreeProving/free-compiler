@@ -21,7 +21,8 @@ parseAndSimplifyExpr = (parseHaskell . mkSrcFile "<test-input>")
   >=> simplifyExpr
 
 -- | Parses the given Haskell and IR expressions, converts the Haskell
---   expression to IR .
+--   expression to IR and sets the expectation that the given IR expression is
+--   produced.
 shouldSimplifyExpr :: String -> String -> Simplifier Expectation
 shouldSimplifyExpr input expectedOutput = do
   output <- parseAndSimplifyExpr input
@@ -39,7 +40,7 @@ testSimplifier = describe "FreeC.Frontend.Haskell.Simplifier" $ do
 -- | Test group for 'simplifyExpr' tests.
 testSimplifyExpr :: Spec
 testSimplifyExpr = context "simplifyExpr" $ do
-  it "simplifies single variable pattern case expression to lambda abstractions"
+  it "simplifies single-variable-pattern case expressions to lambda abstractions"
     $ shouldSucceedWith
     $ do
       "case e of { x -> e' }" `shouldSimplifyExpr` "(\\x -> e') e"
