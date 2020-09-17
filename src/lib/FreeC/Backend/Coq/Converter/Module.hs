@@ -14,7 +14,6 @@ import           FreeC.Environment.Entry
   ( EnvEntry(ConEntry), entryName )
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.DependencyGraph
-import           FreeC.IR.Pragma
 import qualified FreeC.IR.Syntax                      as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pretty
@@ -26,8 +25,6 @@ import           FreeC.Pretty
 convertModule :: IR.Module -> Converter [Coq.Sentence]
 convertModule haskellAst = do
   imports' <- convertImportDecls (IR.modImports haskellAst)
-  mapM_ (addDecArgPragma (IR.modFuncDecls haskellAst))
-    (IR.modPragmas haskellAst)
   decls' <- convertDecls (IR.modTypeDecls haskellAst)
     (IR.modFuncDecls haskellAst)
   return (Coq.comment ("module " ++ IR.modName haskellAst) : imports' ++ decls')
