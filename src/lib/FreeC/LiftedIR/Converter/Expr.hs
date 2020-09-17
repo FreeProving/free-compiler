@@ -203,7 +203,7 @@ liftExpr' (IR.Trace srcSpan msg expr _) typeArgs args = do
   typeArgs' <- mapM LIR.liftType' typeArgs
   expr' <- liftExpr expr
   args' <- mapM liftExpr args
-  generateApply (LIR.App srcSpan (LIR.Trace srcSpan) typeArgs' [Partiality]
+  generateApply (LIR.App srcSpan (LIR.Trace srcSpan) typeArgs' [Tracing]
                  [LIR.StringLiteral srcSpan msg, expr'] True) args'
 liftExpr' (IR.Let _ binds expr _) [] [] = liftBinds binds expr
 -- Visible type application of an expression other than a function or
