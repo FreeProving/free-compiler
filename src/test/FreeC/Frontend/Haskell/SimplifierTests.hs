@@ -40,7 +40,8 @@ testSimplifier = describe "FreeC.Frontend.Haskell.Simplifier" $ do
 -- | Test group for 'simplifyExpr' tests.
 testSimplifyExpr :: Spec
 testSimplifyExpr = context "simplifyExpr" $ do
-  it "simplifies single-variable-pattern case expressions to lambda abstractions"
+  it
+    "simplifies single-variable-pattern case expressions to lambda abstractions"
     $ shouldSucceedWith
     $ do
       "case e of { x -> e' }" `shouldSimplifyExpr` "(\\x -> e') e"
