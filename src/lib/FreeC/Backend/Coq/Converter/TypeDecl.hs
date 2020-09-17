@@ -45,6 +45,7 @@ import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
+import Debug.Trace
 -------------------------------------------------------------------------------
 -- Strongly Connected Components                                             --
 -------------------------------------------------------------------------------
@@ -361,7 +362,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     fArgTypes <- mapM convertType argTypes
     (argIdents, argBinders) <- mapAndUnzipM convertAnonymousArg
       (map Just argTypes)
-    let 
+    let
       -- We need an induction hypothesis for every argument that has the same
       -- type as the constructor but lifted into the free monad.
       addHypotheses' :: [(Coq.Term, Coq.Qualid)] -> Coq.Term -> Coq.Term
@@ -723,18 +724,20 @@ generateTypeclassInstances dataDecls = do
     -- Pos as arguments for the original type, once with Identity.Shape
     -- and Identity.Pos as arguments for the normalized result type.
     (sourceType, sourceVars) <- toCoqType "a" shapeAndPos t
-    (targetType, targetVars) <- toCoqType "b" idShapeAndPos t
+    -- The return types of the type variables' @Normalform@ instances.
+    let nTypes = map (\v -> Coq.explicitApp (Coq.bare "nType") (shapeAndPos ++ (Coq.Qualid v) : [Coq.Underscore])) sourceVars
+    targetType <- toCoqType' nTypes idShapeAndPos t
     -- For each type variable ai, build a constraint
-    -- `{Normalform Shape Pos ai bi}.
-    let constraints = zipWith Coq.Base.normalformBinder sourceVars targetVars
+    -- `{Normalform Shape Pos ai}.
+    let constraints = map Coq.Base.normalformBinder sourceVars
     let varBinder
-          = [typeVarBinder (sourceVars ++ targetVars) | not (null sourceVars)]
+          = [typeVarBinder sourceVars | not (null sourceVars)]
     let binders = varBinder ++ constraints
     -- Create an explicit argument binder for the value to be normalized.
     let topLevelVarBinder
           = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit varName sourceType
     let instanceRetType = Coq.app (Coq.Qualid (Coq.bare normalformClassName))
-          (shapeAndPos ++ [sourceType, targetType])
+          (shapeAndPos ++ [sourceType])
     let funcRetType = applyFree targetType
     return (binders, topLevelVarBinder, funcRetType, instanceRetType)
 
@@ -1022,6 +1025,22 @@ generateTypeclassInstances dataDecls = do
   -- Function types were removed by 'stripType'.
   toCoqType _ _ (IR.FuncType _ _ _)
     = error "Function types should have been eliminated."
+
+  -- Like 'toCoqType', but inserts terms from a list into the type instead of fresh
+  -- type variables
+  toCoqType' :: [Coq.Term] -> [Coq.Term] -> IR.Type -> Converter Coq.Term
+  toCoqType' varArgs constArgs t = trace ("varArgs: " ++ show varArgs) $ fst <$> toCoqType'' varArgs t where
+      toCoqType'' :: [Coq.Term] -> IR.Type -> Converter (Coq.Term,[Coq.Term])
+      toCoqType'' (x:xs) (IR.TypeVar _ _) = return (x,xs)
+      toCoqType'' xs      (IR.TypeCon _ conName) = do
+        entry <- lookupEntryOrFail NoSrcSpan IR.TypeScope conName
+        return (Coq.app (Coq.Qualid (entryIdent entry)) constArgs, xs)
+      toCoqType'' xs (IR.TypeApp _ l r) = do
+          (l',xs') <- toCoqType'' xs l
+          (r',xs'') <- toCoqType'' xs' r
+          return ((Coq.app l' [r']),xs'')
+      toCoqType'' _ (IR.FuncType _ _ _) = error "Function types should have been eliminated."
+      toCoqType'' [] _ = error "Not enough arguments!"
 
   -- | Produces @n@ new Coq identifiers (Qualids) with the same prefix.
   freshQualids :: Int -> String -> Converter [Coq.Qualid]

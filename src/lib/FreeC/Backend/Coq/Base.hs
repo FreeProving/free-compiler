@@ -196,10 +196,10 @@ normalform = Coq.bare "Normalform"
 
 -- | The Coq binder for the @Normalform@ type class with the source and target
 --   type variable with the given names.
-normalformBinder :: Coq.Qualid -> Coq.Qualid -> Coq.Binder
-normalformBinder sourceType targetType = Coq.Generalized Coq.Implicit
+normalformBinder :: Coq.Qualid -> Coq.Binder
+normalformBinder sourceType = Coq.Generalized Coq.Implicit
   $ Coq.app (Coq.Qualid normalform)
-  $ map Coq.Qualid [shape, pos, sourceType, targetType]
+  $ map Coq.Qualid [shape, pos, sourceType]
 
 -- | The Coq identifier for an implicit argument.
 implicitArg :: Coq.Term
