@@ -20,6 +20,5 @@ testPipeline = do
   testEtaConversionPass
   testExportPass
   testKindCheckPass
-  testEffectAnalysisPass
   testResolverPass
   testTypeInferencePass
