@@ -201,7 +201,7 @@ liftExpr' expr (_ : _) _ = reportFatal
 -- Application of an expression other than a function or constructor
 -- application. We use an as-pattern for @args@ such that we get a compile
 -- time warning when a node is added to the AST that we do not cover above.
-liftExpr' expr [] args @ (_ : _)
+liftExpr' expr [] args@(_ : _)
   = join $ generateApply <$> liftExpr expr <*> mapM liftExpr args
 
 -------------------------------------------------------------------------------
@@ -223,7 +223,7 @@ liftAlt (IR.Alt srcSpan conPat pats expr) = do
 --   are unwrapped using @>>=@.
 liftAlt' :: [IR.VarPat] -> IR.Expr -> Converter ([LIR.VarPat], LIR.Expr)
 liftAlt' [] expr = ([], ) <$> liftExpr expr
-liftAlt' (pat @ (IR.VarPat srcSpan name varType strict) : pats) expr
+liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr
   = localEnv $ do
     varType' <- LIR.liftVarPatType pat
     var <- renameAndDefineLIRVar srcSpan strict name varType
@@ -333,7 +333,7 @@ rawBind srcSpan mx x varType expr = do
 liftBinds :: [IR.Bind] -> IR.Expr -> Converter LIR.Expr
 liftBinds [] expr = liftExpr expr
 liftBinds ((IR.Bind srcSpan varPat
-            @ (IR.VarPat patSrcSpan ident varPatType isStrict) bindExpr)
+            @(IR.VarPat patSrcSpan ident varPatType isStrict) bindExpr)
            : bs) expr = localEnv $ do
   _ <- renameAndDefineLIRVar srcSpan isStrict ident varPatType
   expr' <- liftBinds bs expr
