@@ -300,10 +300,10 @@ testConvertLet = context "let expressions" $ do
     shouldConvertExprTo
       "let {(x' :: a) = x} in case xs of {Cons x' -> f @a x' x'; Nil -> x'}"
       $ "@call Shape Pos S a x >>= (fun (x' : Free Shape Pos a) =>"
-      ++ "  xs >>= (fun xs_0 => match xs_0 with"
-      ++ "                        | cons x'0 => @f Shape Pos a x'0 x'0"
-      ++ "                        | nil      => x'"
-      ++ "                      end))"
+      ++ "  xs >>= (fun xs0 => match xs0 with"
+      ++ "                       | cons x'0 => @f Shape Pos a x'0 x'0"
+      ++ "                       | nil      => x'"
+      ++ "                     end))"
   it "does not add occurrences over case branches" $ shouldSucceedWith $ do
     (_, "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
     (_, "Cons") <- defineTestCon "Cons" 1 "forall a. a -> List a"
@@ -314,10 +314,10 @@ testConvertLet = context "let expressions" $ do
     shouldConvertExprTo
       "let {(x' :: a) = x} in case xs of {Cons y -> x'; Nil -> x'}"
       $ "@call Shape Pos S a x >>= (fun (x' : Free Shape Pos a) =>"
-      ++ "  xs >>= (fun xs_0 => match xs_0 with"
-      ++ "                        | cons y0 => x'"
-      ++ "                        | nil     => x'"
-      ++ "                      end))"
+      ++ "  xs >>= (fun xs0 => match xs0 with"
+      ++ "                       | cons y0 => x'"
+      ++ "                       | nil     => x'"
+      ++ "                     end))"
   it "ignores shadowed variables in lambda expressions" $ shouldSucceedWith $ do
     "f" <- defineTestFunc "f" 2 "forall a. a -> a -> a"
     "x" <- defineTestVar "x"

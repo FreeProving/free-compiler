@@ -332,9 +332,8 @@ rawBind srcSpan mx x varType expr = do
 --   The given expression is the right-hand side of the let.
 liftBinds :: [IR.Bind] -> IR.Expr -> Converter LIR.Expr
 liftBinds [] expr = liftExpr expr
-liftBinds ((IR.Bind srcSpan varPat
-            @(IR.VarPat patSrcSpan ident varPatType isStrict) bindExpr)
-           : bs) expr = localEnv $ do
+liftBinds ((IR.Bind srcSpan varPat bindExpr) : bs) expr = localEnv $ do
+  let (IR.VarPat patSrcSpan ident varPatType isStrict) = varPat
   _ <- renameAndDefineLIRVar srcSpan isStrict ident varPatType
   expr' <- liftBinds bs expr
   patType' <- mapM LIR.liftType varPatType
