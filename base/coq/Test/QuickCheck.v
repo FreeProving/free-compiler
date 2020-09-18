@@ -1,8 +1,13 @@
 From Base Require Import Free.
 From Base Require Import Prelude.
 
+From Base Require Import Free.Instance.Comb.
+From Base Require Import Free.Instance.Maybe.
+
 (* QuickCheck properties are implemented as Coq propositions. *)
-Definition Property (Shape : Type) (Pos : Shape -> Type) := Prop.
+Definition Property (Shape : Type) (Pos : Shape -> Type) := forall (handler : forall (A : Type) (NF : Normalform Shape Pos A),
+ Handler Shape Pos A), Prop.
+
 
 (* * [Testable] type class *)
 
@@ -57,12 +62,42 @@ Instance TestableFree (Shape : Type) (Pos : Shape -> Type)
                       | impure _ _ => False
                       end }.
 
+(* Similar to Testable, but returns a Property instead of a Prop so
+   that a handler can be applied. *)
+Class Handleable (Shape : Type) (Pos : Shape -> Type) (prop : Type) := 
+  {  toProperty : prop -> Property Shape Pos
+}.
+
+Instance HandleableProperty (Shape : Type) (Pos : Shape -> Type) : Handleable Shape Pos (Property Shape Pos) := {
+  toProperty p := p
+}.
+
+Instance HandleableFree (Shape : Type) (Pos : Shape -> Type) {A : Type} {H_A : Handleable Shape Pos A} : Handleable Shape Pos (Free Shape Pos A) := {
+  toProperty fp := match fp with
+                   | pure p => toProperty p
+                   | impure s pf => (fun _ => False)
+                   end }.
+
+Instance HandleableFunction (Shape : Type) (Pos : Shape -> Type) (A : Type) (B : Type) 
+ (T_B : Handleable Shape Pos B)
+  : Handleable Shape Pos (A -> B)
+ := { toProperty f := fun handler => forall x, toProperty (f x) handler }.
+
+Instance HandleableForall (Shape : Type) (Pos : Shape -> Type)
+  (A : Type) (B : A -> Type) (T_Bx : forall x, Handleable Shape Pos (B x))
+  : Handleable Shape Pos (forall x, B x)
+ := { toProperty f := fun handler => forall x, toProperty (f x) handler }.
+
 (* [quickCheck :: Testable a => a -> IO ()]
    In Haskell this function is used to test a QuickCheck property.
    We are reusing the name to convert the computation of a quickCheck
    property to a Coq property that can actually be proven. *)
 Definition quickCheck {A : Type} {T_A : Testable A} (x : A) : Prop
  := property x.
+
+(* Like quickCheck, but with a concrete handler as an additional argument. *)
+Definition quickCheckHandle {Shape : Type} {Pos : Shape -> Type} {A : Type} `{Handleable Shape Pos A}
+ (x : A) handler : Prop := (toProperty x) handler.
 
 (* * Constructing QuickCheck Properties *)
 Section SecQuickCheck.
@@ -77,33 +112,40 @@ Section SecQuickCheck.
      class instance for [Bool] is accessable from Haskell. *)
   Definition boolProp (fb : Free' Bool')
     : Free' Property'
-   := pure (property fb).
+   := pure (fun handler => property fb).
 
   (* [(==>) :: Bool -> Property -> Property] *)
   Definition preProp (fb : Free' Bool') (p : Free' Property')
     : Free' Property'
-   := pure (property fb -> property p).
+   := pure (fun handler => property fb -> property p).
 
   (* [(===) :: a -> a -> Property] *)
-  Definition eqProp (A : Type) (fx : Free' A) (fy : Free' A)
+  Definition eqProp (A : Type) `(NF : Normalform Shape Pos A)
+    (fx : Free' A) (fy : Free' A)
     : Free' Property'
-   := pure (fx = fy).
+   := pure (fun handler => 
+             @handle Shape Pos A (handler A NF) fx = handle fy).
 
   (* [(=/=) :: a -> a -> Property] *)
-  Definition neqProp (A : Type) (fx : Free' A) (fy : Free' A)
+  Definition neqProp (A : Type) `(NF : Normalform Shape Pos A) 
+                     (fx : Free' A) (fy : Free' A)
     : Free' Property'
-   := pure (fx <> fy).
+   := pure (fun handler => 
+             @handle Shape Pos A (handler A NF) fx <> handle fy).
 
   (* [(.&&.) :: Property -> Property -> Property] *)
   Definition conjProp (fp1 : Free' Property') (fp2 : Free' Property')
     : Free' Property'
-   := pure (property fp1 /\ property fp2).
+   :=  fp1 >>= fun p1 => 
+       fp2 >>= fun p2 => 
+       pure (fun handler => property (p1 handler) /\ property (p2 handler)).
 
   (* [(.||.) :: Property -> Property -> Property] *)
   Definition disjProp (fp1 : Free' Property') (fp2 : Free' Property')
     : Free' Property'
-   := pure (property fp1 \/ property fp2).
-
+   :=  fp1 >>= fun p1 => 
+       fp2 >>= fun p2 => 
+       pure (fun handler => property (p1 handler) \/ property (p2 handler)).
 End SecQuickCheck.
 
 (* Helper lemma to avoid the [match] expression introduced by [property]. *)
