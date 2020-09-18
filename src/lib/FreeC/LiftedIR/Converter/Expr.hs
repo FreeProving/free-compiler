@@ -201,7 +201,7 @@ liftExpr' expr (_ : _) _ = reportFatal
 -- Application of an expression other than a function or constructor
 -- application. We use an as-pattern for @args@ such that we get a compile
 -- time warning when a node is added to the AST that we do not cover above.
-liftExpr' expr [] args@(_ : _)
+liftExpr' expr [] args @ (_ : _)
   = join $ generateApply <$> liftExpr expr <*> mapM liftExpr args
 
 -------------------------------------------------------------------------------
@@ -223,7 +223,7 @@ liftAlt (IR.Alt srcSpan conPat pats expr) = do
 --   are unwrapped using @>>=@.
 liftAlt' :: [IR.VarPat] -> IR.Expr -> Converter ([LIR.VarPat], LIR.Expr)
 liftAlt' [] expr = ([], ) <$> liftExpr expr
-liftAlt' (pat@(IR.VarPat srcSpan name varType strict) : pats) expr
+liftAlt' (pat @ (IR.VarPat srcSpan name varType strict) : pats) expr
   = localEnv $ do
     varType' <- LIR.liftVarPatType pat
     var <- renameAndDefineLIRVar srcSpan strict name varType
@@ -332,14 +332,52 @@ rawBind srcSpan mx x varType expr = do
 --   The given expression is the right-hand side of the let.
 liftBinds :: [IR.Bind] -> IR.Expr -> Converter LIR.Expr
 liftBinds [] expr = liftExpr expr
-liftBinds
-  ((IR.Bind srcSpan (IR.VarPat patSrcSpan ident varPatType isStrict) bindExpr)
-   : bs) expr = localEnv $ do
-    _ <- renameAndDefineLIRVar srcSpan isStrict ident varPatType
-    expr' <- liftBinds bs expr
-    patType' <- mapM LIR.liftType varPatType
-    varPat' <- makeVarPat patSrcSpan (IR.UnQual $ IR.Ident ident) patType'
-    shareType' <- mapM LIR.liftType' varPatType
-    bindExpr' <- liftExpr bindExpr
-    let shareExpr = LIR.Share srcSpan bindExpr' shareType'
-    return $ LIR.Bind srcSpan shareExpr (LIR.Lambda srcSpan [varPat'] expr')
+liftBinds ((IR.Bind srcSpan varPat
+            @ (IR.VarPat patSrcSpan ident varPatType isStrict) bindExpr)
+           : bs) expr = localEnv $ do
+  _ <- renameAndDefineLIRVar srcSpan isStrict ident varPatType
+  expr' <- liftBinds bs expr
+  patType' <- mapM LIR.liftType varPatType
+  varPat' <- makeVarPat patSrcSpan (IR.varPatQName varPat) patType'
+  shareType' <- mapM LIR.liftType' varPatType
+  bindExpr' <- liftExpr bindExpr
+  let countExprs = expr : map IR.bindExpr bs
+      shareOp
+        = if sum (map (countVarInExpr $ IR.varPatQName varPat) countExprs) > 1
+          then LIR.Share
+          else LIR.Call
+      shareExpr  = shareOp srcSpan bindExpr' shareType'
+  return $ LIR.Bind srcSpan shareExpr (LIR.Lambda srcSpan [varPat'] expr')
+
+-- | Counts the number of times the variable with the given qualified name
+--   occurs in the given expression.
+countVarInExpr :: IR.QName -> IR.Expr -> Int
+countVarInExpr varPat = countVarInExpr'
+ where
+  countVarInExpr' :: IR.Expr -> Int
+  countVarInExpr' IR.Con {}                    = 0
+  countVarInExpr' (IR.Var _ varName _)
+    = if varPat == varName then 1 else 0
+  countVarInExpr' (IR.App _ lhs rhs _)
+    = countVarInExpr' lhs + countVarInExpr' rhs
+  countVarInExpr' (IR.TypeAppExpr _ lhs _ _)   = countVarInExpr' lhs
+  countVarInExpr' (IR.If _ cond true false _)
+    = countVarInExpr' cond + countVarInExpr' true `max` countVarInExpr' false
+  countVarInExpr' (IR.Case _ expr alts _)      = countVarInExpr' expr
+    + maximum
+    (map (\(IR.Alt _ _ varPats rhs) -> countVarInBinds varPats rhs) alts)
+  countVarInExpr' IR.Undefined {}              = 0
+  countVarInExpr' IR.ErrorExpr {}              = 0
+  countVarInExpr' IR.IntLiteral {}             = 0
+  countVarInExpr' (IR.Lambda _ varPats expr _) = countVarInBinds varPats expr
+  countVarInExpr' (IR.Let _ binds expr _)      = countVarInExpr' expr
+    + sum (map (countVarInExpr' . IR.bindExpr) binds)
+
+  -- | Returns the number of all occurrences of the variable with the given name
+  --   in the given expression.
+  --
+  --   Returns @0@ if the variable occurs in the given variable patterns.
+  countVarInBinds :: [IR.VarPat] -> IR.Expr -> Int
+  countVarInBinds varPats exprs
+    | any (\varPat' -> IR.varPatQName varPat' == varPat) varPats = 0
+    | otherwise = countVarInExpr varPat exprs
