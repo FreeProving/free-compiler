@@ -45,7 +45,6 @@ import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
 
-import Debug.Trace
 -------------------------------------------------------------------------------
 -- Strongly Connected Components                                             --
 -------------------------------------------------------------------------------
@@ -1029,7 +1028,7 @@ generateTypeclassInstances dataDecls = do
   -- Like 'toCoqType', but inserts terms from a list into the type instead of fresh
   -- type variables
   toCoqType' :: [Coq.Term] -> [Coq.Term] -> IR.Type -> Converter Coq.Term
-  toCoqType' varArgs constArgs t = trace ("varArgs: " ++ show varArgs) $ fst <$> toCoqType'' varArgs t where
+  toCoqType' varArgs constArgs t = fst <$> toCoqType'' varArgs t where
       toCoqType'' :: [Coq.Term] -> IR.Type -> Converter (Coq.Term,[Coq.Term])
       toCoqType'' (x:xs) (IR.TypeVar _ _) = return (x,xs)
       toCoqType'' xs      (IR.TypeCon _ conName) = do

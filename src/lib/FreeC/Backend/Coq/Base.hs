@@ -174,10 +174,15 @@ strategy = Coq.bare "Strategy"
 strategyArg :: Coq.Qualid
 strategyArg = Coq.bare "S"
 
--- | The Coq binder for the @Strategy@ type class.
+-- | A notation for the term
+--   (forall (Shape : Type) (Pos : Shape -> Type)
+--    `{Injectable Share.Shape Share.Pos Shape Pos},
+--    Strategy Shape Pos).
+strategyNotation :: Coq.Qualid
+strategyNotation = Coq.bare "EvaluationStrategy"
+
 strategyBinder :: Coq.Binder
-strategyBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit strategyArg
-  $ Coq.app (Coq.Qualid strategy) [Coq.Qualid shape, Coq.Qualid pos]
+strategyBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit strategyArg (Coq.Qualid strategyNotation)
 
 -- | The Coq identifier for the @ShareableArgs@ type class.
 shareableArgs :: Coq.Qualid
