@@ -30,6 +30,8 @@ module FreeC.Backend.Coq.Base
   , shareableArgsBinder
   , implicitArg
   , share
+    -- * Induction Schemes
+  , noProperty
     -- * Effect Selection
   , selectExplicitArgs
   , selectImplicitArgs
@@ -195,6 +197,13 @@ share :: Coq.Qualid
 share = Coq.bare "share"
 
 -------------------------------------------------------------------------------
+-- Induction Schemes                                                          --
+-------------------------------------------------------------------------------
+-- | The Coq Identifier for a trivial property.
+noProperty :: Coq.Qualid
+noProperty = Coq.bare "NoProperty"
+
+-------------------------------------------------------------------------------
 -- Effect selection                                                          --
 -------------------------------------------------------------------------------
 -- | Selects the correct explicit function arguments for the given effect.
@@ -268,5 +277,7 @@ reservedIdents
     , strategyArg
     , shareableArgs
     , share
+      -- Induction Schemes
+    , noProperty
     ]
   ++ map fst freeArgs

@@ -18,7 +18,8 @@ import           Control.Monad.Extra              ( concatMapM )
 import           Data.List                        ( partition )
 import           Data.List.Extra                  ( concatUnzip )
 import qualified Data.List.NonEmpty               as NonEmpty
-import           Data.Maybe                       ( catMaybes, fromJust )
+import           Data.Maybe                       ( catMaybes, fromJust, fromMaybe )
+import qualified Data.Map                         as Map
 import qualified Data.Set                         as Set
 import qualified Data.Text                        as Text
 
@@ -126,12 +127,13 @@ convertTypeSynDecl (IR.DataDecl _ _ _ _)
 convertDataDecls :: [IR.TypeDecl] -> Converter ([Coq.Sentence], [Coq.Sentence])
 convertDataDecls dataDecls = do
   (indBodies, extraSentences') <- mapAndUnzipM convertDataDecl dataDecls
+  inductionSentences <- generateInductionSchemes dataDecls
   let (extraSentences, qualSmartConDecls) = concatUnzip extraSentences'
   return
     ( Coq.comment ("Data type declarations for "
                    ++ showPretty (map IR.typeDeclName dataDecls))
         : Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList indBodies) [])
-        : extraSentences
+        : extraSentences ++ inductionSentences
     , qualSmartConDecls
     )
 
@@ -148,14 +150,10 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
   (body, argumentsSentences) <- generateBodyAndArguments
   (smartConDecls, qualSmartConDecls)
     <- concatUnzip <$> mapM generateSmartConDecl conDecls
-  inductionScheme <- generateInductionScheme
   return ( body
          , ( Coq.commentedSentences
                ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
                argumentsSentences
-               ++ Coq.commentedSentences
-               ("Induction scheme for " ++ showPretty (IR.toUnQual name))
-               inductionScheme
                ++ Coq.commentedSentences
                ("Smart constructors for " ++ showPretty (IR.toUnQual name))
                smartConDecls
@@ -299,6 +297,112 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
         , Coq.sModIdentLevel (NonEmpty.fromList expArgIdents) (Just 9)
         ]
 
+-- Type synonyms are not allowed in this function.
+convertDataDecl (IR.TypeSynDecl _ _ _ _)
+  = error "convertDataDecl: Type synonym not allowed."
+
+generateInductionSchemes :: [IR.TypeDecl] -> Converter [Coq.Sentence]
+generateInductionSchemes dataDecls = do
+  forQualidMap <- Map.fromList <$> mapM (generateForName . IR.typeDeclQName) dataDecls
+  forBodies <- catMaybes <$> mapM (generateForProperty forQualidMap) dataDecls
+  {-}
+  inBodies  <- return [] -- generateInProperties
+  inductionSentences <- return [] -- generateInductionSchemes'
+  forallSentences <- return [] -- generateForallSentences-}
+  return [Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList forBodies) []) | not (null forBodies)]
+ where
+
+  generateForName :: IR.QName -> Converter (IR.QName, Coq.Qualid)
+  generateForName typeQName = do
+    Just typeQualid <- inEnv $ lookupIdent IR.TypeScope typeQName
+    let Just typeIdent = Coq.unpackQualid typeQualid
+    forQualid <- freshCoqQualid $ "For" ++ typeIdent
+    return (typeQName, forQualid)
+
+  generateForConName :: Coq.Qualid -> IR.QName -> Converter Coq.Qualid
+  generateForConName forTypeQualid conQName = do
+    Just conQualid <- inEnv $ lookupIdent IR.ValueScope conQName
+    let Just forTypeName = Coq.unpackQualid forTypeQualid
+        Just conName     = Coq.unpackQualid conQualid 
+    freshCoqQualid $ forTypeName ++ "_" ++ conName
+
+  generateForProperty :: Map.Map IR.QName Coq.Qualid -> IR.TypeDecl -> Converter (Maybe Coq.IndBody)
+  generateForProperty _ (IR.TypeSynDecl _ _ _ _) = error "generateForProperty: Type synonym not allowed"
+  generateForProperty _ (IR.DataDecl _ _ [] _) = return Nothing -- Types without out type variable do not need a 'For-' property
+  generateForProperty forQualidMap (IR.DataDecl _ (IR.DeclIdent _ typeName) typeVarDecls conDecls) = do
+    Just typeQualid <- inEnv $ lookupIdent IR.TypeScope typeName
+    let forQualid = forQualidMap Map.! typeName
+    forConQualids <- mapM (generateForConName forQualid . IR.conDeclQName) conDecls
+    localEnv $ do
+      (typeVarQualids, typeVarBinders) <- convertTypeVarDecls' Coq.Explicit typeVarDecls
+      propertyQualids <- mapM  (const $ freshCoqQualid "P") typeVarQualids
+      forCons <- mapM (uncurry (generateForConstructor typeVarQualids propertyQualids)) $ zip conDecls forConQualids
+      let propertyTypes = map  (\a -> (Coq.Arrow (Coq.Qualid a) (Coq.Sort Coq.Prop))) typeVarQualids
+          propertyBinders = map (\(a,t) -> Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit a t) $ zip propertyQualids propertyTypes
+          binders = genericArgDecls Coq.Explicit ++ typeVarBinders ++ propertyBinders
+          returnType = Coq.Arrow (Coq.app (Coq.Qualid typeQualid) (map Coq.Qualid (map fst Coq.Base.freeArgs ++ typeVarQualids)))
+                             (Coq.Sort Coq.Prop)
+      return $ Just $ Coq.IndBody forQualid binders returnType forCons
+   where
+    generateForConstructor :: [Coq.Qualid] -> [Coq.Qualid] -> IR.ConDecl -> Coq.Qualid -> Converter (Coq.Qualid, [Coq.Binder], Maybe Coq.Term)
+    generateForConstructor typeVarQualids propertyQualids (IR.ConDecl _ (IR.DeclIdent _ conName) args) forConQualid = do
+      Just conQualid <- inEnv $ lookupIdent IR.ValueScope conName
+      (argQualids, binders) <- unzip <$> mapM (convertAnonymousArg . Just) args
+      forHypotheses <- catMaybes <$> (mapM (uncurry generateForHypothesis) $ zip argQualids args)
+      let forQualid = forQualidMap Map.! typeName
+          forResult = Coq.app (Coq.Qualid forQualid)
+            (   map (Coq.Qualid . fst) Coq.Base.freeArgs
+             ++ map Coq.Qualid typeVarQualids
+             ++ map Coq.Qualid propertyQualids
+             ++ [genericApply conQualid [] (map Coq.Qualid typeVarQualids) (map Coq.Qualid argQualids)])
+          returnType = Coq.forall binders (foldr Coq.Arrow forResult forHypotheses)
+      return (forConQualid, [], Just returnType)
+     where
+      propertyMap :: Map.Map Coq.Qualid Coq.Qualid
+      propertyMap = Map.fromList $ zip typeVarQualids propertyQualids
+
+      generateForHypothesis :: Coq.Qualid -> IR.Type -> Converter (Maybe Coq.Term)
+      generateForHypothesis argQualid argType = do
+        coqType  <- convertType' argType
+        argType' <- expandAllTypeSynonyms argType
+        mbHyp <- generateForHypothesis_1 argType'
+        return $ case mbHyp of
+          Just hyp -> Just $ Coq.app (Coq.Qualid Coq.Base.forFree) (map (Coq.Qualid . fst) Coq.Base.freeArgs ++ [coqType, hyp, Coq.Qualid argQualid])
+          Nothing  -> Nothing
+        
+      generateForHypothesis_1 :: IR.Type -> Converter (Maybe Coq.Term)
+      generateForHypothesis_1 (IR.FuncType _ _ _) = return Nothing
+      generateForHypothesis_1 (IR.TypeApp _ tcon lastArg) = generateForHypothesis_2 tcon [lastArg]
+      generateForHypothesis_1 (IR.TypeCon _ _)    = return Nothing -- Ignore type vars that do not have any type variable or are partially applied
+      generateForHypothesis_1 tvar@(IR.TypeVar _ _) = do
+        Coq.Qualid tvarQualid <- convertType' tvar
+        return $ Coq.Qualid <$> propertyMap Map.!? tvarQualid
+
+      generateForHypothesis_2 :: IR.Type -> [IR.Type] -> Converter (Maybe Coq.Term)
+      generateForHypothesis_2 (IR.FuncType _ _ _) _ = return Nothing
+      generateForHypothesis_2 (IR.TypeApp _ tcon lastArg) typeArgs = generateForHypothesis_2 tcon (lastArg : typeArgs)
+      generateForHypothesis_2 (IR.TypeCon _ tconName) typeArgs = do
+        Just tconArity <- inEnv $ lookupArity IR.TypeScope tconName
+        hypotheses <- mapM generateForHypothesis_1 typeArgs
+        coqArgs <- mapM convertType' typeArgs
+        forType <- getForType tconName
+        if (tconArity == length typeArgs) && (not $ null $ catMaybes hypotheses)
+          then do let hypotheses' = map (fromMaybe (Coq.Qualid Coq.Base.noProperty)) hypotheses
+                  return $ Just $ Coq.app forType (map (Coq.Qualid . fst) Coq.Base.freeArgs ++ coqArgs ++ hypotheses')
+          else return Nothing
+      generateForHypothesis_2 (IR.TypeVar _ _) _ = return Nothing
+
+      getForType :: IR.QName -> Converter Coq.Term
+      getForType t = case forQualidMap Map.!? t of
+        Just qualid -> return $ Coq.Qualid qualid
+        Nothing -> do
+          -- TODO use environment to store and load other 'For-' properties
+          Just qualid <- inEnv $ lookupIdent IR.TypeScope t
+          let name = case qualid of
+                Coq.Bare n -> Text.unpack n
+                Coq.Qualified _ n -> Text.unpack n
+          return $ Coq.Qualid $ Coq.bare $ "For" ++ name
+{-}
   -- | Generates an induction scheme for the data type.
   generateInductionScheme :: Converter [Coq.Sentence]
   generateInductionScheme = localEnv $ do
@@ -371,6 +475,4 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     indCaseIdent <- freshCoqQualid freshArgPrefix
     indCaseBinder <- generateArgBinder indCaseIdent (Just indCase)
     return (indCaseIdent, indCaseBinder)
--- Type synonyms are not allowed in this function.
-convertDataDecl (IR.TypeSynDecl _ _ _ _)
-  = error "convertDataDecl: Type synonym not allowed."
+-}

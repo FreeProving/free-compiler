@@ -42,6 +42,7 @@ module FreeC.Backend.Coq.Syntax
   , notEquals
   , conj
   , disj
+  , forall
     -- * Imports
   , requireImportFrom
   , requireExportFrom
@@ -256,6 +257,11 @@ conj t1 t2 = app (Qualid (bare "op_/\\__")) [t1, t2]
 -- | Smart constructor for a disjunction in Coq.
 disj :: Term -> Term -> Term
 disj t1 t2 = app (Qualid (bare "op_\\/__")) [t1, t2]
+
+-- | Smart constructor for a forall term in Coq.
+forall :: [Binder] -> Term -> Term
+forall [] t = t
+forall bs t = Forall (NonEmpty.fromList bs) t
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --
