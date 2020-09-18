@@ -310,7 +310,7 @@ data VarPat = VarPat { varPatSrcSpan  :: SrcSpan
                      }
  deriving ( Eq, Show )
 
--- | Instance to get the name of a @let@-binding..
+-- | Instance to get the name of a @let@-binding.
 instance HasDeclIdent VarPat where
   declIdent varPat = DeclIdent (varPatSrcSpan varPat)
     (UnQual (Ident (varPatIdent varPat)))
@@ -350,7 +350,7 @@ data Bind
   = Bind { bindSrcSpan :: SrcSpan, bindVarPat :: VarPat, bindExpr :: Expr }
  deriving ( Eq, Show )
 
--- | Instance to get the name of a @let@-binding..
+-- | Instance to get the name of a @let@-binding.
 instance HasDeclIdent Bind where
   declIdent = declIdent . bindVarPat
 
