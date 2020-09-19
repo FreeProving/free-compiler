@@ -168,6 +168,7 @@ instance Aeson.FromJSON Effect where
   parseJSON = Aeson.withText "Effect" $ \effect -> case effect of
     "Partiality" -> return Partiality
     "Sharing"    -> return Sharing
+    "Normalform" -> return Normalform
     _            -> fail "unknown effect"
 
 -- | Restores a 'ModuleInterface' from the configuration file.

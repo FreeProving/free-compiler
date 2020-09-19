@@ -140,7 +140,7 @@ Section TwoEffects.
   Definition SMaybeTrc := Comb.Shape Maybe.Shape (Comb.Shape Trace.Shape Identity.Shape).
   Definition PMaybeTrc := Comb.Pos Maybe.Pos (Comb.Pos Trace.Pos Identity.Pos).
 
-  Instance HandlerMaybeTrc (A : Type) `{Normalform SMaybeTrc PMaybeTrc A} 
+  Instance HandlerMaybeTrace (A : Type) `{Normalform SMaybeTrc PMaybeTrc A} 
     : Handler SMaybeTrc PMaybeTrc A := {
    handle p := collectMessages (run (runTracing (runMaybe (nf p))))
 }.
@@ -319,3 +319,14 @@ Section ThreeEffects.
   }.
 
 End ThreeEffects.
+
+Section AnyEffects.
+
+  (* A dummy handler to forego handling in (counter)examples. *)
+  Instance NoHandler (Shape : Type) (Pos : Shape -> Type) (A : Type)
+                     `{Normalform Shape Pos A}
+    : Handler Shape Pos A := {
+   handle p := p
+  }.
+
+End AnyEffects.

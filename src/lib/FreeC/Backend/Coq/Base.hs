@@ -202,9 +202,9 @@ normalform = Coq.bare "Normalform"
 -- | The Coq binder for the @Normalform@ type class with the source and target
 --   type variable with the given names.
 normalformBinder :: Coq.Qualid -> Coq.Binder
-normalformBinder sourceType = Coq.Generalized Coq.Implicit
+normalformBinder a = Coq.Generalized Coq.Implicit
   $ Coq.app (Coq.Qualid normalform)
-  $ map Coq.Qualid [shape, pos, sourceType]
+  $ map Coq.Qualid [shape, pos, a]
 
 -- | The Coq identifier for an implicit argument.
 implicitArg :: Coq.Term
@@ -221,28 +221,33 @@ share = Coq.bare "share"
 selectExplicitArgs :: Effect -> [Coq.Term]
 selectExplicitArgs Partiality = [Coq.Qualid partialArg]
 selectExplicitArgs Sharing    = [Coq.Qualid strategyArg]
+selectExplicitArgs Normalform = []
 
 -- | Selects the correct implicit function arguments for the given effect.
 selectImplicitArgs :: Effect -> [Coq.Term]
 selectImplicitArgs Partiality = []
 selectImplicitArgs Sharing    = [implicitArg]
+selectImplicitArgs Normalform = []
 
 -- | Like 'selectImplicitArgs' but the arguments have to be inserted after
 --   the type arguments the specified number of times.
 selectTypedImplicitArgs :: Effect -> Int -> [Coq.Term]
 selectTypedImplicitArgs Partiality = const []
 selectTypedImplicitArgs Sharing    = flip replicate implicitArg
+selectTypedImplicitArgs Normalform = flip replicate implicitArg
 
 -- | Selects the correct binder for the given effect.
 selectBinders :: Effect -> [Coq.Binder]
 selectBinders Partiality = [partialBinder]
 selectBinders Sharing    = [injectableBinder, strategyBinder]
+selectBinders Normalform = []
 
 -- | Like 'selectBinders' but the binders are dependent on the type variables
 --   with the given names.
 selectTypedBinders :: Effect -> [Coq.Qualid] -> [Coq.Binder]
 selectTypedBinders Partiality = const []
 selectTypedBinders Sharing    = map shareableArgsBinder
+selectTypedBinders Normalform = map normalformBinder
 
 -------------------------------------------------------------------------------
 -- Literal Scopes                                                            --
