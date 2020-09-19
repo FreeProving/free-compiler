@@ -1,0 +1,426 @@
+{
+    "type-synonyms": [],
+    "library-name": "Generated",
+    "exported-values": [
+        "FastLooseBasic.S",
+        "FastLooseBasic.Zero",
+        "FastLooseBasic.append",
+        "FastLooseBasic.comp",
+        "FastLooseBasic.foldPeano",
+        "FastLooseBasic.id",
+        "FastLooseBasic.map",
+        "FastLooseBasic.minus",
+        "FastLooseBasic.plus",
+        "FastLooseBasic.pred",
+        "FastLooseBasic.prop_map_id",
+        "FastLooseBasic.prop_minus_plus_inv",
+        "FastLooseBasic.prop_morally_correct",
+        "FastLooseBasic.prop_rev_is_rev_inv",
+        "FastLooseBasic.prop_reverse_is_reverseNaive",
+        "FastLooseBasic.rev",
+        "FastLooseBasic.reverse",
+        "FastLooseBasic.reverseNaive"
+    ],
+    "module-name": "FastLooseBasic",
+    "exported-types": [
+        "FastLooseBasic.Peano"
+    ],
+    "constructors": [
+        {
+            "arity": 1,
+            "coq-smart-name": "S",
+            "haskell-type": "FastLooseBasic.Peano -> FastLooseBasic.Peano",
+            "coq-name": "s",
+            "haskell-name": "FastLooseBasic.S"
+        },
+        {
+            "arity": 0,
+            "coq-smart-name": "Zero",
+            "haskell-type": "FastLooseBasic.Peano",
+            "coq-name": "zero",
+            "haskell-name": "FastLooseBasic.Zero"
+        },
+        {
+            "arity": 0,
+            "coq-smart-name": "False_",
+            "haskell-type": "Prelude.Bool",
+            "coq-name": "false",
+            "haskell-name": "Prelude.False"
+        },
+        {
+            "arity": 0,
+            "coq-smart-name": "True_",
+            "haskell-type": "Prelude.Bool",
+            "coq-name": "true",
+            "haskell-name": "Prelude.True"
+        },
+        {
+            "arity": 0,
+            "coq-smart-name": "Tt",
+            "haskell-type": "Prelude.()",
+            "coq-name": "tt",
+            "haskell-name": "Prelude.()"
+        },
+        {
+            "arity": 2,
+            "coq-smart-name": "Pair_",
+            "haskell-type": "a -> b -> Prelude.(,) a b",
+            "coq-name": "pair_",
+            "haskell-name": "Prelude.(,)"
+        },
+        {
+            "arity": 2,
+            "coq-smart-name": "Cons",
+            "haskell-type": "a -> Prelude.([]) a -> Prelude.([]) a",
+            "coq-name": "cons",
+            "haskell-name": "Prelude.(:)"
+        },
+        {
+            "arity": 0,
+            "coq-smart-name": "Nil",
+            "haskell-type": "Prelude.([]) a",
+            "coq-name": "nil",
+            "haskell-name": "Prelude.([])"
+        }
+    ],
+    "types": [
+        {
+            "arity": 0,
+            "coq-name": "Peano",
+            "cons-names": [
+                "FastLooseBasic.Zero",
+                "FastLooseBasic.S"
+            ],
+            "haskell-name": "FastLooseBasic.Peano"
+        },
+        {
+            "arity": 0,
+            "coq-name": "Bool",
+            "cons-names": [
+                "Prelude.True",
+                "Prelude.False"
+            ],
+            "haskell-name": "Prelude.Bool"
+        },
+        {
+            "arity": 0,
+            "coq-name": "Integer",
+            "cons-names": [],
+            "haskell-name": "Prelude.Integer"
+        },
+        {
+            "arity": 0,
+            "coq-name": "Unit",
+            "cons-names": [
+                "Prelude.()"
+            ],
+            "haskell-name": "Prelude.()"
+        },
+        {
+            "arity": 2,
+            "coq-name": "Pair",
+            "cons-names": [
+                "Prelude.(,)"
+            ],
+            "haskell-name": "Prelude.(,)"
+        },
+        {
+            "arity": 1,
+            "coq-name": "List",
+            "cons-names": [
+                "Prelude.([])",
+                "Prelude.(:)"
+            ],
+            "haskell-name": "Prelude.([])"
+        },
+        {
+            "arity": 0,
+            "coq-name": "Property",
+            "cons-names": [],
+            "haskell-name": "Test.QuickCheck.Property"
+        }
+    ],
+    "version": 3,
+    "functions": [
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.([]) a -> Prelude.([]) a -> Prelude.([]) a",
+            "coq-name": "append",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.append"
+        },
+        {
+            "arity": 3,
+            "haskell-type": "(b -> c) -> (a -> b) -> a -> c",
+            "coq-name": "comp",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.comp"
+        },
+        {
+            "arity": 3,
+            "haskell-type": "(a -> a) -> a -> FastLooseBasic.Peano -> a",
+            "coq-name": "foldPeano",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.foldPeano"
+        },
+        {
+            "arity": 1,
+            "haskell-type": "a -> a",
+            "coq-name": "id",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.id"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "(a -> b) -> Prelude.([]) a -> Prelude.([]) b",
+            "coq-name": "map",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.map"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "FastLooseBasic.Peano -> FastLooseBasic.Peano -> FastLooseBasic.Peano",
+            "coq-name": "minus",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.minus"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "FastLooseBasic.Peano -> FastLooseBasic.Peano -> FastLooseBasic.Peano",
+            "coq-name": "plus",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.plus"
+        },
+        {
+            "arity": 1,
+            "haskell-type": "FastLooseBasic.Peano -> FastLooseBasic.Peano",
+            "coq-name": "pred",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.pred"
+        },
+        {
+            "arity": 1,
+            "haskell-type": "Prelude.([]) a -> Test.QuickCheck.Property",
+            "coq-name": "prop_map_id",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.prop_map_id"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "FastLooseBasic.Peano -> FastLooseBasic.Peano -> Test.QuickCheck.Property",
+            "coq-name": "prop_minus_plus_inv",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.prop_minus_plus_inv"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "FastLooseBasic.Peano -> Prelude.([]) FastLooseBasic.Peano -> Test.QuickCheck.Property",
+            "coq-name": "prop_morally_correct",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.prop_morally_correct"
+        },
+        {
+            "arity": 1,
+            "haskell-type": "Prelude.([]) a -> Test.QuickCheck.Property",
+            "coq-name": "prop_rev_is_rev_inv",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.prop_rev_is_rev_inv"
+        },
+        {
+            "arity": 1,
+            "haskell-type": "Prelude.([]) a -> Test.QuickCheck.Property",
+            "coq-name": "prop_reverse_is_reverseNaive",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.prop_reverse_is_reverseNaive"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.([]) t0 -> Prelude.([]) t0 -> Prelude.([]) t0",
+            "coq-name": "rev",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.rev"
+        },
+        {
+            "arity": 1,
+            "haskell-type": "Prelude.([]) a -> Prelude.([]) a",
+            "coq-name": "reverse",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.reverse"
+        },
+        {
+            "arity": 1,
+            "haskell-type": "Prelude.([]) a -> Prelude.([]) a",
+            "coq-name": "reverseNaive",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "FastLooseBasic.reverseNaive"
+        },
+        {
+            "arity": 1,
+            "haskell-type": "Prelude.Integer -> Prelude.Integer -> Prelude.Integer",
+            "coq-name": "negate",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.negate"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Bool -> Prelude.Bool -> Prelude.Bool",
+            "coq-name": "andBool",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.(&&)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Integer -> Prelude.Integer -> Prelude.Integer",
+            "coq-name": "mulInteger",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.(*)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Integer -> Prelude.Integer -> Prelude.Integer",
+            "coq-name": "addInteger",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.(+)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Integer -> Prelude.Integer -> Prelude.Integer",
+            "coq-name": "subInteger",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.(-)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Integer -> Prelude.Integer -> Prelude.Bool",
+            "coq-name": "neqInteger",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.(/=)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Integer -> Prelude.Integer -> Prelude.Bool",
+            "coq-name": "ltInteger",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.(<)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Integer -> Prelude.Integer -> Prelude.Bool",
+            "coq-name": "leInteger",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.(<=)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Integer -> Prelude.Integer -> Prelude.Bool",
+            "coq-name": "eqInteger",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.(==)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Integer -> Prelude.Integer -> Prelude.Bool",
+            "coq-name": "gtInteger",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.(>)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Integer -> Prelude.Integer -> Prelude.Bool",
+            "coq-name": "geInteger",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.(>=)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Integer -> Prelude.Integer -> Prelude.Integer",
+            "coq-name": "powInteger",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.(^)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Bool -> Prelude.Bool -> Prelude.Bool",
+            "coq-name": "orBool",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Prelude.(||)"
+        },
+        {
+            "arity": 1,
+            "haskell-type": "Prelude.Bool -> Test.QuickCheck.Property",
+            "coq-name": "boolProp",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Test.QuickCheck.property"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Test.QuickCheck.Property -> Test.QuickCheck.Property -> Test.QuickCheck.Property",
+            "coq-name": "conjProp",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Test.QuickCheck.(.&&.)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Test.QuickCheck.Property -> Test.QuickCheck.Property -> Test.QuickCheck.Property",
+            "coq-name": "disjProp",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Test.QuickCheck.(.||.)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "a -> a -> Test.QuickCheck.Property",
+            "coq-name": "neqProp",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Test.QuickCheck.(=/=)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "a -> a -> Test.QuickCheck.Property",
+            "coq-name": "eqProp",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Test.QuickCheck.(===)"
+        },
+        {
+            "arity": 2,
+            "haskell-type": "Prelude.Bool -> Test.QuickCheck.Property -> Test.QuickCheck.Property",
+            "coq-name": "preProp",
+            "needs-free-args": true,
+            "partial": false,
+            "haskell-name": "Test.QuickCheck.(==>)"
+        }
+    ]
+}
