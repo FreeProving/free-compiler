@@ -303,14 +303,22 @@ convertDataDecl (IR.TypeSynDecl _ _ _ _)
 
 generateInductionSchemes :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 generateInductionSchemes dataDecls = do
-  forQualidMap <- Map.fromList <$> mapM (generateForName . IR.typeDeclQName) dataDecls
-  forBodies <- catMaybes <$> mapM (generateForProperty forQualidMap) dataDecls
-  {-}
-  inBodies  <- return [] -- generateInProperties
-  inductionSentences <- return [] -- generateInductionSchemes'
+  let complexDataDecls = filter hasTypeVar dataDecls
+  forQualidMap <- Map.fromList <$> mapM (generateForName . IR.typeDeclQName) complexDataDecls
+  forBodies <- mapM (generateForProperty forQualidMap) complexDataDecls
+  inQualidMap <- Map.fromList <$> concatMapM generateInNames complexDataDecls
+  inBodies  <- concatMapM (generateInProperties inQualidMap) complexDataDecls
+  {-inductionSentences <- return [] -- generateInductionSchemes'
   forallSentences <- return [] -- generateForallSentences-}
-  return [Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList forBodies) []) | not (null forBodies)]
+  return
+    ( [Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList forBodies) []) | not (null forBodies)]
+    ++[Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList inBodies) []) | not (null inBodies)]
+    )
  where
+
+  hasTypeVar :: IR.TypeDecl -> Bool
+  hasTypeVar (IR.TypeSynDecl _ _ _ _) = error "hasTypeVar: Type synonym not allowed"
+  hasTypeVar (IR.DataDecl _ _ typeVarDecls _) = not $ null typeVarDecls
 
   generateForName :: IR.QName -> Converter (IR.QName, Coq.Qualid)
   generateForName typeQName = do
@@ -326,9 +334,8 @@ generateInductionSchemes dataDecls = do
         Just conName     = Coq.unpackQualid conQualid 
     freshCoqQualid $ forTypeName ++ "_" ++ conName
 
-  generateForProperty :: Map.Map IR.QName Coq.Qualid -> IR.TypeDecl -> Converter (Maybe Coq.IndBody)
+  generateForProperty :: Map.Map IR.QName Coq.Qualid -> IR.TypeDecl -> Converter Coq.IndBody
   generateForProperty _ (IR.TypeSynDecl _ _ _ _) = error "generateForProperty: Type synonym not allowed"
-  generateForProperty _ (IR.DataDecl _ _ [] _) = return Nothing -- Types without out type variable do not need a 'For-' property
   generateForProperty forQualidMap (IR.DataDecl _ (IR.DeclIdent _ typeName) typeVarDecls conDecls) = do
     Just typeQualid <- inEnv $ lookupIdent IR.TypeScope typeName
     let forQualid = forQualidMap Map.! typeName
@@ -342,10 +349,10 @@ generateInductionSchemes dataDecls = do
           binders = genericArgDecls Coq.Explicit ++ typeVarBinders ++ propertyBinders
           returnType = Coq.Arrow (Coq.app (Coq.Qualid typeQualid) (map Coq.Qualid (map fst Coq.Base.freeArgs ++ typeVarQualids)))
                              (Coq.Sort Coq.Prop)
-      return $ Just $ Coq.IndBody forQualid binders returnType forCons
+      return $ Coq.IndBody forQualid binders returnType forCons
    where
     generateForConstructor :: [Coq.Qualid] -> [Coq.Qualid] -> IR.ConDecl -> Coq.Qualid -> Converter (Coq.Qualid, [Coq.Binder], Maybe Coq.Term)
-    generateForConstructor typeVarQualids propertyQualids (IR.ConDecl _ (IR.DeclIdent _ conName) args) forConQualid = do
+    generateForConstructor typeVarQualids propertyQualids (IR.ConDecl _ (IR.DeclIdent _ conName) args) forConQualid = localEnv $ do
       Just conQualid <- inEnv $ lookupIdent IR.ValueScope conName
       (argQualids, binders) <- unzip <$> mapM (convertAnonymousArg . Just) args
       forHypotheses <- catMaybes <$> (mapM (uncurry generateForHypothesis) $ zip argQualids args)
@@ -384,24 +391,136 @@ generateInductionSchemes dataDecls = do
       generateForHypothesis_2 (IR.TypeCon _ tconName) typeArgs = do
         Just tconArity <- inEnv $ lookupArity IR.TypeScope tconName
         hypotheses <- mapM generateForHypothesis_1 typeArgs
-        coqArgs <- mapM convertType' typeArgs
-        forType <- getForType tconName
         if (tconArity == length typeArgs) && (not $ null $ catMaybes hypotheses)
           then do let hypotheses' = map (fromMaybe (Coq.Qualid Coq.Base.noProperty)) hypotheses
+                  coqArgs <- mapM convertType' typeArgs
+                  forType <- Coq.Qualid <$> getForType tconName
                   return $ Just $ Coq.app forType (map (Coq.Qualid . fst) Coq.Base.freeArgs ++ coqArgs ++ hypotheses')
           else return Nothing
       generateForHypothesis_2 (IR.TypeVar _ _) _ = return Nothing
 
-      getForType :: IR.QName -> Converter Coq.Term
+      getForType :: IR.QName -> Converter Coq.Qualid
       getForType t = case forQualidMap Map.!? t of
-        Just qualid -> return $ Coq.Qualid qualid
+        Just qualid -> return qualid
         Nothing -> do
           -- TODO use environment to store and load other 'For-' properties
           Just qualid <- inEnv $ lookupIdent IR.TypeScope t
           let name = case qualid of
                 Coq.Bare n -> Text.unpack n
                 Coq.Qualified _ n -> Text.unpack n
-          return $ Coq.Qualid $ Coq.bare $ "For" ++ name
+          return $ Coq.bare $ "For" ++ name
+
+  generateInNames :: IR.TypeDecl -> Converter [((IR.QName, Int), Coq.Qualid)]
+  generateInNames (IR.TypeSynDecl _ _ _ _) = error "generateInNames: Type synonym not allowed"
+  generateInNames (IR.DataDecl _ (IR.DeclIdent _ typeName) typeVarDecls _) =
+    let nTVars = length typeVarDecls
+        mbIndices = if nTVars == 1 then [Nothing] else map Just [1 .. nTVars]
+    in mapM (generateInName typeName) mbIndices
+
+  generateInName :: IR.QName -> Maybe Int -> Converter ((IR.QName, Int), Coq.Qualid)
+  generateInName typeQName mbInt = do
+    Just typeQualid <- inEnv $ lookupIdent IR.TypeScope typeQName
+    let Just typeIdent = Coq.unpackQualid typeQualid
+    forQualid <- freshCoqQualid $ "In" ++ typeIdent ++ maybe "" ((++) "_" . show) mbInt
+    return ((typeQName, fromMaybe 1 mbInt), forQualid)
+
+  generateInConName :: Coq.Qualid -> IR.QName -> Converter Coq.Qualid
+  generateInConName inTypeQualid conQName = do
+    Just conQualid <- inEnv $ lookupIdent IR.ValueScope conQName
+    let Just inTypeName = Coq.unpackQualid inTypeQualid
+        Just conName    = Coq.unpackQualid conQualid 
+    freshCoqQualid $ inTypeName ++ "_" ++ conName
+
+  generateInProperties :: Map.Map (IR.QName, Int) Coq.Qualid -> IR.TypeDecl -> Converter [Coq.IndBody]
+  generateInProperties _ (IR.TypeSynDecl _ _ _ _) = error "generateInProperty: Type synonym not allowed"
+  generateInProperties inQualidMap (IR.DataDecl _ (IR.DeclIdent _ typeName) typeVarDecls conDecls) =
+    mapM (generateInProperty inQualidMap typeName typeVarDecls conDecls) [1 .. length typeVarDecls]
+
+  generateInProperty :: Map.Map (IR.QName, Int) Coq.Qualid -> IR.QName -> [IR.TypeVarDecl] -> [IR.ConDecl] -> Int -> Converter Coq.IndBody
+  generateInProperty inQualidMap typeName typeVarDecls conDecls index = do
+    Just typeQualid <- inEnv $ lookupIdent IR.TypeScope typeName
+    let inQualid = inQualidMap Map.! (typeName, index)
+    (cons, mkBody) <- localEnv $ do
+      (typeVarQualids, typeVarBinders) <- convertTypeVarDecls' Coq.Explicit typeVarDecls
+      let binders = genericArgDecls Coq.Explicit ++ typeVarBinders
+          returnType = Coq.Arrow (Coq.Qualid $ typeVarQualids !! (index - 1))
+                         (Coq.Arrow (Coq.app (Coq.Qualid typeQualid) (map Coq.Qualid (map fst Coq.Base.freeArgs ++ typeVarQualids)))
+                           (Coq.Sort Coq.Prop))
+          mkBody cons' = Coq.IndBody inQualid binders returnType cons'
+      cons <- concatMapM (generateInConstructors typeVarQualids) conDecls
+      return (cons, mkBody)
+    cons' <- mapM (\(conName, mbConType) -> (\conQualid -> (conQualid, [], mbConType)) <$> generateInConName inQualid conName) cons
+    return $ mkBody cons'
+   where
+    generateInConstructors :: [Coq.Qualid] -> IR.ConDecl -> Converter [(IR.QName, Maybe Coq.Term)]
+    generateInConstructors typeVarQualids (IR.ConDecl _ (IR.DeclIdent _ conName) args) = localEnv $ do
+      Just conQualid <- inEnv $ lookupIdent IR.ValueScope conName
+      (argQualids, argBinders) <- unzip <$> mapM (convertAnonymousArg . Just) args
+      elemQualid <- freshCoqQualid "x"
+      occurrences <- concatMapM (uncurry $ findOccurrences elemQualid) $ zip argQualids args
+      let inQualid = inQualidMap Map.! (typeName, index)
+          inResult = Coq.app (Coq.Qualid inQualid)
+            (   map (Coq.Qualid . fst) Coq.Base.freeArgs
+             ++ map Coq.Qualid typeVarQualids
+             ++ [Coq.Qualid elemQualid]
+             ++ [genericApply conQualid [] (map Coq.Qualid typeVarQualids) (map Coq.Qualid argQualids)])
+          elemBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit elemQualid (Coq.Qualid elemType)
+          mkConType (occBinders, inHypotheses) = Coq.forall
+            (elemBinder : occBinders ++ argBinders)
+            (foldr Coq.Arrow inResult (reverse inHypotheses))
+          conTypes = map mkConType occurrences
+      return $ map ((,) conName . Just) conTypes
+     where
+      elemType :: Coq.Qualid
+      elemType = typeVarQualids !! (index - 1)
+
+      inHypothesis :: Coq.Qualid -> [Coq.Term] -> Coq.Qualid -> Coq.Qualid -> Coq.Term
+      inHypothesis inQualid typeArgs containerQualid elemQualid =
+        Coq.app (Coq.Qualid inQualid) (map (Coq.Qualid . fst) Coq.Base.freeArgs ++ typeArgs ++ [Coq.Qualid elemQualid, Coq.Qualid containerQualid])
+
+      findOccurrences :: Coq.Qualid -> Coq.Qualid -> IR.Type -> Converter [([Coq.Binder], [Coq.Term])]
+      findOccurrences elemQualid argQualid argType = do
+        coqType  <- convertType' argType
+        argType' <- expandAllTypeSynonyms argType
+        findOccurrences_1 elemQualid (inHypothesis Coq.Base.inFree [coqType] argQualid) argType'
+        
+      findOccurrences_1 :: Coq.Qualid -> (Coq.Qualid -> Coq.Term) -> IR.Type -> Converter [([Coq.Binder], [Coq.Term])]
+      findOccurrences_1 _ _ (IR.FuncType _ _ _) = return []
+      findOccurrences_1 _ _ (IR.TypeCon _ _)    = return [] -- Ignore type vars that do not have any type variable or are partially applied
+      findOccurrences_1 elemQualid mkInHyp tvar@(IR.TypeVar _ _) = do
+        tvarType <- convertType' tvar
+        return [([], [mkInHyp elemQualid]) | tvarType == Coq.Qualid elemType]
+      findOccurrences_1 elemQualid mkInHyp fullType@(IR.TypeApp _ _ _) =
+        findOccurrences_2 fullType []
+       where
+        findOccurrences_2 :: IR.Type -> [IR.Type] -> Converter [([Coq.Binder], [Coq.Term])]
+        findOccurrences_2 (IR.FuncType _ _ _) _ = return []
+        findOccurrences_2 (IR.TypeApp _ tcon lastArg) typeArgs = findOccurrences_2 tcon (lastArg : typeArgs)
+        findOccurrences_2 (IR.TypeVar _ _) _ = return []
+        findOccurrences_2 (IR.TypeCon _ tconName) typeArgs = localEnv $ do
+          Just tconArity <- inEnv $ lookupArity IR.TypeScope tconName
+          if tconArity == length typeArgs
+            then do
+              coqArgs <- mapM convertType' typeArgs
+              inTypes <- mapM (getInType tconName) [1 .. length typeArgs]
+              (containerQualid, containerBinder) <- convertAnonymousArg' (Just fullType)
+              occurrences <- concatMapM (\(it,arg) -> findOccurrences_1 elemQualid (inHypothesis it coqArgs containerQualid) arg) $ zip inTypes typeArgs
+              let mkNewOcc (occBinders, inHypotheses) = (containerBinder : (reverse occBinders), mkInHyp containerQualid : inHypotheses)
+              return $ map mkNewOcc occurrences
+            else return []
+
+      getInType :: IR.QName -> Int -> Converter Coq.Qualid
+      getInType t argIndex = case inQualidMap Map.!? (t, argIndex) of
+        Just qualid -> return  qualid
+        Nothing -> do
+          -- TODO use environment to store and load other 'In-' properties
+          Just qualid <- inEnv $ lookupIdent IR.TypeScope t
+          Just arity <- inEnv $ lookupArity IR.TypeScope t
+          let name = case qualid of
+                Coq.Bare n -> Text.unpack n
+                Coq.Qualified _ n -> Text.unpack n
+          return $ Coq.bare $ "In" ++ name ++ (if arity == 1 then "" else "_" ++ show argIndex)
+
 {-}
   -- | Generates an induction scheme for the data type.
   generateInductionScheme :: Converter [Coq.Sentence]

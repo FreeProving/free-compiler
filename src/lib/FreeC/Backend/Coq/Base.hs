@@ -14,6 +14,7 @@ module FreeC.Backend.Coq.Base
   , freeBind
   , freeArgs
   , forFree
+  , inFree
     -- * Partiality
   , partial
   , partialArg
@@ -111,6 +112,10 @@ freeArgs = [ (shape, Coq.Sort Coq.Type)
 -- | The Coq identifier for the @ForFree@ property.
 forFree :: Coq.Qualid
 forFree = Coq.bare "ForFree"
+
+-- | The Coq identifier for the @InFree@ property.
+inFree :: Coq.Qualid
+inFree = Coq.bare "InFree"
 
 -------------------------------------------------------------------------------
 -- Partiality                                                                --
@@ -264,6 +269,7 @@ reservedIdents
     , freePureCon
     , freeImpureCon
     , forFree
+    , inFree
       -- Partiality
     , partial
     , partialArg
