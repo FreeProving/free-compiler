@@ -361,7 +361,7 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     fArgTypes <- mapM convertType argTypes
     (argIdents, argBinders) <- mapAndUnzipM convertAnonymousArg
       (map Just argTypes)
-    let
+    let 
       -- We need an induction hypothesis for every argument that has the same
       -- type as the constructor but lifted into the free monad.
       addHypotheses' :: [(Coq.Term, Coq.Qualid)] -> Coq.Term -> Coq.Term
@@ -724,13 +724,14 @@ generateTypeclassInstances dataDecls = do
     -- and Identity.Pos as arguments for the normalized result type.
     (sourceType, sourceVars) <- toCoqType "a" shapeAndPos t
     -- The return types of the type variables' @Normalform@ instances.
-    let nTypes = map (\v -> Coq.explicitApp (Coq.bare "nType") (shapeAndPos ++ (Coq.Qualid v) : [Coq.Underscore])) sourceVars
+    let nTypes = map (\v -> Coq.explicitApp (Coq.bare "nType")
+                      (shapeAndPos ++ Coq.Qualid v : [Coq.Underscore]))
+          sourceVars
     targetType <- toCoqType' nTypes idShapeAndPos t
     -- For each type variable ai, build a constraint
     -- `{Normalform Shape Pos ai}.
     let constraints = map Coq.Base.normalformBinder sourceVars
-    let varBinder
-          = [typeVarBinder sourceVars | not (null sourceVars)]
+    let varBinder = [typeVarBinder sourceVars | not (null sourceVars)]
     let binders = varBinder ++ constraints
     -- Create an explicit argument binder for the value to be normalized.
     let topLevelVarBinder
@@ -1028,18 +1029,20 @@ generateTypeclassInstances dataDecls = do
   -- Like 'toCoqType', but inserts terms from a list into the type instead of fresh
   -- type variables
   toCoqType' :: [Coq.Term] -> [Coq.Term] -> IR.Type -> Converter Coq.Term
-  toCoqType' varArgs constArgs t = fst <$> toCoqType'' varArgs t where
-      toCoqType'' :: [Coq.Term] -> IR.Type -> Converter (Coq.Term,[Coq.Term])
-      toCoqType'' (x:xs) (IR.TypeVar _ _) = return (x,xs)
-      toCoqType'' xs      (IR.TypeCon _ conName) = do
-        entry <- lookupEntryOrFail NoSrcSpan IR.TypeScope conName
-        return (Coq.app (Coq.Qualid (entryIdent entry)) constArgs, xs)
-      toCoqType'' xs (IR.TypeApp _ l r) = do
-          (l',xs') <- toCoqType'' xs l
-          (r',xs'') <- toCoqType'' xs' r
-          return ((Coq.app l' [r']),xs'')
-      toCoqType'' _ (IR.FuncType _ _ _) = error "Function types should have been eliminated."
-      toCoqType'' [] _ = error "Not enough arguments!"
+  toCoqType' varArgs constArgs t = fst <$> toCoqType'' varArgs t
+   where
+    toCoqType'' :: [Coq.Term] -> IR.Type -> Converter (Coq.Term, [Coq.Term])
+    toCoqType'' (x : xs) (IR.TypeVar _ _) = return (x, xs)
+    toCoqType'' xs (IR.TypeCon _ conName) = do
+      entry <- lookupEntryOrFail NoSrcSpan IR.TypeScope conName
+      return (Coq.app (Coq.Qualid (entryIdent entry)) constArgs, xs)
+    toCoqType'' xs (IR.TypeApp _ l r) = do
+      (l', xs') <- toCoqType'' xs l
+      (r', xs'') <- toCoqType'' xs' r
+      return (Coq.app l' [r'], xs'')
+    toCoqType'' _ (IR.FuncType _ _ _)
+      = error "Function types should have been eliminated."
+    toCoqType'' [] _ = error "Not enough arguments!"
 
   -- | Produces @n@ new Coq identifiers (Qualids) with the same prefix.
   freshQualids :: Int -> String -> Converter [Coq.Qualid]

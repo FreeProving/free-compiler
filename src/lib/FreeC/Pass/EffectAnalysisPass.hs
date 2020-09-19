@@ -78,7 +78,10 @@ buildEffectList funcDecls = do
   anyPartial <- anyM isPartialFuncDecl funcDecls
   anySharing <- (areSharedFuncDecls .||^. containSharedFuncs) funcDecls
   anyNormalform <- isProperty funcDecls
-  return $ [Sharing | anySharing] ++ [Partiality | anyPartial] ++ [Normalform | anyNormalform]
+  return
+    $ [Sharing | anySharing]
+    ++ [Partiality | anyPartial]
+    ++ [Normalform | anyNormalform]
 
 -- | Adds the given effects to the environment entry of the given function.
 addEffects :: [Effect] -> IR.FuncDecl -> Converter ()
@@ -119,6 +122,5 @@ containSharedFuncs :: [IR.FuncDecl] -> Converter Bool
 containSharedFuncs = anyM $ anyM (inEnv . hasEffect Sharing) . valueRefs
 
 -- Normalform
-
 isProperty :: [IR.FuncDecl] -> Converter Bool
 isProperty = anyM $ anyM (inEnv . hasEffect Normalform) . valueRefs

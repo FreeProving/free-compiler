@@ -182,7 +182,8 @@ strategyNotation :: Coq.Qualid
 strategyNotation = Coq.bare "EvaluationStrategy"
 
 strategyBinder :: Coq.Binder
-strategyBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit strategyArg (Coq.Qualid strategyNotation)
+strategyBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit strategyArg
+  (Coq.Qualid strategyNotation)
 
 -- | The Coq identifier for the @ShareableArgs@ type class.
 shareableArgs :: Coq.Qualid
