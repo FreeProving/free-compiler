@@ -6,7 +6,8 @@ Require Import Coq.Logic.FunctionalExtensionality.
 (* This lemma can be generated from a QuickCheck property. *)
 Lemma append_nil : quickCheck prop_append_nil.
 Proof.
-  intros Shape Pos a fxs.
+  intros Shape Pos a NF fxs handler.
+  simpl. f_equal.
   induction fxs using FreeList_ind with (P := fun xs => append1 Shape Pos a (pure nil) xs = pure xs); simpl.
   - reflexivity.
   - simpl; repeat apply f_equal. apply IHfxs1.
@@ -38,7 +39,8 @@ Qed.
 (* Now we can prove the actual property. *)
 Theorem append_assocs: quickCheck prop_append_assoc.
 Proof.
-  intros Shape Pos a fxs fys fzs.
+  intros Shape Pos a NF fxs fys fzs handler.
+  simpl. f_equal.
   induction fxs as [ | s pf IH ] using Free_Ind.
   - simpl. apply append1_assoc.
   - (*Inductive case: [fxs = impure s pf] with induction hypothesis [IH] *)

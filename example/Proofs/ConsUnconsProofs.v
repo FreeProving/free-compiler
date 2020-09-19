@@ -1,4 +1,4 @@
-From Base Require Import Free Free.Instance.Error Free.Instance.Maybe Prelude Test.QuickCheck.
+From Base Require Import Free Free.Handlers Free.Instance.Error Free.Instance.Maybe Prelude Test.QuickCheck.
 From Generated Require Import Proofs.ConsUncons.
 
 Require Import Coq.Logic.FunctionalExtensionality.
@@ -8,7 +8,7 @@ Require Import Coq.Logic.FunctionalExtensionality.
    return an error, that an [Partial] instance for [Shape] and [Pos] is given. *)
 Lemma cons_unconsE : quickCheck prop_cons_unconsE.
 Proof.
-  intros Shape Pos Partial A fx fxs.
+  intros Shape Pos Partial A fx fxs NF handler.
   reflexivity.
 Qed.
 
@@ -16,8 +16,8 @@ Qed.
 Lemma unconsE_fst_Maybe : quickCheck
   (@prop_unconsE_fst Maybe.Shape Maybe.Pos (Maybe.Partial Maybe.Shape Maybe.Pos)).
 Proof.
-  intros A fxs.
-  simpl.
+  intros A NF fxs handler.
+  simpl. f_equal.
   destruct fxs as [ xs | s pf ].
   - destruct xs as [ | fx1 fxs1 ].
     + simpl. unfold Nothing. f_equal. extensionality p. destruct p.
@@ -28,10 +28,11 @@ Qed.
 (* But the second QuickCheck property doesn't hold for the [Error] instance of
    [Partial] as [unconsE] and [head] have different error messages on an empty
    list. *)
-Lemma unconsE_fst_Error : not (quickCheck (@prop_unconsE_fst (Error.Shape string) Error.Pos (Error.Partial (Error.Shape string) Error.Pos))).
-Proof.
-  intro H.
-  specialize (H bool (Nil _ _)).
+Lemma unconsE_fst_Error : not (quickCheckHandle
+  (@prop_unconsE_fst _ _ _) HandlerError).
+Proof. simpl.
+  intros H.
+  specialize (H bool _ (Nil _ _)).
   discriminate H.
 Qed.
 
