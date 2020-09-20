@@ -542,13 +542,13 @@ generateTypeclassInstances dataDecls = do
     -- indirect recursion in the constructors of that data declaration.
     -> String -- ^ The name of the class function.
     -> String -- ^ The name of the typeclass.
-    -> (IR.Type -- ^ The type for which the instance is being defined.
-        -> Coq.Qualid -- ^ The name of a variable of that type.
+    -> (IR.Type
+        -> Coq.Qualid
         -> Converter ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term))
-    -> (TypeMap -- ^ A mapping from types to function names.
-        -> Coq.Qualid -- ^ The name of a constructor.
-        -> [(IR.Type, Coq.Qualid)]
-        -> Converter Coq.Term)
+    -- ^ A function to get class-specific binders and return types.
+    -> (TypeMap -> Coq.Qualid -> [(IR.Type, Coq.Qualid)] -> Converter Coq.Term)
+    -- ^ A function to compute a class-specific value given a data constructor
+    --   with arguments.
     -> Converter [Coq.Sentence]
   buildInstances recTypeList functionPrefix className getBindersAndReturnTypes
     buildValue = do
@@ -736,7 +736,7 @@ generateTypeclassInstances dataDecls = do
     -- Create an explicit argument binder for the value to be normalized.
     let topLevelVarBinder
           = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit varName sourceType
-    let instanceRetType = Coq.app (Coq.Qualid (Coq.Base.normalform))
+    let instanceRetType = Coq.app (Coq.Qualid Coq.Base.normalform)
           (shapeAndPos ++ [sourceType, targetType])
     let funcRetType = applyFree targetType
     return (binders, topLevelVarBinder, funcRetType, instanceRetType)
@@ -848,7 +848,7 @@ generateTypeclassInstances dataDecls = do
             $ applyBind
             (Coq.app (Coq.Qualid Coq.Base.cbneed)
              (shapeAndPos
-              ++ [Coq.Qualid (Coq.Base.shareArgs), Coq.Qualid varName]))
+              ++ [Coq.Qualid Coq.Base.shareArgs, Coq.Qualid varName]))
             (Coq.fun [sx] [Nothing] rhs)
 
   -------------------------------------------------------------------------------
