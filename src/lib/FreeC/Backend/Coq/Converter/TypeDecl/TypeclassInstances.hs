@@ -99,8 +99,6 @@
 --   In this case, a type @T'@ is considered indirectly recursive if it
 --   contains any of the types @T₁, …, Tₙ@.
 --   Arguments of type @Tᵢ@ can be treated like directly recursive arguments.
-
-
 module FreeC.Backend.Coq.Converter.TypeDecl.TypeclassInstances where
 
 import           Control.Monad
@@ -129,7 +127,6 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 -- Instance Generation                                                       --
 -------------------------------------------------------------------------------
-
 -- | Type synonym for a map mapping types to function names.
 type TypeMap = Map.Map IR.Type Coq.Qualid
 
