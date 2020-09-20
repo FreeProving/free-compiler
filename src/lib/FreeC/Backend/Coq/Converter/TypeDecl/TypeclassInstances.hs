@@ -653,42 +653,44 @@ generateTypeclassInstances dataDecls = do
     -> [Coq.Term] -- ^ A list of additional arguments, e.g. Shape and Pos.
     -> IR.Type -- ^ The type to convert.
     -> Converter (Coq.Term, [Coq.Qualid])
+  toCoqType varPrefix = toCoqType'' varPrefix []
 
-  -- A type variable is translated into a fresh type variable.
-  toCoqType varPrefix _ (IR.TypeVar _ _)           = do
-    x <- freshCoqQualid varPrefix
-    return (Coq.Qualid x, [x])
-  -- A type constructor is applied to the given arguments.
-  toCoqType _ extraArgs (IR.TypeCon _ conName)     = do
-    entry <- lookupEntryOrFail NoSrcSpan IR.TypeScope conName
-    return (Coq.app (Coq.Qualid (entryIdent entry)) extraArgs, [])
-  -- For a type application, both arguments are translated recursively
-  -- and the collected variables are combined.
-  toCoqType varPrefix extraArgs (IR.TypeApp _ l r) = do
-    (l', varsl) <- toCoqType varPrefix extraArgs l
-    (r', varsr) <- toCoqType varPrefix extraArgs r
-    return (Coq.app l' [r'], varsl ++ varsr)
-  -- Function types were removed by 'stripType'.
-  toCoqType _ _ (IR.FuncType _ _ _)
-    = error "Function types should have been eliminated."
-
-  -- Like 'toCoqType', but inserts terms from a list into the type instead of fresh
-  -- type variables
+  -- Like 'toCoqType', but inserts terms from a list into the type instead of
+  -- fresh type variables
   toCoqType' :: [Coq.Term] -> [Coq.Term] -> IR.Type -> Converter Coq.Term
-  toCoqType' varArgs constArgs t = fst <$> toCoqType'' varArgs t
+  toCoqType' varArgs constArgs t = fst <$> toCoqType'' "x" varArgs constArgs t
+
+  -- | Transforms an @IR.Type@ into a Coq type. All underscores are replaced
+  --   with the given terms starting from the left of the type expression.
+  --   If the list runs out of entries before the type is fully converted,
+  --   all other underscores are replaced with fresh variables, which are
+  --   returned along with the result type.
+  toCoqType'' :: String
+              -> [Coq.Term]
+              -> [Coq.Term]
+              -> IR.Type
+              -> Converter (Coq.Term, [Coq.Qualid])
+  toCoqType'' varPrefix varArgs constArgs t = do
+    (coqType, _, vars) <- toCoqTypeRec varArgs t
+    return (coqType, vars)
    where
-    toCoqType'' :: [Coq.Term] -> IR.Type -> Converter (Coq.Term, [Coq.Term])
-    toCoqType'' (x : xs) (IR.TypeVar _ _) = return (x, xs)
-    toCoqType'' xs (IR.TypeCon _ conName) = do
+    toCoqTypeRec :: [Coq.Term]
+                 -> IR.Type
+                 -> Converter (Coq.Term, [Coq.Term], [Coq.Qualid])
+    toCoqTypeRec terms (IR.TypeVar _ _)       = case terms of
+      []       -> do
+        x <- freshCoqQualid varPrefix
+        return (Coq.Qualid x, [], [x])
+      (x : xs) -> return (x, xs, [])
+    toCoqTypeRec terms (IR.TypeCon _ conName) = do
       entry <- lookupEntryOrFail NoSrcSpan IR.TypeScope conName
-      return (Coq.app (Coq.Qualid (entryIdent entry)) constArgs, xs)
-    toCoqType'' xs (IR.TypeApp _ l r) = do
-      (l', xs') <- toCoqType'' xs l
-      (r', xs'') <- toCoqType'' xs' r
-      return (Coq.app l' [r'], xs'')
-    toCoqType'' _ (IR.FuncType _ _ _)
+      return (Coq.app (Coq.Qualid (entryIdent entry)) constArgs, terms, [])
+    toCoqTypeRec xs (IR.TypeApp _ l r)        = do
+      (l', xs', varsl) <- toCoqTypeRec xs l
+      (r', xs'', varsr) <- toCoqTypeRec xs' r
+      return (Coq.app l' [r'], xs'', varsl ++ varsr)
+    toCoqTypeRec _ (IR.FuncType _ _ _)
       = error "Function types should have been eliminated."
-    toCoqType'' [] _ = error "Not enough arguments!"
 
   -- | Produces @n@ new Coq identifiers (Qualids) with the same prefix.
   freshQualids :: Int -> String -> Converter [Coq.Qualid]
