@@ -159,7 +159,7 @@ convertDataDecl
     (smartConDecls, qualSmartConDecls)
       <- concatUnzip <$> mapM generateSmartConDecl conDecls
     inductionScheme <- generateInductionScheme
-      (IR.DataDecl srcSpan (IR.DeclIdent srcSpan' name) typeVarDecls conDecls)
+      (IR.DataDecl srcSpan' (IR.DeclIdent srcSpan'' name) typeVarDecls conDecls)
     return ( body
            , ( Coq.commentedSentences
                  ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
