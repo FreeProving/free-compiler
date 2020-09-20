@@ -340,23 +340,23 @@ liftBinds ((IR.Bind srcSpan varPat bindExpr) : bs) expr = localEnv $ do
   varPat' <- makeVarPat patSrcSpan (IR.varPatQName varPat) patType'
   shareType' <- mapM LIR.liftType' varPatType
   bindExpr' <- liftExpr bindExpr
-  let countExprs = expr : map IR.bindExpr bs
-      shareOp
-        = if sum (map (countVarInExpr $ IR.varPatQName varPat) countExprs) > 1
-          then LIR.Share
-          else LIR.Call
+  let varName    = IR.varPatQName varPat
+      countExprs = expr : map IR.bindExpr bs
+      count      = sum (map (countVarInExpr varName) countExprs)
+      shareOp    | count > 1 = LIR.Share
+                 | otherwise = LIR.Call
       shareExpr  = shareOp srcSpan bindExpr' shareType'
   return $ LIR.Bind srcSpan shareExpr (LIR.Lambda srcSpan [varPat'] expr')
 
 -- | Counts the number of times the variable with the given qualified name
 --   occurs in the given expression.
 countVarInExpr :: IR.QName -> IR.Expr -> Int
-countVarInExpr varPat = countVarInExpr'
+countVarInExpr varName = countVarInExpr'
  where
   countVarInExpr' :: IR.Expr -> Int
-  countVarInExpr' IR.Con {}                    = 0
-  countVarInExpr' (IR.Var _ varName _)
-    = if varPat == varName then 1 else 0
+  countVarInExpr' IR.Con {}             = 0
+  countVarInExpr' (IR.Var _ varName' _) | varName == varName' = 1
+                                        | otherwise = 0
   countVarInExpr' (IR.App _ lhs rhs _)
     = countVarInExpr' lhs + countVarInExpr' rhs
   countVarInExpr' (IR.TypeAppExpr _ lhs _ _)   = countVarInExpr' lhs
@@ -378,5 +378,5 @@ countVarInExpr varPat = countVarInExpr'
   --   Returns @0@ if the variable occurs in the given variable patterns.
   countVarInBinds :: [IR.VarPat] -> IR.Expr -> Int
   countVarInBinds varPats exprs
-    | any (\varPat' -> IR.varPatQName varPat' == varPat) varPats = 0
+    | varPat `elem` map IR.varPatQName varPats = 0
     | otherwise = countVarInExpr varPat exprs
