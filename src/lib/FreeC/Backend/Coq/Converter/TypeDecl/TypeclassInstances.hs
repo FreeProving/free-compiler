@@ -255,7 +255,7 @@ generateTypeclassInstances dataDecls = do
       -- is mapped.
       let instanceBody
             = (Coq.bare functionPrefix, Coq.Qualid (fromJust (Map.lookup t m)))
-      instanceName <-  nameFunction className t
+      instanceName <- nameFunction className t
       return
         $ Coq.InstanceSentence
         (Coq.InstanceDefinition instanceName (freeArgsBinders ++ binders)
