@@ -390,26 +390,26 @@ convertDataDecl (IR.TypeSynDecl _ _ _ _)
 -- Instance Generation                                                       --
 -------------------------------------------------------------------------------
 -- | Builds instances for all supported typeclasses.
---   Currently, only a @Normalform@ instance is generated.
+--   Currently, @Normalform@ and @ShareableArgs@ instances are generated.
 --
 --   Suppose we have a type
---   > data T a1 ... an = C1 a11 ... a1m1 | ... | Ck ak1 ... akmk.
+--   > data T α₁ … αₙ = C₁ τ₍₁,₁₎ … τ₍₁,ₘ₁₎ | … | Cₖ τ₍ₖ,₁₎ … τ₍ₖ,ₘₖ₎.
 --   We wish to generate an instance of class @C@ providing the function
---   @f : T a1 ... an -> B@, where @B@ is a type.
+--   @f : T α₁ … αₙ -> τ@, where @τ@ is a type.
 --   For example, for the @Normalform@ class, @f@ would be
---   > nf' : T a1 ... an -> Free Shape Pos (T a1 ... an).
+--   > nf' : T α₁ … αₙ -> Free Shape Pos (T α₁ … αₙ).
 --
 --   The generated function has the following basic structure:
 --
---   > f'T < class-specific binders > (x : T a1 ... an) : B
+--   > f'T < class-specific binders > (x : T α₁ … αₙ) : B
 --   >      := match x with
---   >         | C1 fx11 ... fx1m1 => < buildValue x [fx11, ..., fx1m1] >
---   >         | ...
---   >         | Ck fxk1 ... fxkmk => < buildValue x [fxk1, ..., fxkmk] >
+--   >         | C₁ fx₍₁,₁₎ … fx₍₁,ₘ₁₎ => < buildValue x [fx₍₁,₁₎, …, fx₍₁,ₘ₁₎ >
+--   >         | …
+--   >         | Cₖ fx₍ₖ,₁₎ … fx₍ₖ,ₘₖ₎ => < buildValue x [fx₍ₖ,₁₎, …, fxk₍ₖ,ₘₖ₎] >
 --   >         end.
 --
---   @buildValue x [fxi1, ..., fximi]@ represents class-specific code that
---   actually constructs a value of type @B@ when given @x@ and the
+--   @buildValue x [fx₍ᵢ,₁₎, …, fx₍ᵢ,ₘᵢ₎]@ represents class-specific code that
+--   actually constructs a value of type @τ@ when given @x@ and the
 --   constructor's parameters as arguments.
 --
 --   For example, for a @Normalform@ instance of a type
@@ -440,8 +440,8 @@ convertDataDecl (IR.TypeSynDecl _ _ _ _)
 --   signature of the function.
 --   However, this is not possible for (indirectly) recursive arguments.
 --
---   A directly recursive argument has the type @T t1 ... tn@, where @ti@ are
---   type expressions (not necessarily type variables). We assume that @ti'@
+--   A directly recursive argument has the type @T τ₁ … τₙ@, where @τᵢ@ is a
+--   type expressions (not necessarily type variables). We assume that @τᵢ'@
 --   does not contain @T@ for any @i@, as this would constitute a non-positive
 --   occurrence of @T@ and make @T@ invalid in Coq.
 --   For these arguments, instead of the function @f@ we call @fT@ recursively.
@@ -452,90 +452,101 @@ convertDataDecl (IR.TypeSynDecl _ _ _ _)
 --   (as that would generally require a @C@ instance of @T@) nor can we use
 --   @fT@.
 --
---   The problem is solved by introducing a local function fT' for every type
+--   The problem is solved by introducing a local function @fT'@ for every type
 --   @T'@ that contains @T@ that inlines the definition of a @T'@ instance of
---   @C@, and call this functions for arguments of type @T'@.
+--   @C@, and call this function for arguments of type @T'@.
 --   These local functions are as polymorphic as possible to reduce the number
 --   of local functions we need.
 --
 --   For example, if we want to generate an instance for the Haskell type
---   @data Forest a = AForest [Forest a]
---                  | IntForest [Forest Int]
---                  | BoolForest [ForestBool]@,
---   only one local function is needed.
---   @fListForest_ : List Shape Pos (Forest Shape Pos a)
---                -> Free Shape Pos (List Identity.Shape Identity.Pos
---                                    (Forest Identity.Shape Identity.Pos b))@
 --
---   To generate these local function, for every type expression @aij@ in the
+--   > data Forest a = AForest [Forest a]
+--   >               | IntForest [Forest Int]
+--   >               | BoolForest [Forest Bool]
+--
+--   only one local function is needed. In the case of @Normalform@, the local
+--   function would look as follows.
+--
+--   > nf'ListForest_ {a b : Type} `{Normalform Shape Pos a b}
+--   >   : List Shape Pos (Forest Shape Pos a)
+--   >   -> Free Shape Pos (List Identity.Shape Identity.Pos
+--   >                     (Forest Identity.Shape Identity.Pos b))
+--
+--   To generate these local functions, for every type expression @τ₍ᵢ,ⱼ₎@ in the
 --   constructors of @T@, we collect all types that contain the original type
 --   @T@.
---   More specifically, a type expression @T' t1 ... tm@ is collected if
---   @ti = T t1' ... tn'@ for some type expressions @t1', ..., tn'@, or if @ti@
+--   More specifically, a type expression @T' τ₁ … τₙ@ is collected if
+--   @τᵢ = T τ₁' … τₙ'@ for some type expressions @τ₁, …, τₙ@, or if @τᵢ@
 --   is collected for some @i@.
 --   During this process, any type expression that does not contain @T@ is
---   replaced by a placeholder variable "_".
+--   replaced by a placeholder variable @_@.
 --
 --   We keep track of which types correspond to which function with a map.
 --
---   The generated functions @fT1, ..., fTn@ for @n@ mutually recursive types
---   @T1, ... Tn@ are a set of @n@ @Fixpoint@ definitions linked with @with@.
+--   The generated functions @fT₁, …, fTₙ@ for @n@ mutually recursive types
+--   @T₁, … Tₙ@ are a set of @n@ @Fixpoint@ definitions linked with @with@.
 --   Indirectly recursive types and local functions based on them are computed
 --   for each type.
 --   In this case, a type @T'@ is considered indirectly recursive if it
---   contains any of the types @T1, ..., Tn@.
---   Arguments of type @Ti@ can be treated like directly recursive arguments.
+--   contains any of the types @T₁, …, Tₙ@.
+--   Arguments of type @Tᵢ@ can be treated like directly recursive arguments.
 generateTypeclassInstances :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 generateTypeclassInstances dataDecls = do
   -- The types of the data declaration's constructors' arguments.
   let argTypes = map (concatMap IR.conDeclFields . IR.dataDeclCons) dataDecls
   -- The same types where all type synonyms are expanded.
-  argTypesExpanded
-    <- mapM (mapM expandAllTypeSynonyms) argTypes -- :: [[IR.Type]]
+  argTypesExpanded <- mapM (mapM expandAllTypeSynonyms) argTypes
   -- A list where all fully-applied type constructors that do not contain one of the types
   -- for which we are defining instances and all type variables are replaced with
   -- the same type variable (an underscore). The list is reversed so its entries are
   -- in topological order.
   let reducedTypes = map (nub . reverse . concatMap collectSubTypes)
         argTypesExpanded
-  -- Like reducedTypes, but with all occurrences of the types for which we are defining
+  -- Like 'reducedTypes', but with all occurrences of the types for which we are defining
   -- instances and all type variables removed from the list.
   -- This leaves exactly the types with indirect recursion, with all non-recursive
   -- components replaced by underscores.
   let recTypeList = map
         (filter (\t -> not (t `elem` declTypes || IR.isTypeVar t))) reducedTypes
-  -- Construct Normalform instances.
-  nfInstances <- buildInstances recTypeList normalformFuncName
-    normalformClassName nfBindersAndReturnType buildNormalformValue
-  -- Construct ShareableArgs instances.
-  shareableArgsInstances <- buildInstances recTypeList shareableArgsFuncName
-    shareableArgsClassName shareArgsBindersAndReturnType buildShareArgsValue
+  -- Construct @Normalform@ instances.
+  nfInstances <- buildInstances recTypeList
+    (fromJust $ Coq.unpackQualid Coq.Base.nf')
+    (fromJust $ Coq.unpackQualid Coq.Base.normalform) nfBindersAndReturnType
+    buildNormalformValue
+  -- Construct @ShareableArgs@ instances.
+  shareableArgsInstances <- buildInstances recTypeList
+    (fromJust $ Coq.unpackQualid Coq.Base.shareArgs)
+    (fromJust $ Coq.unpackQualid Coq.Base.shareableArgs)
+    shareArgsBindersAndReturnType buildShareArgsValue
   return (nfInstances ++ shareableArgsInstances)
  where
-  -- The (mutually recursive) data types for which we are defining
-  -- instances, converted to types.
+  -- | The (mutually recursive) data types for which we are defining
+  --   instances, converted to types. All type variable are converted
+  --   to underscores.
   declTypes :: [IR.Type]
-  declTypes = map dataDeclToType dataDecls
+  declTypes = [IR.typeConApp NoSrcSpan (IR.typeDeclQName dataDecl)
+                (replicate (length (IR.typeDeclArgs dataDecl)) placeholderVar)
+              | dataDecl <- dataDecls
+              ]
 
-  -- The names of the constructors of the data types for which
+  -- The names of the type constructors of the data types for which
   -- we are defining instances.
-  conNames :: [IR.TypeConName]
-  conNames = map IR.typeDeclQName dataDecls
+  typeConNames :: [IR.TypeConName]
+  typeConNames = map IR.typeDeclQName dataDecls
 
   -- | Constructs instances of a typeclass for a set of mutually recursive
   --   types. The typeclass is specified by the arguments.
   buildInstances
-    ::
-    -- For each data declaration, this list contains the occurrences of
+    :: [[IR.Type]]
+    -- ^ For each data declaration, this list contains the occurrences of
     -- indirect recursion in the constructors of that data declaration.
-    [[IR.Type]]
-    -> String -- The name of the class function.
-    -> String -- The name of the typeclass.
-    -> (IR.Type -- The type for which the instance is being defined.
-        -> Coq.Qualid -- The name of a variable of that type.
+    -> String -- ^ The name of the class function.
+    -> String -- ^ The name of the typeclass.
+    -> (IR.Type -- ^ The type for which the instance is being defined.
+        -> Coq.Qualid -- ^ The name of a variable of that type.
         -> Converter ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term))
-    -> (TypeMap -- A mapping from types to function names.
-        -> Coq.Qualid -- The name of a constructor.
+    -> (TypeMap -- ^ A mapping from types to function names.
+        -> Coq.Qualid -- ^ The name of a constructor.
         -> [(IR.Type, Coq.Qualid)]
         -> Converter Coq.Term)
     -> Converter [Coq.Sentence]
@@ -560,10 +571,12 @@ generateTypeclassInstances dataDecls = do
    where
         -- Constructs the class function and class instance for a single type.
     buildFixBodyAndInstance
-      ::
-      -- A map to map occurrences of the top-level types to recursive
-      -- function calls.
-      TypeMap -> IR.Type -> [IR.Type] -> Converter (Coq.FixBody, Coq.Sentence)
+      :: TypeMap
+      -- ^ A map to map occurrences of the top-level types to recursive
+      --   function calls.
+      -> IR.Type -- ^ The type for which we are defining an instance.
+      -> [IR.Type] -- ^ The list of indirectly recursive types.
+      -> Converter (Coq.FixBody, Coq.Sentence)
     buildFixBodyAndInstance topLevelMap t recTypes = do
       -- Locally visible definitions are defined in a local environment.
       (fixBody, typeLevelMap, binders, instanceRetType) <- localEnv $ do
@@ -589,9 +602,12 @@ generateTypeclassInstances dataDecls = do
 
     -- | Builds an instance for a specific type and typeclass.
     buildInstance
-      ::
-      -- A mapping from (indirectly) recursive types to function names.
-      TypeMap -> IR.Type -> [Coq.Binder] -> Coq.Term -> Converter Coq.Sentence
+      :: TypeMap
+      -- ^ A mapping from (in)directly recursive types to function names.
+      -> IR.Type -- ^ The type for which we are defining an instance.
+      -> [Coq.Binder] -- ^ The binders for the type class instance.
+      -> Coq.Term -- ^ The type of the instance.
+      -> Converter Coq.Sentence
     buildInstance m t binders retType = do
       -- Define the class function as the function to which the current type
       -- is mapped.
@@ -606,15 +622,13 @@ generateTypeclassInstances dataDecls = do
     -- | Generates the implementation of the body of a class function for the
     --   given type.
     makeFixBody
-      ::
-      -- A mapping from (indirectly or directly) recursive types to the name
-      -- of the function that handles arguments of those types.
-      TypeMap
-      -> Coq.Qualid
-      -> IR.Type
-      -> [Coq.Binder]
-      -> Coq.Term
-      -> [IR.Type]
+      :: TypeMap
+      -- ^ A mapping from (in)directly recursive types to function names.
+      -> Coq.Qualid -- ^ The name of the argument of type @t@.
+      -> IR.Type -- ^ The type for which we are defining an instance.
+      -> [Coq.Binder] -- ^ The binders for the class function.
+      -> Coq.Term -- ^ The return type of the class function.
+      -> [IR.Type] -- ^ The list of indirectly recursive types.
       -> Converter Coq.FixBody
     makeFixBody m varName t binders retType recTypes = do
       rhs <- generateBody m varName t recTypes
@@ -626,7 +640,12 @@ generateTypeclassInstances dataDecls = do
     -- | Creates the function body for a class function by creating local
     --   functions for all indirectly recursive types.
     generateBody
-      :: TypeMap -> Coq.Qualid -> IR.Type -> [IR.Type] -> Converter Coq.Term
+      :: TypeMap
+      -- ^ A mapping from (in)directly recursive types to function names.
+      -> Coq.Qualid -- ^ The name of the argument of type @t@.
+      -> IR.Type -- ^ The type for which we are defining an instance.
+      -> [IR.Type] -- ^ The list of indirectly recursive types.
+      -> Converter Coq.Term
 
     -- If there are no indirectly recursive types, match on the constructors of
     -- the original type.
@@ -675,57 +694,41 @@ generateTypeclassInstances dataDecls = do
       -- Find out the type of each constructor argument by unifying its return
       -- type with the given type expression and applying the resulting
       -- substitution to each constructor argument's type.
-      -- Then convert all irrelevant components into underscores again so the
+      -- Then convert all irrelevant components to underscores again so the
       -- type can be looked up in the type map.
       expandedArgTypes <- mapM expandAllTypeSynonyms (entryArgTypes conEntry)
       let modArgTypes = map (stripType . applySubst subst) expandedArgTypes
       let lhs = Coq.ArgsPat conIdent (map Coq.QualidPat conArgIdents)
       -- Build the right-hand side of the equation by applying the
-      -- class-specific function buildValue.
+      -- class-specific function @buildValue@.
       rhs <- buildValue m conIdent (zip modArgTypes conArgIdents)
       return $ Coq.equation lhs rhs
 
   -------------------------------------------------------------------------------
-  -- Typeclass-specific Functions                                              --
+  -- Functions to produce @Normalform@ instances                                 --
   -------------------------------------------------------------------------------
-  -------------------------------------------------------------------------------
-  -- Functions to produce Normalform instances                                 --
-  -------------------------------------------------------------------------------
-  -- | The name of the Normalform class.
-  normalformClassName :: String
-  normalformClassName = "Normalform"
-
-  -- | The name of the Normalform class function.
-  normalformFuncName :: String
-  normalformFuncName = "nf'"
-
-  -- | The function nf.
-  normalformFunc :: Coq.Term
-  normalformFunc = Coq.Qualid (Coq.bare "nf")
-
-  -- | The binders and return types for the Normalform class function and instance.
+  -- | The binders and return types for the @Normalform@ class function and instance.
   nfBindersAndReturnType
-    ::
-    -- The type @t@ for which we are defining an instance.
-    IR.Type
-    -> Coq.Qualid
+    :: IR.Type
+    -- ^ The type @t@ for which we are defining an instance.
+    -> Coq.Qualid -- ^ The name of the argument of type @t@.
     -> Converter
-    ( [Coq.Binder] -- Type variable binders and Normalform constraints.
+    ( [Coq.Binder] -- Type variable binders and @Normalform@ constraints.
     , Coq.Binder -- Binder for the argument of type @t@.
     , Coq.Term -- Return type of @nf'@.
-    , Coq.Term -- Return type of the Normalform instance.
+    , Coq.Term -- Return type of the @Normalform@ instance.
     )
   nfBindersAndReturnType t varName = do
     -- For each type variable in the type, generate two type variables.
     -- One represents the type's variable itself, the other the result
     -- type of the normalization.
-    -- The type is transformed to a Coq type twice, once with Shape and
-    -- Pos as arguments for the original type, once with Identity.Shape
-    -- and Identity.Pos as arguments for the normalized result type.
+    -- The type is transformed to a Coq type twice, once with @Shape@ and
+    -- @Pos@ as arguments for the original type, once with @Identity.Shape@
+    -- and @Identity.Pos@ as arguments for the normalized result type.
     (sourceType, sourceVars) <- toCoqType "a" shapeAndPos t
     (targetType, targetVars) <- toCoqType "b" idShapeAndPos t
-    -- For each type variable ai, build a constraint
-    -- `{Normalform Shape Pos ai bi}.
+    -- For each type variable @ai@, build a constraint
+    -- @`{Normalform Shape Pos ai bi}@.
     let constraints = zipWith Coq.Base.normalformBinder sourceVars targetVars
     let varBinder
           = [typeVarBinder (sourceVars ++ targetVars) | not (null sourceVars)]
@@ -733,7 +736,7 @@ generateTypeclassInstances dataDecls = do
     -- Create an explicit argument binder for the value to be normalized.
     let topLevelVarBinder
           = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit varName sourceType
-    let instanceRetType = Coq.app (Coq.Qualid (Coq.bare normalformClassName))
+    let instanceRetType = Coq.app (Coq.Qualid (Coq.Base.normalform))
           (shapeAndPos ++ [sourceType, targetType])
     let funcRetType = applyFree targetType
     return (binders, topLevelVarBinder, funcRetType, instanceRetType)
@@ -741,9 +744,12 @@ generateTypeclassInstances dataDecls = do
   -- | Builds a normalized @Free@ value for the given constructor
   --   and constructor arguments.
   buildNormalformValue
-    ::
-    -- A map to associate types with the appropriate functions to call.
-    TypeMap -> Coq.Qualid -> [(IR.Type, Coq.Qualid)] -> Converter Coq.Term
+    :: TypeMap
+    -- ^ A map to associate types with the appropriate functions to call.
+    -> Coq.Qualid -- ^ The data constructor used to build a value.
+    -> [(IR.Type, Coq.Qualid)]
+    -- ^ The types and names of the constructor's arguments.
+    -> Converter Coq.Term
   buildNormalformValue nameMap consName = buildNormalformValue' []
    where
     -- | Like 'buildNormalformValue', but with an additional parameter to accumulate
@@ -781,28 +787,24 @@ generateTypeclassInstances dataDecls = do
           nx <- freshCoqQualid ("n" ++ freshArgPrefix)
           rhs <- buildNormalformValue' (nx : boundVars) consVars
           let c = Coq.fun [nx] [Nothing] rhs
-          return $ applyBind (Coq.app normalformFunc [Coq.Qualid varName]) c
+          return
+            $ applyBind (Coq.app (Coq.Qualid Coq.Base.nf) [Coq.Qualid varName])
+            c
 
   -------------------------------------------------------------------------------
-  -- Functions to produce ShareableArgs instances                              --
+  -- Functions to produce @ShareableArgs@ instances                              --
   -------------------------------------------------------------------------------
-    -- | The name of the Normalform class.
-  shareableArgsClassName :: String
-  shareableArgsClassName = "ShareableArgs"
-
-  -- | The name of the Normalform class function.
-  shareableArgsFuncName :: String
-  shareableArgsFuncName = "shareArgs"
-
-  -- | The name of the cbneed operator.
-  cbneedFunc :: Coq.Term
-  cbneedFunc = Coq.Qualid (Coq.bare "cbneed")
-
-  -- | The binders and return types for the ShareableArgs class function and instance.
+  -- | The binders and return types for the @ShareableArgs@ class function and instance.
   shareArgsBindersAndReturnType
     :: IR.Type
-    -> Coq.Qualid
-    -> Converter ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term)
+    -- ^ The type @t@ for which we are defining an instance.
+    -> Coq.Qualid -- ^ The name of the argument of type @t@.
+    -> Converter
+    ( [Coq.Binder] -- Type variable binders and @ShareableArgs@ constraints.
+    , Coq.Binder -- Binder for the argument of type @t@.
+    , Coq.Term -- Return type of @shareArgs@.
+    , Coq.Term -- Return type of the @ShareableArgs@ instance.
+    )
   shareArgsBindersAndReturnType t varName = do
     (coqType, vars) <- toCoqType "a" shapeAndPos t
     let constraints
@@ -819,7 +821,12 @@ generateTypeclassInstances dataDecls = do
   -- | Shares all arguments of the given constructor and reconstructs the
   --   value with the shared components.
   buildShareArgsValue
-    :: TypeMap -> Coq.Qualid -> [(IR.Type, Coq.Qualid)] -> Converter Coq.Term
+    :: TypeMap
+    -- ^ A map to associate types with the appropriate functions to call.
+    -> Coq.Qualid -- ^ The data constructor used to build a value.
+    -> [(IR.Type, Coq.Qualid)]
+    -- ^ The types and names of the constructor's arguments.
+    -> Converter Coq.Term
   buildShareArgsValue nameMap consName = buildShareArgsValue' []
    where
     buildShareArgsValue'
@@ -833,16 +840,16 @@ generateTypeclassInstances dataDecls = do
         Just funcName -> do
           return
             $ applyBind
-            (Coq.app cbneedFunc
+            (Coq.app (Coq.Qualid Coq.Base.cbneed)
              (shapeAndPos ++ [Coq.Qualid funcName, Coq.Qualid varName]))
             (Coq.fun [sx] [Nothing] rhs)
         Nothing       -> do
           return
-            $ applyBind (Coq.app cbneedFunc
-                         (shapeAndPos
-                          ++ [ Coq.Qualid (Coq.bare shareableArgsFuncName)
-                             , Coq.Qualid varName
-                             ])) (Coq.fun [sx] [Nothing] rhs)
+            $ applyBind
+            (Coq.app (Coq.Qualid Coq.Base.cbneed)
+             (shapeAndPos
+              ++ [Coq.Qualid (Coq.Base.shareArgs), Coq.Qualid varName]))
+            (Coq.fun [sx] [Nothing] rhs)
 
   -------------------------------------------------------------------------------
   -- Helper functions                                                          --
@@ -852,7 +859,7 @@ generateTypeclassInstances dataDecls = do
   nameFunctionsAndInsert :: String -> TypeMap -> [IR.Type] -> Converter TypeMap
   nameFunctionsAndInsert prefix = foldM (nameFunctionAndInsert prefix)
 
-  -- | Like `nameFunctionsAndInsert`, but for a single type.
+  -- | Like 'nameFunctionsAndInsert', but for a single type.
   nameFunctionAndInsert :: String -> TypeMap -> IR.Type -> Converter TypeMap
   nameFunctionAndInsert prefix m t = do
     name <- nameFunction prefix t
@@ -866,17 +873,17 @@ generateTypeclassInstances dataDecls = do
     freshCoqIdent (prefix ++ prettyType)
 
   -- | A type variable that represents irrelevant parts of a type expression.
-  -- Represented by an underscore.
+  --   Represented by an underscore.
   placeholderVar :: IR.Type
   placeholderVar = IR.TypeVar NoSrcSpan "_"
 
-  -- | Collects all fully-applied type constructors
-  --   of arity at least 1 (including their arguments) that occur in the given
-  --   type. All arguments that do not contain occurrences of the types for
-  --   which we are defining an instance are replaced by the type variable "_".
+  -- | Collects all fully-applied type constructors of arity at least 1
+  --   (including their arguments) that occur in the given type. All arguments
+  --   that do not contain occurrences of the types for which we are defining
+  --   an instance are replaced by the type variable @_@.
   --   The resulting list contains (in reverse topological order) exactly all
   --   types for which we must define a separate function in the instance
-  --   definition, where all occurrences of "_" represent the polymorphic
+  --   definition, where all occurrences of @_@ represent the polymorphic
   --   components of the function.
   collectSubTypes :: IR.Type -> [IR.Type]
   collectSubTypes = collectFullyAppliedTypes True
@@ -902,7 +909,7 @@ generateTypeclassInstances dataDecls = do
 
   -- | Returns the same type with all type expressions that do not contain one
   --   of the type constructors for which we are defining instances replaced
-  --   by the type variable "_".
+  --   with the type variable @_@.
   stripType :: IR.Type -> IR.Type
   stripType t = stripType' t False
    where
@@ -910,24 +917,24 @@ generateTypeclassInstances dataDecls = do
     --   occurrence of a relevant type was found in an argument of a type
     --   application.
     --   This is necessary so that, for example, @Pair Bool t@ is not
-    --   translated to @_ t@, but to @Pair _ t@.
+    --   transformed to @_ t@, but to @Pair _ t@.
     stripType' :: IR.Type -> Bool -> IR.Type
-
-    --
     stripType' (IR.TypeCon _ conName) flag
-      | flag || conName `elem` conNames = IR.TypeCon NoSrcSpan conName
+      | flag || conName `elem` typeConNames = IR.TypeCon NoSrcSpan conName
       | otherwise = placeholderVar
-    -- For a type application, check if a relevant type occurs in @r@.
+    -- For a type application, check if a relevant type occurs in its
+    -- right-hand side.
     stripType' (IR.TypeApp _ l r) flag = case stripType' r False of
-      -- If not, check if a relevant type occurs in @l@, and otherwise
-      -- replace the whole expression with an underscore.
+      -- If not, check if a relevant type occurs in its left-hand side,
+      -- otherwise replace the whole expression with an underscore.
       r'@(IR.TypeVar _ _) -> case stripType' l flag of
         IR.TypeVar _ _ -> placeholderVar
         l'             -> IR.TypeApp NoSrcSpan l' r'
-      -- If a relevant type does occur in @r@, the type application must
-      -- be preserved, so only its arguments are stripped.´
+      -- If a relevant type does occur in the right-hand side,
+      -- the type application must be preserved, so only its arguments are
+      -- stripped.
       r'                  -> IR.TypeApp NoSrcSpan (stripType' l True) r'
-    -- Type variables and function types are not relevant and are replaced by "_".
+    -- Type variables and function types are not relevant and are replaced by @_@.
     stripType' _ _ = placeholderVar
 
   -- | Like @showPretty@, but uses the Coq identifiers of the type and its components.
@@ -947,12 +954,6 @@ generateTypeclassInstances dataDecls = do
   showPrettyType (IR.FuncType _ _ _)
     = error "Function types should have been eliminated."
 
-  -- | Converts a data declaration to a type by applying its constructor to the
-  --   correct number of variables, denoted by underscores.
-  dataDeclToType :: IR.TypeDecl -> IR.Type
-  dataDeclToType dataDecl = IR.typeConApp NoSrcSpan (IR.typeDeclQName dataDecl)
-    (replicate (length (IR.typeDeclArgs dataDecl)) placeholderVar)
-
   -- | Replaces all variables in a type with fresh variables.
   insertFreshVariables :: IR.Type -> Converter IR.Type
   insertFreshVariables (IR.TypeVar srcSpan _) = do
@@ -966,29 +967,31 @@ generateTypeclassInstances dataDecls = do
   insertFreshVariables t = return t
 
   -- | Binders for (implicit) Shape and Pos arguments.
-  -- > freeArgsBinders = [ {Shape : Type}, {Pos : Shape -> Type} ]
+  --
+  --   > freeArgsBinders = [ {Shape : Type}, {Pos : Shape -> Type} ]
   freeArgsBinders :: [Coq.Binder]
   freeArgsBinders = genericArgDecls Coq.Implicit
 
   -- | Shortcut for the construction of an implicit binder for type variables.
-  --   > typeVarBinder [a1, ..., an] = {a1 ... an : Type}
+  --
+  --   > typeVarBinder [α₁, …, an] = {α₁ …αₙ : Type}
   typeVarBinder :: [Coq.Qualid] -> Coq.Binder
   typeVarBinder typeVars
     = Coq.typedBinder Coq.Ungeneralizable Coq.Implicit typeVars Coq.sortType
 
-  -- | Shortcut for the application of >>=.
+  -- | Shortcut for the application of @>>=@.
   applyBind :: Coq.Term -> Coq.Term -> Coq.Term
   applyBind mx f = Coq.app (Coq.Qualid Coq.Base.freeBind) [mx, f]
 
-  -- | Given an A, returns Free Shape Pos A
+  -- | Given an @A@, returns @Free Shape Pos A@.
   applyFree :: Coq.Term -> Coq.Term
-  applyFree a = Coq.app (Coq.Qualid Coq.Base.free) (shapeAndPos ++ [a])
+  applyFree a = genericApply Coq.Base.free [] [] [a]
 
-  -- | Shape and Pos arguments as Coq terms.
+  -- | @Shape@ and @Pos@ arguments as Coq terms.
   shapeAndPos :: [Coq.Term]
   shapeAndPos = [Coq.Qualid Coq.Base.shape, Coq.Qualid Coq.Base.pos]
 
-  -- | The shape and position function arguments for the Identity monad
+  -- | The shape and position function arguments for the identity monad
   --   as a Coq term.
   idShapeAndPos :: [Coq.Term]
   idShapeAndPos = map Coq.Qualid
@@ -997,13 +1000,14 @@ generateTypeclassInstances dataDecls = do
     ]
 
   -- | Converts a type into a Coq type (a term) with the specified
-  --   additional arguments (for example Shape and Pos) and fresh Coq
+  --   additional arguments (for example @Shape@ and @Pos@) and fresh Coq
   --   identifiers for all underscores.
   --   Returns a pair of the result term and a list of the fresh variables.
-  toCoqType :: String -- The prefix of the fresh variables.
-            -> [Coq.Term] -- A list of additional arguments, e.g. Shape and Pos.
-            -> IR.Type -- The type to convert.
-            -> Converter (Coq.Term, [Coq.Qualid])
+  toCoqType
+    :: String -- ^ The prefix of the fresh variables.
+    -> [Coq.Term] -- ^ A list of additional arguments, e.g. Shape and Pos.
+    -> IR.Type -- ^ The type to convert.
+    -> Converter (Coq.Term, [Coq.Qualid])
 
   -- A type variable is translated into a fresh type variable.
   toCoqType varPrefix _ (IR.TypeVar _ _)           = do

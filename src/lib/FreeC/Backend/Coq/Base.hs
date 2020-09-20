@@ -30,10 +30,14 @@ module FreeC.Backend.Coq.Base
   , strategyArg
   , shareableArgs
   , shareableArgsBinder
+  , shareArgs
   , normalform
   , normalformBinder
+  , nf'
+  , nf
   , implicitArg
   , share
+  , cbneed
     -- * Effect Selection
   , selectExplicitArgs
   , selectImplicitArgs
@@ -146,6 +150,7 @@ partialError = Coq.bare "error"
 qualifiedSmartConstructorModule :: Coq.Ident
 qualifiedSmartConstructorModule = Coq.ident "QualifiedSmartConstructorModule"
 
+-------------------------------------------------------------------------------
 -- Sharing                                                                   --
 -------------------------------------------------------------------------------
 -- | The Coq identifier for the @Share@ module.
@@ -190,6 +195,25 @@ shareableArgsBinder typeArg = Coq.Generalized Coq.Implicit
   $ Coq.app (Coq.Qualid shareableArgs)
   $ map Coq.Qualid [shape, pos, typeArg]
 
+-- | The Coq identifier of the @ShareableArgs@ class function.
+shareArgs :: Coq.Qualid
+shareArgs = Coq.bare "shareArgs"
+
+-- | The Coq identifier for an implicit argument.
+implicitArg :: Coq.Term
+implicitArg = Coq.Underscore
+
+-- | The Coq identifier for the @share@ operator.
+share :: Coq.Qualid
+share = Coq.bare "share"
+
+-- | The Coq identifier for the @cbneed@ operator.
+cbneed :: Coq.Qualid
+cbneed = Coq.bare "cbneed"
+
+-------------------------------------------------------------------------------
+-- Handling                                                                  --
+-------------------------------------------------------------------------------
 -- | The Coq identifier for the @Normalform@ type class.
 normalform :: Coq.Qualid
 normalform = Coq.bare "Normalform"
@@ -201,13 +225,13 @@ normalformBinder sourceType targetType = Coq.Generalized Coq.Implicit
   $ Coq.app (Coq.Qualid normalform)
   $ map Coq.Qualid [shape, pos, sourceType, targetType]
 
--- | The Coq identifier for an implicit argument.
-implicitArg :: Coq.Term
-implicitArg = Coq.Underscore
+-- | The Coq identifier of the @Normalform@ class function.
+nf' :: Coq.Qualid
+nf' = Coq.bare "nf'"
 
--- | The Coq Identifier for the @share@ operator.
-share :: Coq.Qualid
-share = Coq.bare "share"
+-- | The Coq identifier of the function @nf@.
+nf :: Coq.Qualid
+nf = Coq.bare "nf"
 
 -------------------------------------------------------------------------------
 -- Effect selection                                                          --
@@ -282,7 +306,11 @@ reservedIdents
     , strategy
     , strategyArg
     , shareableArgs
+    , shareArgs
     , normalform
+    , nf'
+    , nf
     , share
+    , cbneed
     ]
   ++ map fst freeArgs
