@@ -13,17 +13,14 @@ import           FreeC.Environment                     ( lookupAvailableModule )
 import           FreeC.Environment.ModuleInterface     ( interfaceAgdaLibName )
 import           FreeC.IR.DependencyGraph
   ( groupFuncDecls, groupTypeDecls )
-import           FreeC.IR.Pragma
 import qualified FreeC.IR.Syntax                       as IR
 import           FreeC.Monad.Converter
 
 -- | Converts an IR module to an Agda declaration.
 convertModule :: IR.Module -> Converter Agda.Declaration
-convertModule (IR.Module _ name importDecls typeDecls _ modPragmas funcDecls)
-  = do
-    mapM_ (addDecArgPragma funcDecls) modPragmas
-    Agda.moduleDecl (convertModName name)
-      <$> getAp (importDecls' <> typeDecls' <> funcDecls')
+convertModule (IR.Module _ name importDecls typeDecls _ _ funcDecls)
+  = Agda.moduleDecl (convertModName name)
+  <$> getAp (importDecls' <> typeDecls' <> funcDecls')
  where
   importDecls' = Ap $ convertImportDecls importDecls
 

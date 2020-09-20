@@ -136,14 +136,10 @@ library freec-internal
                       , FreeC.Frontend.IR.PragmaParser
                       , FreeC.Frontend.IR.Scanner
                       , FreeC.Frontend.IR.Token
-                      , FreeC.Monad.Converter
-                      , FreeC.Monad.Class.Hoistable
-                      , FreeC.Monad.Reporter
                       , FreeC.IR.Base.Prelude
                       , FreeC.IR.Base.Test.QuickCheck
                       , FreeC.IR.DependencyGraph
                       , FreeC.IR.Inlining
-                      , FreeC.IR.Pragma
                       , FreeC.IR.Reference
                       , FreeC.IR.Similar
                       , FreeC.IR.SrcSpan
@@ -170,20 +166,24 @@ library freec-internal
                       , FreeC.LiftedIR.Syntax.Expr
                       , FreeC.LiftedIR.Syntax.Name
                       , FreeC.LiftedIR.Syntax.Type
+                      , FreeC.Monad.Class.Hoistable
+                      , FreeC.Monad.Converter
+                      , FreeC.Monad.Reporter
                       , FreeC.Pass
                       , FreeC.Pass.CompletePatternPass
                       , FreeC.Pass.DefineDeclPass
                       , FreeC.Pass.DependencyAnalysisPass
+                      , FreeC.Pass.EffectAnalysisPass
                       , FreeC.Pass.EtaConversionPass
                       , FreeC.Pass.ExportPass
                       , FreeC.Pass.ImplicitPreludePass
                       , FreeC.Pass.ImportPass
                       , FreeC.Pass.KindCheckPass
-                      , FreeC.Pass.EffectAnalysisPass
-                      , FreeC.Pass.TypeInferencePass
-                      , FreeC.Pass.TypeSignaturePass
+                      , FreeC.Pass.PragmaPass
                       , FreeC.Pass.QualifierPass
                       , FreeC.Pass.ResolverPass
+                      , FreeC.Pass.TypeInferencePass
+                      , FreeC.Pass.TypeSignaturePass
                       , FreeC.Pipeline
                       , FreeC.Pretty
                       , FreeC.Util.Config
@@ -238,6 +238,8 @@ test-suite freec-unit-tests
                     , FreeC.EnvironmentTests
                     , FreeC.Environment.FreshTests
                     , FreeC.Environment.RenamerTests
+                    , FreeC.Frontend.Haskell.SimplifierTests
+                    , FreeC.Frontend.Haskell.Tests
                     , FreeC.Frontend.IR.ParserTests
                     , FreeC.Frontend.IR.ScannerTests
                     , FreeC.Frontend.IR.Tests
@@ -254,10 +256,10 @@ test-suite freec-unit-tests
                     , FreeC.Monad.Class.Testable
                     , FreeC.Monad.ReporterTests
                     , FreeC.Pass.CompletePatternPassTests
+                    , FreeC.Pass.EffectAnalysisPassTests
                     , FreeC.Pass.EtaConversionPassTests
                     , FreeC.Pass.ExportPassTests
                     , FreeC.Pass.KindCheckPassTests
-                    , FreeC.Pass.PartialityAnalysisPassTests
                     , FreeC.Pass.ResolverPassTests
                     , FreeC.Pass.TypeInferencePassTests
                     , FreeC.PipelineTests

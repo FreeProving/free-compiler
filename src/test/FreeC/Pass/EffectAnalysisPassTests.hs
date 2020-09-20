@@ -1,7 +1,5 @@
--- | This module contains tests for "FreeC.Pass.PartialityAnalysisPass".
-module FreeC.Pass.PartialityAnalysisPassTests
-  ( testPartialityAnalysisPass
-  ) where
+-- | This module contains tests for "FreeC.Pass.EffectAnalysisPassTests".
+module FreeC.Pass.EffectAnalysisPassTests ( testEffectAnalysisPass ) where
 
 import           Control.Monad.Extra           ( zipWithM_ )
 import           Test.Hspec
@@ -56,8 +54,8 @@ shouldBePartialWith setExpectation inputs = do
 -- Tests                                                                     --
 -------------------------------------------------------------------------------
 -- | Test group for 'Partiality' effect of 'effectAnalysisPass' tests.
-testPartialityAnalysisPass :: Spec
-testPartialityAnalysisPass = describe "FreeC.Pass.PartialityAnalysisPass" $ do
+testEffectAnalysisPass :: Spec
+testEffectAnalysisPass = describe "FreeC.Pass.EffectAnalysisPass" $ do
   it "does not classify non-partial functions as partial"
     $ shouldSucceedWith
     $ do
