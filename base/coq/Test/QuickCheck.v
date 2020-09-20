@@ -85,6 +85,10 @@ Class Handleable (Shape : Type) (Pos : Shape -> Type) (prop : Type) :=
   {  toProperty : prop -> Property Shape Pos
 }.
 
+Instance HandleableBool (Shape : Type) (Pos : Shape -> Type)
+  : Handleable Shape Pos (Bool Shape Pos) 
+ := { toProperty b := fun _ => b = true }.
+
 Instance HandleableProperty (Shape : Type) (Pos : Shape -> Type) : Handleable Shape Pos (Property Shape Pos) := {
   toProperty p := p
 }.
@@ -143,12 +147,12 @@ Section SecQuickCheck.
      class instance for [Bool] is accessable from Haskell. *)
   Definition boolProp (fb : Free' Bool')
     : Free' Property'
-   := pure (fun handler => property' fb).
+   := pure (fun handler => toProperty fb handler).
 
   (* [(==>) :: Bool -> Property -> Property] *)
   Definition preProp (fb : Free' Bool') (p : Free' Property')
     : Free' Property'
-   := pure (fun handler => property fb -> property p).
+   := pure (fun handler => toProperty fb handler -> toProperty p handler).
 
   (* [(===) :: a -> a -> Property] *)
   Definition eqProp (A : Type) `(NF : Normalform Shape Pos A)
@@ -162,21 +166,21 @@ Section SecQuickCheck.
                      (fx : Free' A) (fy : Free' A)
     : Free' Property'
    := pure (fun handler => 
-             @handle Shape Pos A (handler A NF) fx <> handle fy).
+             handle fx <> handle fy).
 
   (* [(.&&.) :: Property -> Property -> Property] *)
   Definition conjProp (fp1 : Free' Property') (fp2 : Free' Property')
     : Free' Property'
    :=  fp1 >>= fun p1 => 
        fp2 >>= fun p2 => 
-       pure (fun handler => property (p1 handler) /\ property (p2 handler)).
+       pure (fun handler => p1 handler /\ p2 handler).
 
   (* [(.||.) :: Property -> Property -> Property] *)
   Definition disjProp (fp1 : Free' Property') (fp2 : Free' Property')
     : Free' Property'
    :=  fp1 >>= fun p1 => 
        fp2 >>= fun p2 => 
-       pure (fun handler => property (p1 handler) \/ property (p2 handler)).
+       pure (fun handler => p1 handler \/ p2 handler).
 End SecQuickCheck.
 
 (* Helper lemma to avoid the [match] expression introduced by [property]. *)
