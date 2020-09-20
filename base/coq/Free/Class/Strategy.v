@@ -11,7 +11,8 @@ Class Strategy (Shape : Type) (Pos : Shape -> Type) :=
       Free Shape Pos A -> Free Shape Pos (Free Shape Pos A);
   }.
 
-Notation "'EvaluationStrategy'" 
+(* A type synonym notation to make code more readable. *)
+Notation "'EvaluationStrategy'"
 := (forall (Shape : Type) (Pos : Shape -> Type)
            `{Injectable Share.Shape Share.Pos Shape Pos},
            Strategy Shape Pos).

@@ -140,7 +140,7 @@ Section TwoEffects.
   Definition SMaybeTrc := Comb.Shape Maybe.Shape (Comb.Shape Trace.Shape Identity.Shape).
   Definition PMaybeTrc := Comb.Pos Maybe.Pos (Comb.Pos Trace.Pos Identity.Pos).
 
-  Instance HandlerMaybeTrace (A : Type) `{Normalform SMaybeTrc PMaybeTrc A} 
+  Instance HandlerMaybeTrace (A : Type) `{Normalform SMaybeTrc PMaybeTrc A}
     : Handler SMaybeTrc PMaybeTrc A | 2 := {
    handle p := collectMessages (run (runTracing (runMaybe (nf p))))
 }.
@@ -311,7 +311,7 @@ Section ThreeEffects.
 
   Instance HandlerNDErrorTrace (A : Type) `{Normalform SNDErrTrc PNDErrTrc A}
     : Handler SNDErrTrc PNDErrTrc A := {
-   handle p := match collectMessages (run (runTracing (runError (runChoice (nf p))))) 
+   handle p := match collectMessages (run (runTracing (runError (runChoice (nf p)))))
                with
                | (inl t, log) => (inl (collectVals t), log)
                | (inr e, log) => (inr e, log)

@@ -192,7 +192,7 @@ Proof.
          apply null_rev in Hnull.
          destruct (reverse Shape Pos fys) as [[| y ys'] |].
          ++ (* reverse Shape Pos fys = Nil Shape Pos *)
-            specialize (append_nil Shape Pos a NF (f x) (NoHandler Shape Pos)) as appNil; simpl in appNil. 
+            specialize (append_nil Shape Pos a NF (f x) (NoHandler Shape Pos)) as appNil; simpl in appNil.
             unfold isEmpty. rewrite appNil. reflexivity.
          ++ (* reverse Shape Pos fys = Cons Shape Pos y ys' *)
             simpl in Hnull. discriminate Hnull. apply handler.

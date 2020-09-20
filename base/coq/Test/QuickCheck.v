@@ -64,7 +64,7 @@ Instance TestableFree (Shape : Type) (Pos : Shape -> Type)
 
 (* Similar to Testable, but returns a Property instead of a Prop so
    that a handler can be applied. *)
-Class Handleable (Shape : Type) (Pos : Shape -> Type) (prop : Type) := 
+Class Handleable (Shape : Type) (Pos : Shape -> Type) (prop : Type) :=
   {  toProperty : prop -> Property Shape Pos
 }.
 
@@ -78,7 +78,7 @@ Instance HandleableFree (Shape : Type) (Pos : Shape -> Type) {A : Type} {H_A : H
                    | impure s pf => (fun _ => False)
                    end }.
 
-Instance HandleableFunction (Shape : Type) (Pos : Shape -> Type) (A : Type) (B : Type) 
+Instance HandleableFunction (Shape : Type) (Pos : Shape -> Type) (A : Type) (B : Type)
  (T_B : Handleable Shape Pos B)
   : Handleable Shape Pos (A -> B)
  := { toProperty f := fun handler => forall x, toProperty (f x) handler }.
@@ -123,28 +123,28 @@ Section SecQuickCheck.
   Definition eqProp (A : Type) `(NF : Normalform Shape Pos A)
     (fx : Free' A) (fy : Free' A)
     : Free' Property'
-   := pure (fun handler => 
+   := pure (fun handler =>
              @handle Shape Pos A (handler A NF) fx = handle fy).
 
   (* [(=/=) :: a -> a -> Property] *)
-  Definition neqProp (A : Type) `(NF : Normalform Shape Pos A) 
+  Definition neqProp (A : Type) `(NF : Normalform Shape Pos A)
                      (fx : Free' A) (fy : Free' A)
     : Free' Property'
-   := pure (fun handler => 
+   := pure (fun handler =>
              @handle Shape Pos A (handler A NF) fx <> handle fy).
 
   (* [(.&&.) :: Property -> Property -> Property] *)
   Definition conjProp (fp1 : Free' Property') (fp2 : Free' Property')
     : Free' Property'
-   :=  fp1 >>= fun p1 => 
-       fp2 >>= fun p2 => 
+   :=  fp1 >>= fun p1 =>
+       fp2 >>= fun p2 =>
        pure (fun handler => property (p1 handler) /\ property (p2 handler)).
 
   (* [(.||.) :: Property -> Property -> Property] *)
   Definition disjProp (fp1 : Free' Property') (fp2 : Free' Property')
     : Free' Property'
-   :=  fp1 >>= fun p1 => 
-       fp2 >>= fun p2 => 
+   :=  fp1 >>= fun p1 =>
+       fp2 >>= fun p2 =>
        pure (fun handler => property (p1 handler) \/ property (p2 handler)).
 End SecQuickCheck.
 

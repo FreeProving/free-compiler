@@ -53,7 +53,7 @@ Section SecListNF.
        | cons fx fxs => nf fx >>= fun nx =>
                         fxs >>= fun xs =>
                         nf'List xs >>= fun nxs =>
-                        pure (cons (pure nx) 
+                        pure (cons (pure nx)
                                    (pure nxs))
        end.
 

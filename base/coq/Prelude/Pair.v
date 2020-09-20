@@ -37,7 +37,7 @@ Section SecNFPair.
   Definition nf'Pair `{Normalform Shape Pos A}
                      `{Normalform Shape Pos B}
                      (p : Pair Shape Pos A B)
-    : Free Shape Pos (Pair Identity.Shape Identity.Pos 
+    : Free Shape Pos (Pair Identity.Shape Identity.Pos
                      (@nType Shape Pos A _) (@nType Shape Pos B _))
    := match p with
        | pair_ fa fb => nf fa >>= fun na =>
