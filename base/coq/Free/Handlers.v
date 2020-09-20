@@ -20,7 +20,7 @@ Section NoEffect.
   (* Identity handler *)
   Instance HandlerNoEffect (A : Type)
                            `{Normalform Identity.Shape Identity.Pos A}:
-   Handler Identity.Shape Identity.Pos A := {
+   Handler Identity.Shape Identity.Pos A | 0 := {
     handledType := nType;
     handle p := run (nf p)
   }.
@@ -36,7 +36,7 @@ Section OneEffect.
 
   Instance HandlerMaybe (A : Type)
     `{Normalform SMId PMId A} :
-   Handler SMId PMId A := {
+   Handler SMId PMId A | 1 := {
     handle p := run (runMaybe (nf p))
   }.
 
@@ -98,7 +98,7 @@ Section TwoEffects.
   Definition PShrND := Comb.Pos Share.Pos (Comb.Pos ND.Pos Identity.Pos).
 
   Instance HandlerShareND (A : Type) `{Normalform SShrND PShrND A}
-   : Handler SShrND PShrND A := {
+   : Handler SShrND PShrND A | 2 := {
     handle p := collectVals (run (runChoice (runNDSharing (0,0) (nf p))))
   }.
 
@@ -108,7 +108,7 @@ Section TwoEffects.
   Definition PShrTrc := Comb.Pos Share.Pos (Comb.Pos Trace.Pos Identity.Pos).
 
   Instance HandlerShareTrace (A : Type) `{Normalform SShrTrc PShrTrc A} :
-   Handler SShrTrc PShrTrc A := {
+   Handler SShrTrc PShrTrc A | 2 := {
     handle p := collectMessages (run (runTracing (runTraceSharing (0,0) (nf p))))
   }.
 
@@ -118,7 +118,7 @@ Section TwoEffects.
   Definition PShrMaybe := Comb.Pos Share.Pos (Comb.Pos Maybe.Pos Identity.Pos).
 
   Instance HandlerShareMaybe (A : Type) `{Normalform SShrMaybe PShrMaybe A}
-    : Handler SShrMaybe PShrMaybe A := {
+    : Handler SShrMaybe PShrMaybe A | 2 := {
    handle p := run (runMaybe (runEmptySharing (0,0) (nf p)))
   }.
 
@@ -128,7 +128,7 @@ Section TwoEffects.
   Definition PNDMaybe := Comb.Pos ND.Pos (Comb.Pos Maybe.Pos Identity.Pos).
 
   Instance HandlerNDMaybe (A : Type) `{Normalform SNDMaybe PNDMaybe A}
-    : Handler SNDMaybe PNDMaybe A := {
+    : Handler SNDMaybe PNDMaybe A | 2 := {
    handle p := match run (runMaybe (runChoice (nf p))) with
                | None => None
                | Some t => Some (collectVals t)
@@ -141,7 +141,7 @@ Section TwoEffects.
   Definition PMaybeTrc := Comb.Pos Maybe.Pos (Comb.Pos Trace.Pos Identity.Pos).
 
   Instance HandlerMaybeTrace (A : Type) `{Normalform SMaybeTrc PMaybeTrc A} 
-    : Handler SMaybeTrc PMaybeTrc A := {
+    : Handler SMaybeTrc PMaybeTrc A | 2 := {
    handle p := collectMessages (run (runTracing (runMaybe (nf p))))
 }.
 
@@ -151,7 +151,7 @@ Section TwoEffects.
   Definition PShrErr := Comb.Pos Share.Pos (Comb.Pos (@Error.Pos string) Identity.Pos).
 
   Instance HandlerShareError (A : Type) `{Normalform SShrErr PShrErr A}
-    : Handler SShrErr PShrErr A := {
+    : Handler SShrErr PShrErr A | 2 := {
    handle p := run (runError (runEmptySharing (0,0) (nf p)))
   }.
 
@@ -214,7 +214,7 @@ Section ThreeEffects.
         (Comb.Pos Maybe.Pos Identity.Pos)).
 
   Instance HandlerShareNDMaybe (A : Type) `{Normalform SShrNDMaybe PShrNDMaybe A}
-    : Handler SShrNDMaybe PShrNDMaybe A := {
+    : Handler SShrNDMaybe PShrNDMaybe A | 3 := {
    handle p := match (run (runMaybe (runChoice (runNDSharing (0,0) (nf p))))) with
                | None   => None
                | Some t => Some (@collectVals nType t)
@@ -322,7 +322,8 @@ End ThreeEffects.
 
 Section AnyEffects.
 
-  (* A dummy handler to forego handling in (counter)examples. *)
+  (* A dummy handler to forego handling in theorems with a concrete
+     effect stack. *)
   Instance NoHandler (Shape : Type) (Pos : Shape -> Type) (A : Type)
                      `{Normalform Shape Pos A}
     : Handler Shape Pos A := {
