@@ -493,7 +493,7 @@ generateTypeclassInstances dataDecls = do
             $ applyBind
             (Coq.app (Coq.Qualid Coq.Base.cbneed)
              (shapeAndPos
-              ++ [Coq.Qualid (Coq.Base.shareArgs), Coq.Qualid varName]))
+              ++ [Coq.Qualid Coq.Base.shareArgs, Coq.Qualid varName]))
             (Coq.fun [sx] [Nothing] rhs)
 
   -------------------------------------------------------------------------------
