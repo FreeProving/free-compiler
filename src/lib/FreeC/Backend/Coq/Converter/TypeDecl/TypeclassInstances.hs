@@ -347,7 +347,7 @@ generateTypeclassInstances dataDecls = do
       return $ Coq.equation lhs rhs
 
   -------------------------------------------------------------------------------
-  -- Functions to produce @Normalform@ instances                                 --
+  -- Functions to Produce @Normalform@ Instances                                 --
   -------------------------------------------------------------------------------
   -- | The binders and return types for the @Normalform@ class function and instance.
   nfBindersAndReturnType
@@ -434,7 +434,7 @@ generateTypeclassInstances dataDecls = do
             c
 
   -------------------------------------------------------------------------------
-  -- Functions to produce @ShareableArgs@ instances                              --
+  -- Functions to Produce @ShareableArgs@ Instances                              --
   -------------------------------------------------------------------------------
   -- | The binders and return types for the @ShareableArgs@ class function and instance.
   shareArgsBindersAndReturnType
@@ -494,7 +494,7 @@ generateTypeclassInstances dataDecls = do
             (Coq.fun [sx] [Nothing] rhs)
 
   -------------------------------------------------------------------------------
-  -- Helper functions                                                          --
+  -- Helper Functions                                                          --
   -------------------------------------------------------------------------------
   -- | Creates an entry with a unique name for each of the given types and
   --   inserts them into the given map.
