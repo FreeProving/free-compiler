@@ -1,4 +1,5 @@
--- | This module contains tests for modules below @FreeC.Backend.Coq.Converter@.
+-- | This module contains tests for modules with the
+--   @FreeC.Backend.Coq.Converter@ prefix.
 module FreeC.Backend.Coq.ConverterTests where
 
 import           Test.Hspec

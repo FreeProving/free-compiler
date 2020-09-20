@@ -13,10 +13,15 @@ Section SecUnit.
   Notation "'Free''" := (Free Shape Pos).
   Notation "'Unit''" := (Unit Shape Pos).
 
-  (* smart constructor *)
-  Definition Tt : Free' Unit' := pure tt.
-
 End SecUnit.
+
+(* smart constructor *)
+
+Notation "'Tt' Shape Pos" := (@pure Shape Pos unit tt)
+  ( at level 10, Shape, Pos at level 9 ).
+
+Notation "'@Tt' Shape Pos" := (@pure Shape Pos unit tt)
+  ( only parsing, at level 10, Shape, Pos at level 9 ).
 
 (* Normalform instance for Unit *)
 
