@@ -48,7 +48,7 @@ genericApply'
   -> [Coq.Term] -- ^ The implicit type class instances to pass to the callee.
   -> [Coq.Term] -- ^ Implicit arguments to pass explicitly to the callee.
   -> [Coq.Term] -- ^ The implicit type class arguments that are dependent on
-                --   the implicit argumnets.
+                --   the implicit arguments.
   -> [Coq.Term] -- ^ The actual arguments of the callee.
   -> Coq.Term
 genericApply' func explicitEffectArgs implicitEffectArgs implicitArgs
