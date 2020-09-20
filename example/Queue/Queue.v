@@ -9,7 +9,7 @@
    matching compilation.
 *)
 
-From Base Require Import Free Handlers Prelude Test.QuickCheck.
+From Base Require Import Free Prelude Test.QuickCheck.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
@@ -52,7 +52,7 @@ Definition total_queue (Shape : Type) (Pos : Shape -> Type) {a : Type}
 
 Lemma is_pure_true_or : quickCheck prop_is_pure_true_or.
 Proof.
-  intros Shape Pos fb1 fb2 handler Hpure.
+  intros Shape Pos fb1 fb2 Hpure.
   destruct fb1 as [ b1 |], fb2 as [ b2 |]; simpl in *.
   - (* fb1 = pure b1,    fb2 = pure b2 *)    destruct b1; auto.
   - (* fb1 = pure b1,    fb2 = impure _ _ *) destruct b1; auto.
@@ -62,7 +62,7 @@ Qed.
 
 Lemma is_pure_true_and : quickCheck prop_is_pure_true_and.
 Proof.
-  intros Shape Pos fb1 fb2 handler Hpure.
+  intros Shape Pos fb1 fb2 Hpure.
   destruct fb1 as [ b1 |], fb2 as [ b2 |] ; simpl in *.
   - (* fb1 = pure b1,    fb2 = pure b2 *)    destruct b1, b2; auto.
   - (* fb1 = pure b1,    fb2 = impure _ _ *) destruct b1; auto. discriminate Hpure.
@@ -72,11 +72,11 @@ Qed.
 
 Lemma null_rev : quickCheck prop_null_rev.
 Proof.
-  intros Shape Pos a fxs handler Hnull.
+  intros Shape Pos a fxs Hnull.
   destruct fxs as [ xs |  ].
   - (* fxs = pure xs *)
     destruct xs.
-    + (* xs = nil *) simpl. trivial.
+    + (* xs = nil *) trivial.
     + (* xs = cons _ _ *) discriminate Hnull.
   - (* fxs = impure _ _ *)
     contradiction Hnull.
@@ -84,8 +84,7 @@ Qed.
 
 Lemma append_nil : quickCheck prop_append_nil.
 Proof.
-  intros Shape Pos a NF fxs handler.
-  simpl. f_equal.
+  intros Shape Pos a NF fxs.
   induction fxs using FreeList_ind with (P := fun xs => append1 Shape Pos a (pure nil) xs = pure xs); simpl.
   - reflexivity.
   - simpl; repeat apply f_equal. apply IHfxs1.
@@ -114,8 +113,7 @@ Qed.
 
 Lemma append_assoc : quickCheck prop_append_assoc.
 Proof.
-  intros Shape Pos a NF fxs fys fzs handler.
-  simpl. f_equal.
+  intros Shape Pos a NF fxs fys fzs.
   induction fxs as [ | s pf IH ] using Free_Ind.
   - simpl. apply append1_assoc.
   - (*Inductive case: [fxs = impure s pf] with induction hypothesis [IH] *)
@@ -133,12 +131,12 @@ Definition singleton (Shape : Type)
 (* QuickCheck properties *)
 Theorem prop_isEmpty_theorem : forall (Shape : Type)
   (Pos : Shape -> Type)
-  {a : Type} `{Normalform Shape Pos a} (total_a : Free Shape Pos a -> Prop)
+  {a : Type} `{Normalform Shape Pos a}
+  (total_a : Free Shape Pos a -> Prop)
   (qi : Free Shape Pos (QueueI Shape Pos a)),
   total_queue Shape Pos total_a qi -> quickCheck (@prop_isEmpty Shape Pos a _ qi).
 Proof.
-  intros Shape Pos a NF total_a fqi Htotal Hhand Hinv handler.
-  simpl. f_equal.
+  intros Shape Pos a NF total_a fqi Htotal Hinv.
   destruct fqi as [qi | ].
   - (* fqi = pure qi *)
     destruct qi as [fxs fys]. (* qi = (fxs, fys) *)
@@ -146,15 +144,13 @@ Proof.
     + (* fxs = pure xs *)
       destruct xs as [| fx fxs'].
       * (* xs = Nil *)
-        simpl in *. apply (is_pure_true_or Shape Pos) in Hinv. simpl in Hinv.
-        specialize (Hinv handler).
+        simpl in *. apply (is_pure_true_or Shape Pos) in Hinv.
         destruct Hinv as [Hnull | Hcontra].
         -- (* null Shape Pos fys *)
            apply null_rev in Hnull.
-           symmetry. unfold isEmpty. apply pure_bool_property in Hnull. apply Hnull. apply handler. apply handler.
+           symmetry. unfold isEmpty. apply pure_bool_property in Hnull. apply Hnull.
         -- (* False_ Shape Pos *)
            discriminate Hcontra.
-        -- apply Hhand.
       * (* xs = Cons fx fxs' *)
         simpl. reflexivity.
     + (* fxs = impure _ _ *)
@@ -166,7 +162,7 @@ Qed.
 (* In fact we do not need the totality constraint in this case. *)
 Theorem prop_isEmpty_theorem' : quickCheck prop_isEmpty.
 Proof.
-  intros Shape Pos a NF fqi handler Hinv Hhand; simpl. f_equal.
+  intros Shape Pos a NF fqi Hinv.
   destruct fqi as [qi | ].
   - (* fqi = pure qi *)
     destruct qi as [fxs fys]. (* qi = (fxs, fys) *)
@@ -174,34 +170,31 @@ Proof.
     + (* fxs = pure xs *)
       destruct xs as [| fx fxs'].
       * (* xs = Nil *)
-        simpl in *. apply is_pure_true_or in Hinv. specialize (Hinv handler).
+        simpl in *. apply is_pure_true_or in Hinv.
         destruct Hinv as [Hnull | Hcontra].
         -- (* null Shape Pos fys *)
            apply null_rev in Hnull.
-           symmetry. unfold isEmpty. apply pure_bool_property. apply Hnull. apply handler. apply handler.
+           symmetry. unfold isEmpty. apply pure_bool_property. apply Hnull.
         -- (* False_ Shape Pos *)
            discriminate Hcontra.
-        -- apply handler.
       * (* xs = Cons fx fxs' *)
         simpl. reflexivity.
     + (* fxs = impure _ _ *)
-      simpl in *. apply is_pure_true_or in Hinv. specialize (Hinv handler).
+      simpl in *. apply is_pure_true_or in Hinv.
       destruct Hinv as [Hnull | Hcontra].
       -- (* null Shape Pos fys *)
          apply f_equal, functional_extensionality. intros x.
          apply null_rev in Hnull.
          destruct (reverse Shape Pos fys) as [[| y ys'] |].
          ++ (* reverse Shape Pos fys = Nil Shape Pos *)
-            specialize (append_nil Shape Pos a NF (f x) (NoHandler Shape Pos)) as appNil; simpl in appNil.
-            unfold isEmpty. rewrite appNil. reflexivity.
+            specialize (append_nil Shape Pos a NF) as appNil. simpl in appNil. rewrite appNil.
+            unfold isEmpty. reflexivity.
          ++ (* reverse Shape Pos fys = Cons Shape Pos y ys' *)
-            simpl in Hnull. discriminate Hnull. apply handler.
+            simpl in Hnull. discriminate Hnull.
          ++ (* reverse Shape Pos fys = impure _ _*)
             simpl in Hnull. contradiction Hnull.
-         ++ apply handler.
       -- (* impure _ _ = True_ Shape Pos *)
          contradiction Hcontra.
-      -- apply handler.
   - (* fqi = impure _ _ *)
     simpl in Hinv. contradiction Hinv.
 Qed.
@@ -209,17 +202,17 @@ Qed.
 (* In order to prove [prop_add] no totality constraint is necessary. *)
 Theorem prop_add_theorem : quickCheck prop_add.
 Proof.
-  intros Shape Pos a NF fx fqi handler; simpl; f_equal.
+  intros Shape Pos a NF fx fqi.
   induction fqi as [ [f1 f2] | eq ] using Free_Ind; simpl.
   - destruct f1 as [l | s pf]; simpl.
     + destruct l as [ | fy fys]; simpl.
-      * eapply (append_nil Shape Pos a NF _ (NoHandler _ _)).
-      * apply (append_assoc Shape Pos _ _ (pure (cons fy fys)) (reverse Shape Pos f2) (singleton Shape Pos fx) (NoHandler _ _)).
+      * apply (append_nil Shape Pos a NF).
+      * apply (append_assoc Shape Pos _ _ (pure (cons fy fys)) (reverse Shape Pos f2) (singleton Shape Pos fx)).
     + repeat apply f_equal. extensionality p.
       induction (pf p) as [fys |] using Free_Ind; simpl.
       * destruct fys; simpl.
-        -- eapply (append_nil _ _ _ _ _ (NoHandler _ _)).
-        -- do 2 apply f_equal. apply (append_assoc Shape Pos _ _ f0 (reverse Shape Pos f2) (singleton Shape Pos fx) (NoHandler _ _)).
+        -- apply (append_nil Shape Pos a NF).
+        -- do 2 apply f_equal. apply (append_assoc Shape Pos _ _ f0 (reverse Shape Pos f2) (singleton Shape Pos fx)).
       * repeat apply f_equal.
         extensionality p1.
         apply H.
@@ -229,12 +222,11 @@ Proof.
 Qed.
 
 (* We have to add a totality constraint to [prop_front]. *)
-Theorem prop_front_theorem : forall Shape Pos P a total_a NF qi,
-  total_queue Shape Pos total_a qi -> quickCheck (@prop_front Shape Pos P a NF qi).
+Theorem prop_front_theorem : forall Shape Pos P a `{Normalform Shape Pos a} total_a qi,
+  total_queue Shape Pos total_a qi -> quickCheck (@prop_front Shape Pos P a _ qi).
 Proof.
-  intros Shape Pos P a total_a NF fqi Htotal Hhand HinvNempty handler.
-  simpl. f_equal.
-  apply is_pure_true_and in HinvNempty; simpl in HinvNempty. specialize (HinvNempty handler).
+  intros Shape Pos P a NF total_a fqi Htotal HinvNempty.
+  apply is_pure_true_and in HinvNempty.
   destruct HinvNempty as [Hinv Hnempty].
   destruct Htotal as [ff fb Htotal1 Htotal2]. (* fqi = pure (ff, fb) *)
   destruct ff as [f |].
@@ -243,7 +235,6 @@ Proof.
       * (* f = nil *) discriminate Hnempty.
       * (* f = cons _ _ *) simpl. reflexivity.
     + inversion Htotal1.
-    + apply handler.
 Qed.
 
 (* Since the compiler is now adding vanishing type arguments automatically,
@@ -257,9 +248,7 @@ Qed.
    Otherwise we get stuck in the case admitted below. *)
 Theorem prop_inv_add_theorem : quickCheck prop_inv_add.
 Proof.
-  simpl.
-  intros Shape Pos a fx fq handler H.
-  simpl. destruct fq as [[ff fb] |].
+  intros Shape Pos a fx fq H. destruct fq as [[ff fb] |].
   - (* fq = Pair_ Shape Pos ff fb *)
     destruct ff as [f |]; destruct fb as [b |].
     + (* ff = pure f; fb = pure b *)
@@ -283,7 +272,7 @@ Abort.
 Theorem prop_inv_add_theorem : forall Shape Pos a total_a x q,
   total_queue Shape Pos total_a q -> quickCheck (@prop_inv_add Shape Pos a x q).
 Proof.
-  intros Shape Pos a total_a fx fq Htotal handler H; simpl.
+  intros Shape Pos a total_a fx fq Htotal H.
   destruct Htotal as [ff fb HtotalF HtotalB]. (* fq = Pair_ ff fb *)
   destruct HtotalF; reflexivity.
 Qed.

@@ -38,7 +38,7 @@ Instance TestableBool
 (* [instance Testable b => Testable (a -> b)] *)
 Instance TestableFunction (A : Type) (B : Type) (T_B : Testable B)
   : Testable (A -> B)
- := { property' f := forall x, property'(f x);
+ := { property' f := forall x, property' (f x);
       property f := forall x, property (f x) }.
 
 (* Helper instance for dependent types.
@@ -48,7 +48,7 @@ Instance TestableFunction (A : Type) (B : Type) (T_B : Testable B)
 Instance TestableForall
   (A : Type) (B : A -> Type) (T_Bx : forall x, Testable (B x))
   : Testable (forall x, B x)
- := { property' f := forall x, property'(f x);
+ := { property' f := forall x, property' (f x);
       property f := forall x, property (f x); }.
 
 (* Helper instance for monadically lifted values.
@@ -148,7 +148,7 @@ Section SecQuickCheck.
   (* [(==>) :: Bool -> Property -> Property] *)
   Definition preProp (fb : Free' Bool') (p : Free' Property')
     : Free' Property'
-   := pure (fun handler => property' fb -> property' p).
+   := pure (fun handler => property fb -> property p).
 
   (* [(===) :: a -> a -> Property] *)
   Definition eqProp (A : Type) `(NF : Normalform Shape Pos A)
@@ -180,7 +180,7 @@ Section SecQuickCheck.
 End SecQuickCheck.
 
 (* Helper lemma to avoid the [match] expression introduced by [property]. *)
-Lemma pure_bool_property':
+Lemma pure_bool_property:
   forall (Shape : Type)
          (Pos : Shape -> Type)
          (fb : Free Shape Pos (Bool Shape Pos)),
