@@ -153,13 +153,11 @@ convertDataDecls dataDecls = do
 convertDataDecl
   :: IR.TypeDecl -> Converter (Coq.IndBody, ([Coq.Sentence], [Coq.Sentence]))
 convertDataDecl
-  (IR.DataDecl srcSpan' (IR.DeclIdent srcSpan'' name) typeVarDecls conDecls)
-  = do
+  dataDecl@(IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
     (body, argumentsSentences) <- generateBodyAndArguments
     (smartConDecls, qualSmartConDecls)
       <- concatUnzip <$> mapM generateSmartConDecl conDecls
-    inductionScheme <- generateInductionScheme
-      (IR.DataDecl srcSpan' (IR.DeclIdent srcSpan'' name) typeVarDecls conDecls)
+    inductionScheme <- generateInductionScheme dataDecl
     return ( body
            , ( Coq.commentedSentences
                  ("Arguments sentences for " ++ showPretty (IR.toUnQual name))
