@@ -354,9 +354,9 @@ countVarInExpr :: IR.QName -> IR.Expr -> Int
 countVarInExpr varName = countVarInExpr'
  where
   countVarInExpr' :: IR.Expr -> Int
-  countVarInExpr' IR.Con {}             = 0
-  countVarInExpr' (IR.Var _ varName' _) | varName == varName' = 1
-                                        | otherwise = 0
+  countVarInExpr' IR.Con {}                    = 0
+  countVarInExpr' (IR.Var _ varName' _)        | varName == varName' = 1
+                                               | otherwise = 0
   countVarInExpr' (IR.App _ lhs rhs _)
     = countVarInExpr' lhs + countVarInExpr' rhs
   countVarInExpr' (IR.TypeAppExpr _ lhs _ _)   = countVarInExpr' lhs
@@ -377,6 +377,5 @@ countVarInExpr varName = countVarInExpr'
   --
   --   Returns @0@ if the variable occurs in the given variable patterns.
   countVarInBinds :: [IR.VarPat] -> IR.Expr -> Int
-  countVarInBinds varPats exprs
-    | varPat `elem` map IR.varPatQName varPats = 0
-    | otherwise = countVarInExpr varPat exprs
+  countVarInBinds varPats expr | varName `elem` map IR.varPatQName varPats = 0
+                               | otherwise = countVarInExpr' expr
