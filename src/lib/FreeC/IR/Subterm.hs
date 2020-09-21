@@ -11,7 +11,9 @@ module FreeC.IR.Subterm
   , Pos(..)
   , rootPos
   , consPos
+  , unConsPos
   , parentPos
+  , ancestorPos
   , allPos
   , above
   , below
@@ -35,7 +37,7 @@ module FreeC.IR.Subterm
 
 import           Control.Monad    ( foldM )
 import           Data.Composition ( (.:) )
-import           Data.List        ( intersperse, isPrefixOf )
+import           Data.List        ( inits, intersperse, isPrefixOf )
 import           Data.Map.Strict  ( Map )
 import qualified Data.Map.Strict  as Map
 import           Data.Maybe       ( fromMaybe, listToMaybe )
@@ -178,11 +180,23 @@ rootPos = Pos []
 consPos :: Int -> Pos -> Pos
 consPos p (Pos ps) = Pos (p : ps)
 
+-- | Inverse function of 'consPos'.
+--
+--   Returns @Nothing@ if the given position is the 'rootPos'.
+unConsPos :: Pos -> Maybe (Int, Pos)
+unConsPos (Pos [])       = Nothing
+unConsPos (Pos (p : ps)) = Just (p, Pos ps)
+
 -- | Gets the parent position or @Nothing@ if the given position is the
 --   root position.
 parentPos :: Pos -> Maybe Pos
 parentPos (Pos ps) | null ps = Nothing
                    | otherwise = Just (Pos (init ps))
+
+-- | Gets the positions of all ancestors of the the given position including
+--   the position itself.
+ancestorPos :: Pos -> [Pos]
+ancestorPos (Pos ps) = map Pos (inits ps)
 
 -- | Gets all valid positions of subterms within the given Haskell expression.
 allPos :: Subterm a => a -> [Pos]
