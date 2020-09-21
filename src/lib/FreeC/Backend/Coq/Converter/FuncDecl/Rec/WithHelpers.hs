@@ -14,6 +14,7 @@ import           Data.List
 import qualified Data.List.NonEmpty                             as NonEmpty
 import qualified Data.Map.Strict                                as Map
 import           Data.Maybe                                     ( fromJust )
+import           Data.Set                                       ( Set )
 import qualified Data.Set                                       as Set
 
 import           FreeC.Backend.Coq.Analysis.DecreasingArguments
@@ -102,23 +103,22 @@ transformRecFuncDecl
   decArg :: IR.QName
   decArg = argNames !! decArgIndex
 
+  -- | The names of variables that are structurally equal to the decreasing
+  --   argument at the given position.
+  decArgAliasesAt :: Pos -> Set IR.QName
+  decArgAliasesAt p = Map.keysSet (Map.filter (== 0) (depthMapAt p expr decArg))
+
   -- | The positions of @case@-expressions for the decreasing argument.
   caseExprsPos :: [Pos]
-  caseExprsPos = [p | p <- ps, not (any (below p) (delete p ps))]
-   where
-    ps :: [Pos]
-    ps = filter decArgNotShadowed (findSubtermPos isCaseExpr expr)
+  caseExprsPos = let ps = map snd (findSubtermWithPos isCaseExpr expr)
+                 in [p | p <- ps, not (any (below p) (delete p ps))]
 
   -- | Tests whether the given expression is a @case@-expression for the
-  --   the decreasing argument.
-  isCaseExpr :: IR.Expr -> Bool
-  isCaseExpr (IR.Case _ (IR.Var _ varName _) _ _) = varName == decArg
-  isCaseExpr _ = False
-
-  -- | Ensures that the decreasing argument is not shadowed by the binding
-  --   of a local variable at the given position.
-  decArgNotShadowed :: Pos -> Bool
-  decArgNotShadowed p = decArg `Set.notMember` boundVarsAt expr p
+  --   decreasing argument or a structurally equal variable.
+  isCaseExpr :: IR.Expr -> Pos -> Bool
+  isCaseExpr (IR.Case _ (IR.Var _ varName _) _ _) pos
+    = varName `Set.member` decArgAliasesAt pos
+  isCaseExpr _ _ = False
 
   -- | Generates the recursive helper function declaration for the @case@-
   --   expression at the given position of the right-hand side.
@@ -162,7 +162,7 @@ transformRecFuncDecl
     -- Even though we know the type of the original and additional arguments
     -- the return type is unknown, since the right-hand side of @case@
     -- expressions is not annotated.
-    -- The helper function uses all effects that are used by the original 
+    -- The helper function uses all effects that are used by the original
     -- function.
     freeArgsNeeded <- inEnv $ needsFreeArgs name
     effects <- inEnv $ lookupEffects name
