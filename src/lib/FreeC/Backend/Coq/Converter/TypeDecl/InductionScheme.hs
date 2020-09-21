@@ -32,12 +32,13 @@ generateInductionSchemes dataDecls = do
   inBodies  <- concatMapM (generateInProperties inQualidMap) complexDataDecls
   schemeQualidMap <- Map.fromList <$> mapM (generateSchemeName . IR.typeDeclQName) dataDecls
   schemeBodies <- mapM (generateSchemeLemma schemeQualidMap forQualidMap) dataDecls
-  {- forallSentences <- return [] -- generateForallSentences-}
+  forallQualidMap <- Map.fromList <$> mapM (generateForallName . IR.typeDeclQName) complexDataDecls
+  forallBodies <- mapM (generateForallLemma forallQualidMap forQualidMap inQualidMap) dataDecls
   return
     ( [Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList forBodies) []) | not (null forBodies)]
     ++[Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList inBodies) []) | not (null inBodies)]
     ++(map (\(name, binders, term, proof) ->
-              Coq.AssertionSentence (Coq.Assertion Coq.Lemma name binders term) proof) schemeBodies)
+              Coq.AssertionSentence (Coq.Assertion Coq.Lemma name binders term) proof) (schemeBodies ++ forallBodies))
     )
  where
 
@@ -246,13 +247,6 @@ generateInductionSchemes dataDecls = do
   generateSchemeLemma _ _ (IR.TypeSynDecl _ _ _ _) = error "generateInductionLemma: Type synonym not allowed"
   generateSchemeLemma schemeQualidMap forQualidMap (IR.DataDecl _ (IR.DeclIdent _ typeName) typeVarDecls conDecls) = localEnv $ do
     Just typeQualid <- inEnv $ lookupIdent IR.TypeScope typeName
-    let generateArg :: String -> Coq.Term -> Converter (Coq.Qualid, Coq.Binder)
-        generateArg argName argType = do
-          ident <- freshCoqQualid argName
-          return
-            $ ( ident
-              , Coq.typedBinder Coq.Ungeneralizable Coq.Explicit [ident] argType
-              )
     (tvarQualids, tvarBinders) <- convertTypeVarDecls' Coq.Explicit typeVarDecls
     (propQualid, propBinder) <- generateArg "P"
       (Coq.Arrow (genericApply typeQualid [] [] (map Coq.Qualid tvarQualids))
@@ -333,7 +327,44 @@ generateInductionSchemes dataDecls = do
                   return $ Just $ genericApply forType [] [] (coqArgs ++ hypotheses')
           else return Nothing
       generateInductionHypothesis_2 (IR.TypeVar _ _) _ = return Nothing
-  
+
+  -----------------------------------------------------------------------------
+  -- Forall Lemmas                                                           --
+  -----------------------------------------------------------------------------
+
+  generateForallName :: IR.QName -> Converter (IR.QName, Coq.Qualid)
+  generateForallName typeQName = do
+    Just typeQualid <- inEnv $ lookupIdent IR.TypeScope typeQName
+    let Just typeIdent = Coq.unpackQualid typeQualid
+    forallQualid <- freshCoqQualid $ "For" ++ typeIdent ++ "_forall"
+    return (typeQName, forallQualid)
+
+  generateForallLemma :: Map.Map IR.QName Coq.Qualid -> Map.Map IR.QName Coq.Qualid -> Map.Map (IR.QName, Int) Coq.Qualid -> IR.TypeDecl -> Converter (Coq.Qualid, [Coq.Binder], Coq.Term, Coq.Proof)
+  generateForallLemma _ _ _ (IR.TypeSynDecl _ _ _ _) = error "generateForallLemma: Type synonym not allowed"
+  generateForallLemma forallQualidMap forQualidMap inQualidMap (IR.DataDecl _ (IR.DeclIdent _ typeName) typeVarDecls _) = localEnv $ do
+    Just typeQualid <- inEnv $ lookupIdent IR.TypeScope typeName
+    (tvarQualids, tvarBinders) <- convertTypeVarDecls' Coq.Explicit typeVarDecls
+    (propQualids, propBinders) <- mapAndUnzipM (\tv -> generateArg "P" (Coq.Arrow (Coq.Qualid tv) (Coq.Sort Coq.Prop))) tvarQualids
+    (valQualid, valBinder) <- generateArg freshArgPrefix
+      (genericApply typeQualid [] [] (map Coq.Qualid tvarQualids))
+    inTerms <- mapM (uncurry $ generateInTerm valQualid tvarQualids) $ zip [1 ..] propQualids
+    let forallQualid = forallQualidMap Map.! typeName
+        forQualid = forQualidMap Map.! typeName
+        binders = genericArgDecls Coq.Explicit ++ tvarBinders ++ propBinders ++ [valBinder]
+        lhs = genericApply forQualid [] [] (map Coq.Qualid $ tvarQualids ++ propQualids ++ [valQualid])
+        rhs = let (inQualids', [lastIn]) = splitAt (length inTerms - 1) $ inTerms
+              in  foldr Coq.conj lastIn inQualids'
+        term = Coq.forall binders (Coq.equiv lhs rhs)
+        proof = Coq.ProofQed $ Text.pack ""
+    return (forallQualid, [], term, proof)
+   where
+    generateInTerm :: Coq.Qualid -> [Coq.Qualid] -> Int -> Coq.Qualid -> Converter Coq.Term
+    generateInTerm valQualid tvarQualids index propQualid = localEnv $ do
+      let inQualid = inQualidMap Map.! (typeName, index)
+      (val2Qualid, val2Binder) <- generateArg "y" (Coq.Qualid $ tvarQualids !! (index - 1))
+      let isIn = genericApply inQualid [] [] (map Coq.Qualid $ tvarQualids ++ [val2Qualid, valQualid])
+      return $ Coq.forall [val2Binder] $ Coq.Arrow isIn (Coq.app (Coq.Qualid propQualid) [Coq.Qualid val2Qualid])
+
   -----------------------------------------------------------------------------
   -- Helper Functions                                                        --
   -----------------------------------------------------------------------------
@@ -360,3 +391,9 @@ generateInductionSchemes dataDecls = do
             Coq.Bare n -> Text.unpack n
             Coq.Qualified _ n -> Text.unpack n
       return $ Coq.bare $ "In" ++ name ++ (if arity == 1 then "" else "_" ++ show argIndex)
+
+  generateArg :: String -> Coq.Term -> Converter (Coq.Qualid, Coq.Binder)
+  generateArg argName argType = do
+    qualid <- freshCoqQualid argName
+    let binder = Coq.typedBinder Coq.Ungeneralizable Coq.Explicit [qualid] argType
+    return (qualid, binder)
