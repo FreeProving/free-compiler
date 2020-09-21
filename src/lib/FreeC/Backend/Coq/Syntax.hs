@@ -26,7 +26,7 @@ module FreeC.Backend.Coq.Syntax
   , variable
     -- * Definition Sentences
   , definitionSentence
-    -- * Notation sentences
+    -- * Notation Sentences
   , notationSentence
   , nSymbol
   , nIdent
@@ -187,7 +187,7 @@ definitionSentence qualid binders returnType term = DefinitionSentence
   (DefinitionDef Global qualid binders returnType term)
 
 -------------------------------------------------------------------------------
--- Definition sentences                                                      --
+-- Notation sentences                                                      --
 -------------------------------------------------------------------------------
 -- | Smart constructor for a Coq notation sentence.
 notationSentence

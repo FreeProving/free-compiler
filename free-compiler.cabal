@@ -114,6 +114,7 @@ library freec-internal
                       , FreeC.Backend.Coq.Converter.Module
                       , FreeC.Backend.Coq.Converter.Type
                       , FreeC.Backend.Coq.Converter.TypeDecl
+                      , FreeC.Backend.Coq.Converter.TypeDecl.InductionScheme
                       , FreeC.Backend.Coq.Keywords
                       , FreeC.Backend.Coq.Pretty
                       , FreeC.Backend.Coq.Syntax

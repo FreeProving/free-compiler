@@ -11,6 +11,9 @@ Require Import Coq.Program.Equality.
 (* The hint database that contains instances of [prove_ind_prove_for_type]. *)
 Create HintDb prove_ind_db.
 
+(* Trivial property *)
+Definition NoProperty {A : Type} : A -> Prop := fun _ => True.
+
 (* This tactic is needed to prevent [prove_ind_apply_assumption] from applying
    the fixpoint hypothesis which would invalidify the proof. *)
 Local Ltac prove_ind_is_fixpoint H P :=
