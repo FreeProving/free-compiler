@@ -342,7 +342,7 @@ liftBinds ((IR.Bind srcSpan varPat bindExpr) : bs) expr = localEnv $ do
   bindExpr' <- liftExpr bindExpr
   let varName    = IR.varPatQName varPat
       countExprs = expr : map IR.bindExpr bs
-      count      = sum (map (countVarInExpr varName) countExprs)
+      count      = sum $ map (countVarInExpr varName) countExprs
       shareOp    | count > 1 = LIR.Share
                  | otherwise = LIR.Call
       shareExpr  = shareOp srcSpan bindExpr' shareType'
@@ -369,8 +369,10 @@ countVarInExpr varName = countVarInExpr'
   countVarInExpr' IR.ErrorExpr {}              = 0
   countVarInExpr' IR.IntLiteral {}             = 0
   countVarInExpr' (IR.Lambda _ varPats expr _) = countVarInBinds varPats expr
-  countVarInExpr' (IR.Let _ binds expr _)      = countVarInExpr' expr
-    + sum (map (countVarInExpr' . IR.bindExpr) binds)
+  countVarInExpr' (IR.Let _ binds expr _)
+    = let varPats = map IR.bindVarPat binds
+      in sum (map (countVarInBinds varPats . IR.bindExpr) binds)
+         + countVarInBinds varPats expr
 
   -- | Returns the number of all occurrences of the variable with the given name
   --   in the given expression.
