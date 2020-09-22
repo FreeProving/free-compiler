@@ -43,7 +43,7 @@ Proof. simpl. easy. Qed.
    with handling. *)
 Theorem prop_cbv_manual : 
   @handle _ _ _ (HandlerMaybeShareTrace _)
-    (doubleRoot _ _ Cbv _ (tracedTree _ _ Cbv _ _)) 
+    (doubleRoot _ _ Cbv _ (tracedTree _ _ Cbv _)) 
   <> 
   @handle _ _ _ (HandlerMaybeShareTrace _)
     (@trace _ _ _ (Integer _ _) "Root"%string (pure 2%Z)).

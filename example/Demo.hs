@@ -17,7 +17,7 @@ doubleRoot l = let l' = l in root l' + root l'
 -- traced, partial value
 
 tracedTree :: Tree Integer
-tracedTree = Node (trace "Root" 1) undefined
+tracedTree = Node (trace "Root" 1)  [Node (trace "Child" 2) []]
 
 -- property
 prop_double_root_traced :: Property
