@@ -16,30 +16,33 @@
 --   <https://github.com/FreeProving/haskell-src-transformations>.
 module FreeC.Frontend.Haskell.PatternMatching ( transformPatternMatching ) where
 
-import qualified Data.Map.Strict              as Map
-import qualified HST.Application              as HST
-import qualified HST.Effect.Env               as HST
-import qualified HST.Effect.Fresh             as HST
-import qualified HST.Effect.GetOpt            as HST
-import qualified HST.Effect.InputFile         as HST
-import qualified HST.Effect.Report            as HST
-import qualified HST.Effect.WithFrontend      as HST
-import qualified HST.Environment              as HST
-import           HST.Frontend.HSE.Config      ( HSE )
-import qualified HST.Frontend.HSE.From        as FromHSE
-import qualified HST.Frontend.HSE.To          as ToHSE
-import qualified HST.Frontend.Parser          as HST
-import qualified HST.Frontend.Syntax          as HST
-import           HST.Frontend.Transformer
-  ( ModuleType(ModuleHSE), getModuleHSE )
-import qualified HST.Options                  as HST
-import qualified HST.Util.Messages            as HST
-import qualified HST.Util.Selectors           as HST
-import qualified Language.Haskell.Exts.Syntax as HSE
+import           Control.Monad                     ( zipWithM )
+import qualified Data.Map.Strict                   as Map
+import qualified HST.Application                   as HST
+import qualified HST.Effect.Env                    as HST
+import qualified HST.Effect.Fresh                  as HST
+import qualified HST.Effect.GetOpt                 as HST
+import qualified HST.Effect.InputFile              as HST
+import qualified HST.Effect.InputModule            as HST
+import qualified HST.Effect.Report                 as HST
+import qualified HST.Environment                   as HST
+import           HST.Frontend.HSE.Config           ( HSE )
+import qualified HST.Frontend.HSE.From             as FromHSE
+import qualified HST.Frontend.HSE.To               as ToHSE
+import qualified HST.Frontend.Syntax               as HST
+import qualified HST.Frontend.Transformer as HST
+import qualified HST.Options                       as HST
+import qualified HST.Util.Messages                 as HST
+import qualified HST.Util.PrettyName               as HST
+import qualified HST.Util.Selectors                as HST
+import qualified Language.Haskell.Exts             as HSE
 import           Polysemy
   ( Member, Members, Sem, interpret, runM )
-import           Polysemy.Embed               ( Embed, embed )
+import           Polysemy.Embed                    ( Embed, embed )
 
+import           FreeC.Environment.LookupOrFail
+import           FreeC.Environment.ModuleInterface
+import           FreeC.IR.Base.Prelude             as IR.Prelude
 import           FreeC.IR.SrcSpan
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -59,7 +62,6 @@ transformPatternMatching inputModule = do
     $ reportToReporter
     $ HST.cancelToReport cancelMessage
     $ HST.runWithOptions HST.defaultOptions
-    $ HST.runWithFrontendInstances @Frontend
     $ transformPatternMatching' inputModule
  where
   cancelMessage :: HST.Message
@@ -67,19 +69,16 @@ transformPatternMatching inputModule = do
     = HST.message HST.Info HST.NoSrcSpan "Pattern matching compilation failed."
 
 transformPatternMatching'
-  :: ( MonadReporter m
-     , MonadConverter m
-     , Members '[Embed m, HST.GetOpt, HST.Report, HST.WithFrontend Frontend] r
-     )
+  :: Members '[Embed Converter, HST.GetOpt, HST.Report] r
   => HSE.Module SrcSpan
   -> Sem r (HSE.Module SrcSpan)
 transformPatternMatching' inputModule = do
-  inputModule' <- HST.transformModule (ModuleHSE inputModule)
+  inputModule' <- HST.transformModule (HST.ModuleHSE inputModule)
   env <- initEnv inputModule'
   HST.runWithEnv env . HST.runFresh (HST.findIdentifiers inputModule') $ do
     outputModule' <- HST.processModule inputModule'
     outputModule <- HST.unTransformModule outputModule'
-    return (getModuleHSE outputModule)
+    return (HST.getModuleHSE outputModule)
 
 -------------------------------------------------------------------------------
 -- Source Spans                                                              --
@@ -88,32 +87,44 @@ transformPatternMatching' inputModule = do
 --   source spans of type 'SrcSpan'.
 type Frontend = HSE SrcSpan
 
--- | TODO
+-- | Converts a source span to a HST source span.
 instance FromHSE.TransformSrcSpan SrcSpan where
-  transformSrcSpan = undefined
+  transformSrcSpan srcSpan = HST.SrcSpan srcSpan HST.MsgSrcSpan
+    { HST.msgSrcSpanFilePath    = srcSpanFilename srcSpan
+    , HST.msgSrcSpanStartLine   = srcSpanStartLine srcSpan
+    , HST.msgSrcSpanStartColumn = srcSpanStartColumn srcSpan
+    , HST.msgSrcSpanEndLine     = srcSpanEndLine srcSpan
+    , HST.msgSrcSpanEndColumn   = srcSpanEndColumn srcSpan
+    }
 
--- | TODO
+-- | Extracts the actual source span from an HST source span.
 instance ToHSE.TransformSrcSpan SrcSpan where
-  transformSrcSpan = undefined
-
--- | TODO
-instance HST.Parsable (HSE SrcSpan) where
-  parseModule = undefined
-
-  parseExp    = undefined
+  transformSrcSpan (HST.SrcSpan originalSrcSpan _) = originalSrcSpan
+  transformSrcSpan HST.NoSrcSpan                   = NoSrcSpan
 
 -------------------------------------------------------------------------------
 -- Environment Initialization                                                --
 -------------------------------------------------------------------------------
--- | TODO
-initEnv :: (MonadConverter m, Member (Embed m) r)
+-- | Initializes the environment of the pattern matching compiler for the
+--   given module.
+initEnv :: Member (Embed Converter) r
         => HST.Module Frontend
         -> Sem r (HST.Environment Frontend)
-initEnv _ = return HST.Environment
-  { HST.envCurrentModule   = undefined
-  , HST.envImportedModules = undefined
-  , HST.envOtherEntries    = undefined
-  }
+initEnv inputModule@(HST.Module _ _ _ imports _) = do
+  let importSrcSpans = map (ToHSE.transformSrcSpan . HST.importSrcSpan) imports
+      importNames    = map (HST.prettyName . HST.importModule) imports
+  ifaces
+    <- embed $ zipWithM lookupAvailableModuleOrFail importSrcSpans importNames
+  preludeIface
+    <- embed $ lookupAvailableModuleOrFail NoSrcSpan IR.Prelude.modName
+  return HST.Environment
+    { HST.envCurrentModule   = HST.createModuleInterface inputModule
+    , HST.envImportedModules = zip imports (map convertModuleInterface ifaces)
+    , HST.envOtherEntries    = convertModuleInterface preludeIface
+    }
+
+convertModuleInterface :: ModuleInterface -> HST.ModuleInterface Frontend
+convertModuleInterface = undefined
 
 -------------------------------------------------------------------------------
 -- Interpretation for `Report` Effect                                        --

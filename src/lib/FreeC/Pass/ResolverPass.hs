@@ -170,7 +170,7 @@ import           Data.Set                          ( Set )
 import qualified Data.Set                          as Set
 import           Data.Tuple.Extra                  ( (&&&) )
 
-import           FreeC.Environment
+import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax                   as IR
@@ -356,7 +356,7 @@ resolverEnvFromImports = fmap mergeResolverEnvs . mapM resolverEnvFromImport
 --   (not the name of the module they were originally defined in).
 resolverEnvFromImport :: IR.ImportDecl -> Converter ResolverEnv
 resolverEnvFromImport (IR.ImportDecl srcSpan modName) = do
-  Just iface <- inEnv $ lookupAvailableModule modName
+  iface <- lookupAvailableModuleOrFail srcSpan modName
   let exports     = interfaceExports iface
       entries     = map makeImportedEntry (Set.toList exports)
       qualNames   = map resolverEntryLocalName entries

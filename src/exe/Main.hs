@@ -176,7 +176,7 @@ outputModule ext modName outputStr = do
       let outputPath = map (\c -> if c == '.' then '/' else c) modName
           outputFile = outputDir </> outputPath <.> ext
           ifaceFile  = outputDir </> outputPath <.> "json"
-      Just iface <- inEnv $ lookupAvailableModule modName
+      iface <- lookupAvailableModuleOrFail modName
       liftIO $ createDirectoryIfMissing True (takeDirectory outputFile)
       writeModuleInterface ifaceFile iface
       liftIO $ writePrettyFile outputFile outputStr

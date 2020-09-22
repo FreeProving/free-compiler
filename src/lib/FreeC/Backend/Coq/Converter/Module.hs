@@ -9,11 +9,12 @@ import qualified FreeC.Backend.Coq.Base               as Coq.Base
 import           FreeC.Backend.Coq.Converter.FuncDecl
 import           FreeC.Backend.Coq.Converter.TypeDecl
 import qualified FreeC.Backend.Coq.Syntax             as Coq
-import           FreeC.Environment
 import           FreeC.Environment.Entry
   ( EnvEntry(ConEntry), entryName )
+import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.DependencyGraph
+import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax                      as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pretty
@@ -67,8 +68,8 @@ convertImportDecls imports = do
 
 -- | Convert an import declaration.
 convertImportDecl :: IR.ImportDecl -> Converter [Coq.Sentence]
-convertImportDecl (IR.ImportDecl _ modName) = do
-  Just iface <- inEnv $ lookupAvailableModule modName
+convertImportDecl (IR.ImportDecl srcSpan modName) = do
+  iface <- lookupAvailableModuleOrFail srcSpan modName
   generateImport (interfaceLibName iface) modName
 
 -- | Generates a Coq import sentence for the module with the given name
@@ -82,8 +83,8 @@ convertImportDecl (IR.ImportDecl _ modName) = do
 --   to give access to the notations for qualified smart constructors.
 generateImport :: Coq.ModuleIdent -> IR.ModName -> Converter [Coq.Sentence]
 generateImport libName modName = do
-  Just interface <- inEnv $ lookupAvailableModule modName
-  return (mkImportSentences (Coq.ident (showPretty modName)) interface)
+  iface <- lookupAvailableModuleOrFail NoSrcSpan modName
+  return (mkImportSentences (Coq.ident (showPretty modName)) iface)
  where
   -- | Makes a @From … Require Import …@ or @From … Require …@ and an
   --   @Export … .QualifiedSmartConstructorModule@ if this local module exists.

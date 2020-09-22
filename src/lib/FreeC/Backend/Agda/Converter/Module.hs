@@ -9,7 +9,8 @@ import qualified FreeC.Backend.Agda.Base               as Agda.Base
 import           FreeC.Backend.Agda.Converter.FuncDecl ( convertFuncDecls )
 import           FreeC.Backend.Agda.Converter.TypeDecl ( convertTypeDecls )
 import qualified FreeC.Backend.Agda.Syntax             as Agda
-import           FreeC.Environment                     ( lookupAvailableModule )
+import           FreeC.Environment.LookupOrFail
+  ( lookupAvailableModuleOrFail )
 import           FreeC.Environment.ModuleInterface     ( interfaceAgdaLibName )
 import           FreeC.IR.DependencyGraph
   ( groupFuncDecls, groupTypeDecls )
@@ -44,8 +45,8 @@ convertImportDecls imports = (Agda.Base.imports ++)
 
 -- | Convert an import declaration.
 convertImportDecl :: IR.ImportDecl -> Converter Agda.Declaration
-convertImportDecl (IR.ImportDecl _ modName) = do
-  Just iface <- inEnv $ lookupAvailableModule modName
+convertImportDecl (IR.ImportDecl srcSpan modName) = do
+  iface <- lookupAvailableModuleOrFail srcSpan modName
   return
     $ Agda.simpleImport
     $ Agda.qname [interfaceAgdaLibName iface]
