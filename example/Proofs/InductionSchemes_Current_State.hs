@@ -1,11 +1,11 @@
 module Proofs.Test where
 
-data MyList a =
-  MyNil -- No IH
+data MyList a
+  = MyNil -- No IH
   | MyCons a (MyList a) -- IH for second arg
 
-data MyType a b c =
-    My1 a -- No IH
+data MyType a b c
+  = My1 a -- No IH
   | My2 (MyType a b c) -- IH
   | My3 [MyType a b c] -- IH
   | My4 [[MyType a b c]] -- No IH
