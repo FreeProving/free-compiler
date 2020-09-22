@@ -20,7 +20,7 @@ Property:
 Theorem prop_cbn : ~ quickCheckHandle 
   (prop_double_root_traced _ _ Cbn _ _)
   HandlerMaybeShareTrace.
-Proof. simpl. unfold Search.collectMessages.
+Proof. simpl. unfold Search.collectMessages; simpl.
 discriminate. Qed.
 
 (* Call-by-need evaluation. *)
@@ -28,15 +28,14 @@ Theorem prop_cbneed : quickCheckHandle
   (prop_double_root_traced _ _ Cbneed _ _)
   HandlerMaybeShareTrace.
 Proof. 
-simpl. unfold Search.collectMessages. simpl. Admitted.
-Check doubleRoot.
-Compute (@handle _ _ _ (HandlerMaybeShareTrace _) 
-  (doubleRoot _ _ Cbneed _ (tracedTree _ _ Cbneed _ _))).
+simpl. unfold Search.collectMessages; simpl.
+reflexivity. Qed.
 
-(* Call-by-value evaluation. 
-   Doesn't hold yet because the flattening is not merged. *)
+(* Call-by-value evaluation. Immediately simplifies to ~ False
+   due to call operators in the property, which is bad. (Tracing
+   log should be collected!)
+   Need to replace call/share with pure in properties. *)
 Theorem prop_cbv : ~ quickCheckHandle 
   (prop_double_root_traced _ _ Cbv _ _)
   HandlerMaybeShareTrace.
-Proof. simpl. unfold Search.collectMessages. simpl.
-discriminate. Qed.
+Proof. simpl. easy. Qed.
