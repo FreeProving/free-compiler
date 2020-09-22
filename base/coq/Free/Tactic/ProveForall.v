@@ -46,19 +46,26 @@ Hint Extern 0 => forall_trivial_imp2 : prove_forall_db.
 Hint Extern 0 => forall_ForFree_InFree : prove_forall_db.
 
 Ltac prove_forall Ind :=
-     let P  := fresh "P"
-  in let C  := fresh "C"
+     repeat (match goal with
+             | [ |- forall (_ : _ -> Prop), _ ] => intro
+             end);
+     let C  := fresh "C"
   in let HF := fresh "HF"
   in let x  := fresh "x"
   in let HI := fresh "HI"
   in let H  := fresh "H"
-  in intros P C; split;
-     [ intros HF x HI;
+  in intro C; split;
+     [ intro HF;
+       repeat split;
+       intros x HI;
        induction C using Ind;
        dependent destruction HI;
        dependent destruction HF;
        auto with prove_forall_db
      | intro H;
+       repeat (match goal with
+               | [H1 : _ /\ _ |- _] => destruct H1
+               end);
        induction C using Ind;
        constructor;
        auto with prove_forall_db2

@@ -65,117 +65,50 @@ Instance ShareableArgsPair {Shape : Type} {Pos : Shape -> Type} (A B : Type)
                     end
    }.
 
-(* ForPair_A *)
-Inductive ForPair_A (Shape : Type) (Pos : Shape -> Type) (A B : Type) (P : A -> Prop)
-    : Pair Shape Pos A B -> Prop :=
-  | ForPair_A_pair : forall (fx : Free Shape Pos A)
-                      (fy : Free Shape Pos B),
-      ForFree Shape Pos A P fx ->
-      ForPair_A Shape Pos A B P (@pair_ Shape Pos A B fx fy).
+(* ForPair *)
+Inductive ForPair (Shape : Type) (Pos : Shape -> Type) (a b : Type) (P0
+    : a -> Prop) (P1 : b -> Prop)
+   : Pair Shape Pos a b -> Prop
+  := ForPair_pair_
+   : forall (x : Free Shape Pos a) (x0 : Free Shape Pos b),
+     ForFree Shape Pos a P0 x ->
+     ForFree Shape Pos b P1 x0 ->
+     ForPair Shape Pos a b P0 P1 (@pair_ Shape Pos a b x x0).
 
-Inductive InPair_A (Shape : Type) (Pos : Shape -> Type) (A B : Type)
-    : A -> Pair Shape Pos A B -> Prop :=
-  | InPair_A_pair_fx : forall (x  : A)
-                          (fx : Free Shape Pos A)
-                          (fy : Free Shape Pos B),
-      InFree Shape Pos A x fx ->
-      InPair_A Shape Pos A B x (@pair_ Shape Pos A B fx fy).
+Inductive InPair_1 (Shape : Type) (Pos : Shape -> Type) (a b : Type)
+   : a -> Pair Shape Pos a b -> Prop
+  := InPair_1_pair_
+   : forall (x1 : a) (x : Free Shape Pos a) (x0 : Free Shape Pos b),
+     InFree Shape Pos a x1 x ->
+     InPair_1 Shape Pos a b x1 (@pair_ Shape Pos a b x x0)
+with InPair_2 (Shape : Type) (Pos : Shape -> Type) (a b : Type)
+   : b -> Pair Shape Pos a b -> Prop
+  := InPair_2_pair_
+   : forall (x1 : b) (x : Free Shape Pos a) (x0 : Free Shape Pos b),
+     InFree Shape Pos b x1 x0 ->
+     InPair_2 Shape Pos a b x1 (@pair_ Shape Pos a b x x0).
 
-Lemma ForPair_A_forall (Shape : Type) (Pos : Shape -> Type) (A B : Type)
-  : forall (P : A -> Prop)
-           (fp : Pair Shape Pos A B),
-    ForPair_A Shape Pos A B P fp <-> (forall (x : A), InPair_A Shape Pos A B x fp -> P x).
+Lemma ForPair_forall : forall (Shape : Type)
+  (Pos : Shape -> Type)
+  (a b : Type)
+  (P0 : a -> Prop)
+  (P1 : b -> Prop)
+  (x : Pair Shape Pos a b),
+  ForPair Shape Pos a b P0 P1 x <->
+  ((forall (y : a), InPair_1 Shape Pos a b y x -> P0 y) /\
+   (forall (y : b), InPair_2 Shape Pos a b y x -> P1 y)).
 Proof.
-  Hint Extern 0 (ForPair_A ?Shape ?Pos ?A ?B _ _) => forall_finish2 (@InPair_A_pair_fx Shape Pos A B) : prove_forall_db2.
-  prove_forall Pair_ind.
-Qed.
-
-(* ForPair_B *)
-Inductive ForPair_B (Shape : Type) (Pos : Shape -> Type) (A B : Type) (P : B -> Prop)
-    : Pair Shape Pos A B -> Prop :=
-  | ForPair_B_pair : forall (fx : Free Shape Pos A)
-                      (fy : Free Shape Pos B),
-      ForFree Shape Pos B P fy ->
-      ForPair_B Shape Pos A B P (@pair_ Shape Pos A B fx fy).
-
-Inductive InPair_B (Shape : Type) (Pos : Shape -> Type) (A B : Type)
-    : B -> Pair Shape Pos A B -> Prop :=
-  | InPair_B_pair_fy : forall (y  : B)
-                          (fx : Free Shape Pos A)
-                          (fy : Free Shape Pos B),
-      InFree Shape Pos B y fy ->
-      InPair_B Shape Pos A B y (@pair_ Shape Pos A B fx fy).
-
-Lemma ForPair_B_forall (Shape : Type) (Pos : Shape -> Type) (A B : Type)
-  : forall (P : B -> Prop)
-           (fp : Pair Shape Pos A B),
-    ForPair_B Shape Pos A B P fp <-> (forall (x : B), InPair_B Shape Pos A B x fp -> P x).
-Proof.
-  Hint Extern 0 (ForPair_B ?Shape ?Pos ?A ?B _ _) => forall_finish2 (@InPair_B_pair_fy Shape Pos A B) : prove_forall_db2.
+  intros Shape Pos a b.
   prove_forall Pair_ind.
 Qed.
 
 (* Add hints for proof generation *)
-Local Ltac pair_induction x := induction x as [ fx fy ] using Pair_ind.
-Hint Extern 0 (ForPair_A ?Shape ?Pos ?A ?B _ _) => prove_ind_prove_for_type
-    (Pair Shape Pos A B)
-    (ForPair_A Shape Pos A B)
-    (ForPair_A_forall Shape Pos A B)
+Local Ltac pair_induction x := 
+  let fx := fresh "fx"
+  in let fy := fresh "fy"
+  in induction x as [ fx fy ] using Pair_ind.
+Hint Extern 0 (ForPair ?Shape ?Pos ?A ?B ?PA ?PB ?x) => prove_ind_prove_ForType
+    x
+    (ForPair_forall Shape Pos A B)
     (pair_induction)
   : prove_ind_db.
-Hint Extern 0 (ForPair_B ?Shape ?Pos ?A ?B _ _) => prove_ind_prove_for_type
-    (Pair Shape Pos A B)
-    (ForPair_B Shape Pos A B)
-    (ForPair_B_forall Shape Pos A B)
-    (pair_induction)
-  : prove_ind_db.
-Local Ltac forall_ForPair_A_InPair_A :=
-  match goal with
-    | [ HF : ForPair_A ?Shape ?Pos ?A ?B _ ?fx
-      , HI : InPair_A ?Shape ?Pos ?A ?B ?x ?fx
-    |- _ ] =>
-      rewrite ForPair_A_forall in HF;
-      specialize (HF x HI)
-  end.
-Hint Extern 0 => forall_ForPair_A_InPair_A : prove_forall_db.
-Local Ltac forall_ForPair_B_InPair_B :=
-  match goal with
-    | [ HF : ForPair_B ?Shape ?Pos ?A ?B _ ?fx
-      , HI : InPair_B ?Shape ?Pos ?A ?B ?x ?fx
-    |- _ ] =>
-      rewrite ForPair_B_forall in HF;
-      specialize (HF x HI)
-  end.
-Hint Extern 0 => forall_ForPair_B_InPair_B : prove_forall_db.
-Local Ltac forall_ForPair_A :=
-  match goal with
-  | [ HF : ForPair_A ?Shape ?Pos ?T1 ?T2 _ ?fx
-    |- ForPair_A ?Shape ?Pos ?T1 ?T2 _ ?fx ] =>
-       let x  := fresh "x"
-    in let HI := fresh "HI"
-    in apply ForPair_A_forall; intros x HI;
-       rewrite ForPair_A_forall in HF;
-       specialize (HF x HI)
-  | [ H : forall y : ?A, _ |- ForPair_A ?Shape ?Pos ?T1 ?T2 ?P ?fx ] =>
-       let x  := fresh "x"
-    in let HI := fresh "HI"
-    in apply ForPair_A_forall; intros x HI;
-       specialize (H x)
-  end.
-Hint Extern 0 => forall_ForPair_A : prove_forall_db2.
-Local Ltac forall_ForPair_B :=
-  match goal with
-  | [ HF : ForPair_B ?Shape ?Pos ?T1 ?T2 _ ?fx
-    |- ForPair_B ?Shape ?Pos ?T1 ?T2 _ ?fx ] =>
-       let x  := fresh "x"
-    in let HI := fresh "HI"
-    in apply ForPair_B_forall; intros x HI;
-       rewrite ForPair_B_forall in HF;
-       specialize (HF x HI)
-  | [ H : forall y : ?A, _ |- ForPair_B ?Shape ?Pos ?T1 ?T2 ?P ?fx ] =>
-       let x  := fresh "x"
-    in let HI := fresh "HI"
-    in apply ForPair_B_forall; intros x HI;
-       specialize (H x)
-  end.
-Hint Extern 0 => forall_ForPair_B : prove_forall_db2.
