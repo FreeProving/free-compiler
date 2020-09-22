@@ -37,8 +37,10 @@ reflexivity. Qed.
 Theorem prop_cbv : ~ quickCheckHandle 
   (prop_double_root_traced _ _ Cbv _ _)
   HandlerMaybeShareTrace.
-Proof. simpl. easy. Qed.
+Proof. simpl; unfold Search.collectMessages; simpl.
+discriminate. Qed.
 
+(*
 (* doubleRoot (tracedTree) != trace "Root" 1 in a cbv setting
    with handling. *)
 Theorem prop_cbv_manual : 
@@ -50,3 +52,4 @@ Theorem prop_cbv_manual :
 Proof. 
 simpl; unfold Search.collectMessages; simpl.
 discriminate. Qed.
+*)

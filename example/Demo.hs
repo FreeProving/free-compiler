@@ -19,7 +19,7 @@ doubleRoot l = let l' = l in root l' + root l'
 tracedTree :: Tree Integer
 tracedTree = Node (trace "Root" 1)  [Node (trace "Child" 2) []]
 
-tracedTree' :: Tree Integer
+tracedTree' :: Integer
 tracedTree' = let t = Node (trace "Root" 1)  [Node (trace "Child" 2) []] in root t  + root t
 
 -- property

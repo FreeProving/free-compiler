@@ -8,8 +8,10 @@ module FreeC.Backend.Coq.Converter.FuncDecl.NonRec
 import           FreeC.Backend.Coq.Converter.Expr
 import           FreeC.Backend.Coq.Converter.FuncDecl.Common
 import qualified FreeC.Backend.Coq.Syntax                    as Coq
+import           FreeC.Environment                           ( lookupEffects )
 import           FreeC.IR.DependencyGraph
 import qualified FreeC.IR.Syntax                             as IR
+import           FreeC.LiftedIR.Effect
 import           FreeC.Monad.Converter
 
 -- | Converts non-recursive but possibly linear dependent Haskell functions
@@ -25,6 +27,7 @@ convertNonRecFuncDecls decls
 --   @Definition@ sentence.
 convertNonRecFuncDecl :: IR.FuncDecl -> Converter Coq.Sentence
 convertNonRecFuncDecl funcDecl = localEnv $ do
+  isProperty <- fmap (Normalform `elem`) (inEnv $ lookupEffects (IR.funcDeclQName funcDecl))
   (qualid, binders, returnType') <- convertFuncHead funcDecl
-  rhs' <- convertExpr (IR.funcDeclRhs funcDecl)
+  rhs' <- convertExpr' (not isProperty) (IR.funcDeclRhs funcDecl)
   return (Coq.definitionSentence qualid binders returnType' rhs')
