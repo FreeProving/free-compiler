@@ -19,6 +19,9 @@ doubleRoot l = let l' = l in root l' + root l'
 tracedTree :: Tree Integer
 tracedTree = Node (trace "Root" 1)  [Node (trace "Child" 2) []]
 
+tracedTree' :: Tree Integer
+tracedTree' = let t = Node (trace "Root" 1)  [Node (trace "Child" 2) []] in root t  + root t
+
 -- property
 prop_double_root_traced :: Property
 prop_double_root_traced = doubleRoot tracedTree === trace "Root" 2

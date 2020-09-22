@@ -6,12 +6,13 @@ From Base Require Import Prelude.
 From Generated Require Import Data.List.
 
 (* [undefined] *)
-Definition ex_1 (Shape : Type) (Pos : Shape -> Type)
+Definition undefList (Shape : Type) (Pos : Shape -> Type)
                 (P : Partial Shape Pos)
   : Free Shape Pos (List Shape Pos (Unit Shape Pos))
  := Cons Shape Pos undefined (Nil Shape Pos).
 
-Definition ex_2 (Shape : Type) (Pos : Shape -> Type)
+(* undefined *)
+Definition undef (Shape : Type) (Pos : Shape -> Type)
                 (P : Partial Shape Pos)
   : Free Shape Pos (List Shape Pos (Unit Shape Pos))
  := undefined.
@@ -20,38 +21,38 @@ Definition SMaybe := Comb.Shape Maybe.Shape Identity.Shape.
 Definition PMaybe := Comb.Pos Maybe.Pos Identity.Pos.
 
 (* [undefined] != undefined in a partial setting. *)
-Lemma ex_1_neq_ex_2 : 
-  ex_1 SMaybe PMaybe (Maybe.Partial SMaybe PMaybe) 
+Lemma undefList_neq_undef : 
+  undefList SMaybe PMaybe (Maybe.Partial SMaybe PMaybe) 
   <> 
-  ex_2 SMaybe PMaybe (Maybe.Partial SMaybe PMaybe).
+  undef SMaybe PMaybe (Maybe.Partial SMaybe PMaybe).
 Proof. discriminate. Qed.
 
 (* For completeness' sake: length [undefined] != length undefined. *)
-Lemma length_ex_1_neq_length_ex2 : 
-  length SMaybe PMaybe (ex_1 SMaybe PMaybe (Maybe.Partial SMaybe PMaybe))
+Lemma length_undefList_neq_length_ex2 : 
+  length SMaybe PMaybe (undefList SMaybe PMaybe (Maybe.Partial SMaybe PMaybe))
   <>
-  length SMaybe PMaybe (ex_2 SMaybe PMaybe (Maybe.Partial SMaybe PMaybe)).
+  length SMaybe PMaybe (undef SMaybe PMaybe (Maybe.Partial SMaybe PMaybe)).
 Proof. discriminate. Qed.
 
 (* handle [undefined] = handle undefined in the same setting
    using the appropriate handler. *)
-Lemma handle_ex_1_eq_handle_ex_2 :
+Lemma handle_undefList_eq_handle_undef :
   @handle SMaybe PMaybe _ (HandlerMaybe _)
-    (ex_1 SMaybe PMaybe (Maybe.Partial SMaybe PMaybe))
+    (undefList SMaybe PMaybe (Maybe.Partial SMaybe PMaybe))
   = 
   @handle SMaybe PMaybe _ (HandlerMaybe _) 
-    (ex_2 SMaybe PMaybe (Maybe.Partial SMaybe PMaybe)).
+    (undef SMaybe PMaybe (Maybe.Partial SMaybe PMaybe)).
 Proof.
 (* Equation is reduced to None = None *)
 simpl. reflexivity. Qed.
 
 (* But handle (length [undefined]) != handle (length undefined) using
    the same setting and handler. *)
-Lemma length_handle_ex_1_new_length_handle_ex2 :
+Lemma length_handle_undefList_new_length_handle_ex2 :
   @handle SMaybe PMaybe _ (HandlerMaybe _)
-    (length SMaybe PMaybe (ex_1 SMaybe PMaybe (Maybe.Partial SMaybe PMaybe)))
+    (length SMaybe PMaybe (undefList SMaybe PMaybe (Maybe.Partial SMaybe PMaybe)))
   <>
   @handle SMaybe PMaybe _ (HandlerMaybe _)
-    (length SMaybe PMaybe (ex_2 SMaybe PMaybe (Maybe.Partial SMaybe PMaybe))).
+    (length SMaybe PMaybe (undef SMaybe PMaybe (Maybe.Partial SMaybe PMaybe))).
 (* Equation is reduced to Some 1 <> None. *)
 Proof. simpl. discriminate. Qed.
