@@ -29,9 +29,9 @@ Ltac prove_ind_select_case FP :=
 (* This tactic eliminates the monadic layer of an induction hypothesis. *)
 Ltac prove_ind_prove_ForFree :=
   match goal with
-  | [ fx : Free ?Shape ?Pos ?T |- _ ] =>
+  | [ fx : Free ?Shape ?Pos ?T1 |- _ ] =>
     match goal with
-    | [ |- ForFree Shape Pos T ?P fx ] =>
+    | [ |- ForFree Shape Pos ?T ?P fx ] =>
          let x1    := fresh "x"
       in let H    := fresh "H"
       in let x2   := fresh "x"
