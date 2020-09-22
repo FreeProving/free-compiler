@@ -17,7 +17,11 @@
 module FreeC.Frontend.Haskell.PatternMatching ( transformPatternMatching ) where
 
 import           Control.Monad                     ( zipWithM )
+import           Data.Map.Strict                   ( Map )
 import qualified Data.Map.Strict                   as Map
+import           Data.Maybe                        ( mapMaybe )
+import qualified Data.Set                          as Set
+import           Data.Tuple.Extra                  ( (&&&), (***) )
 import qualified HST.Application                   as HST
 import qualified HST.Effect.Env                    as HST
 import qualified HST.Effect.Fresh                  as HST
@@ -30,7 +34,7 @@ import           HST.Frontend.HSE.Config           ( HSE )
 import qualified HST.Frontend.HSE.From             as FromHSE
 import qualified HST.Frontend.HSE.To               as ToHSE
 import qualified HST.Frontend.Syntax               as HST
-import qualified HST.Frontend.Transformer as HST
+import qualified HST.Frontend.Transformer          as HST
 import qualified HST.Options                       as HST
 import qualified HST.Util.Messages                 as HST
 import qualified HST.Util.PrettyName               as HST
@@ -40,10 +44,12 @@ import           Polysemy
   ( Member, Members, Sem, interpret, runM )
 import           Polysemy.Embed                    ( Embed, embed )
 
+import           FreeC.Environment.Entry
 import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.Base.Prelude             as IR.Prelude
 import           FreeC.IR.SrcSpan
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 
@@ -123,8 +129,98 @@ initEnv inputModule@(HST.Module _ _ _ imports _) = do
     , HST.envOtherEntries    = convertModuleInterface preludeIface
     }
 
+-- | Converts the given module interface to a module interface of the pattern
+--   matching compiler.
 convertModuleInterface :: ModuleInterface -> HST.ModuleInterface Frontend
-convertModuleInterface = undefined
+convertModuleInterface iface = HST.ModuleInterface
+  { HST.interfaceModName   = Just
+      (HST.ModuleName HST.NoSrcSpan (interfaceModName iface))
+  , HST.interfaceDataCons  = Map.fromList
+      (map (convertQName *** convertDataEntryCons) (Map.assocs conEntries))
+  , HST.interfaceTypeNames = Map.fromList
+      (map (convertQName *** convertConEntryType) (Map.assocs dataEntries))
+  }
+ where
+  -- | All entries that are exported by the module.
+  exportedEntries :: [EnvEntry]
+  exportedEntries = filter
+    ((`Set.member` interfaceExports iface) . entryScopedName)
+    (Set.toList (interfaceEntries iface))
+
+  -- | All entries of data constructors exported by the module.
+  --
+  --   The keys of the map are the original names of the entries.
+  conEntries :: Map IR.QName EnvEntry
+  conEntries = Map.fromList
+    (map (entryName &&& id) (filter isConEntry exportedEntries))
+
+  -- | All entries of data types exported by the module.
+  --
+  --   The keys of the map are the original names of the entries.
+  dataEntries :: Map IR.QName EnvEntry
+  dataEntries = Map.fromList
+    (map (entryName &&& id) (filter isDataEntry exportedEntries))
+
+  -- | Converts a potentially qualified IR name to an unqualified or special
+  --   HST name.
+  convertQName :: IR.QName -> HST.QName Frontend
+  convertQName qName = case Map.lookup qName specialNames of
+    Just specialName -> HST.Special HST.NoSrcSpan specialName
+    Nothing          -> case qName of
+      (IR.UnQual name) -> convertName name
+      (IR.Qual _ name) -> convertName name
+
+  -- | Converts an unqualified IR name to a HST name.
+  convertName :: IR.Name -> HST.QName Frontend
+  convertName (IR.Ident ident) = HST.UnQual HST.NoSrcSpan
+    (HST.Ident HST.NoSrcSpan ident)
+  convertName (IR.Symbol sym)  = HST.UnQual HST.NoSrcSpan
+    (HST.Symbol HST.NoSrcSpan sym)
+
+  -- | Maps special IR constructor names to the corresponding HST name.
+  specialNames :: Map IR.QName (HST.SpecialCon Frontend)
+  specialNames = Map.fromList
+    [ (IR.Prelude.unitConName, HST.UnitCon HST.NoSrcSpan)
+    , (IR.Prelude.nilConName, HST.NilCon HST.NoSrcSpan)
+    , (IR.Prelude.consConName, HST.ConsCon HST.NoSrcSpan)
+    , (IR.Prelude.tupleConName 2, HST.TupleCon HST.NoSrcSpan HST.Boxed 2)
+    ]
+
+  -- | Tests whether the given name belongs to an infix constructor (i.e.,
+  --   is a symbol that starts with a colon).
+  isInfixConQName :: IR.QName -> Bool
+  isInfixConQName (IR.Qual _ (IR.Symbol (':' : _))) = True
+  isInfixConQName (IR.UnQual (IR.Symbol (':' : _))) = True
+  isInfixConQName _ = False
+
+  -- | Converts the entry of an exported data type to a list of its HST
+  --   constructor entries.
+  convertDataEntryCons :: EnvEntry -> [HST.ConEntry Frontend]
+  convertDataEntryCons = map convertConEntry
+    . mapMaybe (flip Map.lookup conEntries)
+    . entryConsNames
+
+  -- | Converts the entry of an exported data constructor to an HST constructor
+  --   entry.
+  convertConEntry :: EnvEntry -> HST.ConEntry Frontend
+  convertConEntry entry = HST.ConEntry
+    { HST.conEntryName    = convertQName (entryName entry)
+    , HST.conEntryArity   = entryArity entry
+    , HST.conEntryIsInfix = isInfixConQName (entryName entry)
+    , HST.conEntryType    = convertConEntryType entry
+    }
+
+  -- | Converts the entry of an exported data constructor entry to a list of
+  --   its constructor entries.
+  convertConEntryType :: EnvEntry -> HST.TypeName Frontend
+  convertConEntryType = convertQName . extractTypeConQName . entryReturnType
+
+  -- | Gets the name of the data type from the return type of the constructor.
+  extractTypeConQName :: IR.Type -> IR.QName
+  extractTypeConQName (IR.TypeCon _ conName) = conName
+  extractTypeConQName (IR.TypeApp _ t1 _) = extractTypeConQName t1
+  extractTypeConQName _
+    = error "extractTypeConQName: Expected type constructor."
 
 -------------------------------------------------------------------------------
 -- Interpretation for `Report` Effect                                        --

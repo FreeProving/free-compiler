@@ -19,6 +19,7 @@ import           FreeC.Application.Options
 import           FreeC.Application.Options.Parser
 import           FreeC.Backend
 import           FreeC.Environment
+import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.ModuleInterface.Decoder
 import           FreeC.Environment.ModuleInterface.Encoder
 import           FreeC.Frontend
@@ -176,7 +177,7 @@ outputModule ext modName outputStr = do
       let outputPath = map (\c -> if c == '.' then '/' else c) modName
           outputFile = outputDir </> outputPath <.> ext
           ifaceFile  = outputDir </> outputPath <.> "json"
-      iface <- lookupAvailableModuleOrFail modName
+      iface <- liftConverter $ lookupAvailableModuleOrFail NoSrcSpan modName
       liftIO $ createDirectoryIfMissing True (takeDirectory outputFile)
       writeModuleInterface ifaceFile iface
       liftIO $ writePrettyFile outputFile outputStr
