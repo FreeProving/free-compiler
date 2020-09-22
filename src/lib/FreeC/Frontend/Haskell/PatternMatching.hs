@@ -1,10 +1,13 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
+
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This module provides an interface to the pattern matching compiler and
 --   case completion library by Malte Clement
@@ -13,25 +16,29 @@
 --   <https://github.com/FreeProving/haskell-src-transformations>.
 module FreeC.Frontend.Haskell.PatternMatching ( transformPatternMatching ) where
 
-import qualified Data.Map.Strict                   as Map
-import           HST.Frontend.HSE.Config           ( HSE )
-import qualified HST.Application                   as HST
-import qualified HST.Effect.Env                    as HST
-import qualified HST.Effect.Fresh                  as HST
-import qualified HST.Effect.GetOpt                 as HST
-import qualified HST.Effect.InputFile              as HST
-import qualified HST.Effect.Report                 as HST
-import qualified HST.Effect.WithFrontend           as HST
-import qualified HST.Environment                   as HST
-import qualified HST.Frontend.Parser               as HST
-import qualified HST.Frontend.Syntax               as HST
-import qualified HST.Options                       as HST
-import qualified HST.Util.Messages                 as HST
-import qualified HST.Util.Selectors                as HST
-import qualified Language.Haskell.Exts.Syntax      as HSE
+import qualified Data.Map.Strict              as Map
+import qualified HST.Application              as HST
+import qualified HST.Effect.Env               as HST
+import qualified HST.Effect.Fresh             as HST
+import qualified HST.Effect.GetOpt            as HST
+import qualified HST.Effect.InputFile         as HST
+import qualified HST.Effect.Report            as HST
+import qualified HST.Effect.WithFrontend      as HST
+import qualified HST.Environment              as HST
+import           HST.Frontend.HSE.Config      ( HSE )
+import qualified HST.Frontend.HSE.From        as FromHSE
+import qualified HST.Frontend.HSE.To          as ToHSE
+import qualified HST.Frontend.Parser          as HST
+import qualified HST.Frontend.Syntax          as HST
+import           HST.Frontend.Transformer
+  ( ModuleType(ModuleHSE), getModuleHSE )
+import qualified HST.Options                  as HST
+import qualified HST.Util.Messages            as HST
+import qualified HST.Util.Selectors           as HST
+import qualified Language.Haskell.Exts.Syntax as HSE
 import           Polysemy
   ( Member, Members, Sem, interpret, runM )
-import           Polysemy.Embed                    ( Embed, embed )
+import           Polysemy.Embed               ( Embed, embed )
 
 import           FreeC.IR.SrcSpan
 import           FreeC.Monad.Converter
@@ -52,7 +59,7 @@ transformPatternMatching inputModule = do
     $ reportToReporter
     $ HST.cancelToReport cancelMessage
     $ HST.runWithOptions HST.defaultOptions
-    $ HST.runWithFrontendInstances @HSE
+    $ HST.runWithFrontendInstances @Frontend
     $ transformPatternMatching' inputModule
  where
   cancelMessage :: HST.Message
@@ -62,24 +69,46 @@ transformPatternMatching inputModule = do
 transformPatternMatching'
   :: ( MonadReporter m
      , MonadConverter m
-     , Members '[Embed m, HST.GetOpt, HST.Report, HST.WithFrontend HSE] r
+     , Members '[Embed m, HST.GetOpt, HST.Report, HST.WithFrontend Frontend] r
      )
   => HSE.Module SrcSpan
   -> Sem r (HSE.Module SrcSpan)
 transformPatternMatching' inputModule = do
-  inputModule' <- HST.transformModule (HST.ParsedModuleHSE (fmap undefined inputModule))
+  inputModule' <- HST.transformModule (ModuleHSE inputModule)
   env <- initEnv inputModule'
   HST.runWithEnv env . HST.runFresh (HST.findIdentifiers inputModule') $ do
     outputModule' <- HST.processModule inputModule'
     outputModule <- HST.unTransformModule outputModule'
-    return (fmap undefined (HST.getParsedModuleHSE outputModule))
+    return (getModuleHSE outputModule)
+
+-------------------------------------------------------------------------------
+-- Source Spans                                                              --
+-------------------------------------------------------------------------------
+-- | Front end configuration type for the @haskell-src-exts@ front end with
+--   source spans of type 'SrcSpan'.
+type Frontend = HSE SrcSpan
+
+-- | TODO
+instance FromHSE.TransformSrcSpan SrcSpan where
+  transformSrcSpan = undefined
+
+-- | TODO
+instance ToHSE.TransformSrcSpan SrcSpan where
+  transformSrcSpan = undefined
+
+-- | TODO
+instance HST.Parsable (HSE SrcSpan) where
+  parseModule = undefined
+
+  parseExp    = undefined
 
 -------------------------------------------------------------------------------
 -- Environment Initialization                                                --
 -------------------------------------------------------------------------------
+-- | TODO
 initEnv :: (MonadConverter m, Member (Embed m) r)
-        => HST.Module HSE
-        -> Sem r (HST.Environment HSE)
+        => HST.Module Frontend
+        -> Sem r (HST.Environment Frontend)
 initEnv _ = return HST.Environment
   { HST.envCurrentModule   = undefined
   , HST.envImportedModules = undefined
