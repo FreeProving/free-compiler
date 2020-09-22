@@ -1,4 +1,4 @@
-module Proofs.Test where
+module Proofs.InductionSchemes_Current_State where
 
 data MyList a
   = MyNil -- No IH
@@ -10,6 +10,7 @@ data MyType a b c
   | My3 [MyType a b c] -- IH
   | My4 [[MyType a b c]] -- No IH
   | My5 (MyList (MyType a b c)) -- No IH
+  | My6 (MyType a b c, MyType a b c) -- IH
 
 data Tree a = Forest a [Tree a] -- IH for second arg
 
