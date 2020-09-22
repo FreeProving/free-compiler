@@ -21,6 +21,10 @@ import qualified FreeC.IR.Syntax  as IR
 class StripExprType node where
   stripExprType :: node -> node
 
+instance StripExprType IR.Module where
+  stripExprType ast
+    = ast { IR.modFuncDecls = map stripExprType (IR.modFuncDecls ast) }
+
 -- | Strips the expression type annotations from function declarations.
 instance StripExprType IR.FuncDecl where
   stripExprType funcDecl

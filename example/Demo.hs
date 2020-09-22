@@ -15,6 +15,7 @@ doubleRoot :: Tree Integer -> Integer
 doubleRoot l = let l' = l in root l' + root l'
 
 -- traced, partial value
+
 tracedTree :: Tree Integer
 tracedTree = Node (trace "Root" 1) undefined
 
