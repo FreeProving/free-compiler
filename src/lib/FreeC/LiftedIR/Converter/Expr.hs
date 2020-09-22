@@ -192,6 +192,19 @@ liftExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
   args' <- mapM liftExpr args
   generateApply (LIR.App srcSpan (LIR.ErrorExpr srcSpan) typeArgs' [Partiality]
                  [LIR.StringLiteral srcSpan msg] True) args'
+liftExpr' (IR.Trace srcSpan msg expr _) typeArgs args = do
+  when (length typeArgs /= 1)
+    $ reportFatal
+    $ Message srcSpan Internal
+    $ unlines
+    [ "Effect 'trace' is applied to the wrong number of type arguments."
+    , "Expected 1 type arguments, got " ++ show (length typeArgs) ++ "."
+    ]
+  typeArgs' <- mapM LIR.liftType' typeArgs
+  expr' <- liftExpr expr
+  args' <- mapM liftExpr args
+  generateApply (LIR.App srcSpan (LIR.Trace srcSpan) typeArgs' [Tracing]
+                 [LIR.StringLiteral srcSpan msg, expr'] True) args'
 liftExpr' (IR.Let _ binds expr _) [] [] = liftBinds binds expr
 -- Visible type application of an expression other than a function or
 -- constructor.
@@ -332,14 +345,53 @@ rawBind srcSpan mx x varType expr = do
 --   The given expression is the right-hand side of the let.
 liftBinds :: [IR.Bind] -> IR.Expr -> Converter LIR.Expr
 liftBinds [] expr = liftExpr expr
-liftBinds
-  ((IR.Bind srcSpan (IR.VarPat patSrcSpan ident varPatType isStrict) bindExpr)
-   : bs) expr = localEnv $ do
-    _ <- renameAndDefineLIRVar srcSpan isStrict ident varPatType
-    expr' <- liftBinds bs expr
-    patType' <- mapM LIR.liftType varPatType
-    varPat' <- makeVarPat patSrcSpan (IR.UnQual $ IR.Ident ident) patType'
-    shareType' <- mapM LIR.liftType' varPatType
-    bindExpr' <- liftExpr bindExpr
-    let shareExpr = LIR.Share srcSpan bindExpr' shareType'
-    return $ LIR.Bind srcSpan shareExpr (LIR.Lambda srcSpan [varPat'] expr')
+liftBinds ((IR.Bind srcSpan varPat bindExpr) : bs) expr = localEnv $ do
+  let (IR.VarPat patSrcSpan ident varPatType isStrict) = varPat
+  _ <- renameAndDefineLIRVar srcSpan isStrict ident varPatType
+  expr' <- liftBinds bs expr
+  patType' <- mapM LIR.liftType varPatType
+  varPat' <- makeVarPat patSrcSpan (IR.varPatQName varPat) patType'
+  shareType' <- mapM LIR.liftType' varPatType
+  bindExpr' <- liftExpr bindExpr
+  let varName    = IR.varPatQName varPat
+      countExprs = expr : map IR.bindExpr bs
+      count      = sum $ map (countVarInExpr varName) countExprs
+      shareOp    | count > 1 = LIR.Share
+                 | otherwise = LIR.Call
+      shareExpr  = shareOp srcSpan bindExpr' shareType'
+  return $ LIR.Bind srcSpan shareExpr (LIR.Lambda srcSpan [varPat'] expr')
+
+-- | Counts the number of times the variable with the given qualified name
+--   occurs in the given expression.
+countVarInExpr :: IR.QName -> IR.Expr -> Int
+countVarInExpr varName = countVarInExpr'
+ where
+  countVarInExpr' :: IR.Expr -> Int
+  countVarInExpr' IR.Con {}                    = 0
+  countVarInExpr' (IR.Var _ varName' _)        | varName == varName' = 1
+                                               | otherwise = 0
+  countVarInExpr' (IR.App _ lhs rhs _)
+    = countVarInExpr' lhs + countVarInExpr' rhs
+  countVarInExpr' (IR.TypeAppExpr _ lhs _ _)   = countVarInExpr' lhs
+  countVarInExpr' (IR.If _ cond true false _)
+    = countVarInExpr' cond + countVarInExpr' true `max` countVarInExpr' false
+  countVarInExpr' (IR.Case _ expr alts _)      = countVarInExpr' expr
+    + maximum
+    (map (\(IR.Alt _ _ varPats rhs) -> countVarInBinds varPats rhs) alts)
+  countVarInExpr' IR.Undefined {}              = 0
+  countVarInExpr' IR.ErrorExpr {}              = 0
+  countVarInExpr' IR.IntLiteral {}             = 0
+  countVarInExpr' (IR.Lambda _ varPats expr _) = countVarInBinds varPats expr
+  countVarInExpr' (IR.Let _ binds expr _)
+    = let varPats = map IR.bindVarPat binds
+      in sum (map (countVarInBinds varPats . IR.bindExpr) binds)
+         + countVarInBinds varPats expr
+  countVarInExpr' (IR.Trace _ _ expr _) = countVarInExpr' expr
+
+  -- | Returns the number of all occurrences of the variable with the given name
+  --   in the given expression.
+  --
+  --   Returns @0@ if the variable occurs in the given variable patterns.
+  countVarInBinds :: [IR.VarPat] -> IR.Expr -> Int
+  countVarInBinds varPats expr | varName `elem` map IR.varPatQName varPats = 0
+                               | otherwise = countVarInExpr' expr

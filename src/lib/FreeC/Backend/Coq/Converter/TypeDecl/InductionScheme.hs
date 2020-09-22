@@ -1,3 +1,5 @@
+-- | This module contains functions to generate induction schemes for
+--   user-defined data types.
 module FreeC.Backend.Coq.Converter.TypeDecl.InductionScheme where
 
 import           Control.Monad                    ( mapAndUnzipM, zipWithM )

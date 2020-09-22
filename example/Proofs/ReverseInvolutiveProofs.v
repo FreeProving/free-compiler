@@ -13,7 +13,7 @@ Example partial_reverse_non_involutive:
 Proof.
   simpl. intros H.
   discriminate 
-    (H unit 
+    (H unit _
      (reverse_involutive_counterexample Maybe.Shape Maybe.Pos (Maybe.Partial Maybe.Shape Maybe.Pos))).
 Qed.
 
@@ -23,7 +23,7 @@ Qed.
 Lemma total_reverse_append_singleton: 
   quickCheck (@prop_reverse_append_singleton Identity.Shape Identity.Pos).
 Proof.
-  intros a fxs fx.
+  intros a NF fxs fx.
   simpl. induction fxs using FreeList_ind 
     with (P := fun xs => property (prop_reverse_append_singleton Identity.Shape Identity.Pos (pure xs) fx)).
   - (* fxs = pure nil *) simpl. reflexivity.
@@ -38,13 +38,14 @@ Qed.
 Theorem total_reverse_involutive:
   quickCheck (@prop_reverse_involutive Identity.Shape Identity.Pos).
 Proof.
-  intros a fxs.
+  intros a NF fxs.
   simpl. induction fxs using FreeList_ind 
     with (P := fun xs => property (prop_reverse_involutive Identity.Shape Identity.Pos (pure xs))).
   - (* fxs = pure nil *) 
     simpl. reflexivity.
   - (* fxs = pure (cons fxs1 fxs2) *) 
-    simpl. rewrite total_reverse_append_singleton. 
+    simpl. specialize total_reverse_append_singleton as H1; simpl in H1.
+    specialize (H1 a NF). rewrite H1. 
     do 2 apply f_equal. destruct fxs2 as [xs2 | s pf].
     + (* fxs2 = pure xs2 *)    simpl. apply IHfxs1.
     + (* fxs2 = impure s pf *) destruct s.

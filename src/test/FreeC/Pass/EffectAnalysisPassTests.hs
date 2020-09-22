@@ -1,7 +1,5 @@
--- | This module contains tests for "FreeC.Pass.PartialityAnalysisPass".
-module FreeC.Pass.PartialityAnalysisPassTests
-  ( testPartialityAnalysisPass
-  ) where
+-- | This module contains tests for "FreeC.Pass.EffectAnalysisPassTests".
+module FreeC.Pass.EffectAnalysisPassTests ( testEffectAnalysisPass ) where
 
 import           Control.Monad.Extra           ( zipWithM_ )
 import           Test.Hspec
@@ -23,46 +21,58 @@ import           FreeC.Test.Parser
 -- | Parses the function declarations in the given dependency component,
 --   runs the 'effectAnalysisPass' and sets the expectation that there
 --   is an environment entry for each function that marks it as partial.
-shouldBePartial :: DependencyComponent String -> Converter Expectation
-shouldBePartial = shouldBePartialWith $ \funcName partial -> if partial
+shouldHaveEffect
+  :: Effect -> DependencyComponent String -> Converter Expectation
+shouldHaveEffect effect = withEffects $ \funcName effects -> if effect
+  `elem` effects
   then return ()
   else expectationFailure
     $ "Expected "
     ++ showPretty funcName
-    ++ " to be partial, but it has not been marked as partial."
+    ++ " to have effect "
+    ++ show effect
+    ++ ", but it only has effects: "
+    ++ show effects
+    ++ "."
 
--- | Like 'shouldBePartial' but sets the expectation that none of the
+-- | Like 'shouldHaveEffect' but sets the expectation that none of the
 --   functions are partial.
-shouldNotBePartial :: DependencyComponent String -> Converter Expectation
-shouldNotBePartial = shouldBePartialWith $ \funcName partial -> if not partial
+shouldNotHaveEffect
+  :: Effect -> DependencyComponent String -> Converter Expectation
+shouldNotHaveEffect effect = withEffects $ \funcName effects -> if effect
+  `notElem` effects
   then return ()
   else expectationFailure
     $ "Expected "
     ++ showPretty funcName
-    ++ " to be non-partial, but it has been marked as partial."
+    ++ " to not have effect "
+    ++ show effect
+    ++ ", but it has effects: "
+    ++ show effects
+    ++ "."
 
--- | Common implementation of 'shouldBePartial' and 'shouldNotBePartial'.
-shouldBePartialWith :: (IR.QName -> Bool -> Expectation)
-                    -> DependencyComponent String
-                    -> Converter Expectation
-shouldBePartialWith setExpectation inputs = do
+-- | Common implementation of 'shouldHaveEffect' and 'shouldNotHaveEffect'.
+withEffects :: (IR.QName -> [Effect] -> Expectation)
+            -> DependencyComponent String
+            -> Converter Expectation
+withEffects setExpectation inputs = do
   component <- parseTestComponent inputs
   _ <- effectAnalysisPass component
   let funcNames = map IR.funcDeclQName (unwrapComponent component)
-  partials <- mapM (inEnv . hasEffect Partiality) funcNames
-  return (zipWithM_ setExpectation funcNames partials)
+  effects <- mapM (inEnv . lookupEffects) funcNames
+  return (zipWithM_ setExpectation funcNames effects)
 
 -------------------------------------------------------------------------------
 -- Tests                                                                     --
 -------------------------------------------------------------------------------
 -- | Test group for 'Partiality' effect of 'effectAnalysisPass' tests.
-testPartialityAnalysisPass :: Spec
-testPartialityAnalysisPass = describe "FreeC.Pass.PartialityAnalysisPass" $ do
+testEffectAnalysisPass :: Spec
+testEffectAnalysisPass = describe "FreeC.Pass.EffectAnalysisPass" $ do
   it "does not classify non-partial functions as partial"
     $ shouldSucceedWith
     $ do
       _ <- defineTestFunc "maybeHead" 1 "forall a. ([]) a -> Maybe a"
-      shouldNotBePartial
+      shouldNotHaveEffect Partiality
         $ NonRecursive
         $ "maybeHead xs = case xs of {"
         ++ "  ([])      -> Nothing;"
@@ -72,7 +82,7 @@ testPartialityAnalysisPass = describe "FreeC.Pass.PartialityAnalysisPass" $ do
     $ shouldSucceedWith
     $ do
       _ <- defineTestFunc "head" 1 "forall a. ([]) a -> a"
-      shouldBePartial
+      shouldHaveEffect Partiality
         $ NonRecursive
         $ "head xs = case xs of {"
         ++ "  ([])      -> undefined;"
@@ -82,7 +92,7 @@ testPartialityAnalysisPass = describe "FreeC.Pass.PartialityAnalysisPass" $ do
     $ shouldSucceedWith
     $ do
       _ <- defineTestFunc "head" 1 "forall a. ([]) a -> a"
-      shouldBePartial
+      shouldHaveEffect Partiality
         $ NonRecursive
         $ "head xs = case xs of {"
         ++ "  ([])      -> error \"head: empty list\";"
@@ -92,13 +102,13 @@ testPartialityAnalysisPass = describe "FreeC.Pass.PartialityAnalysisPass" $ do
     _ <- defineTestFunc "map" 2 "forall a b. (a -> b) -> ([]) a -> ([]) b"
     _ <- definePartialTestFunc "head" 1 "forall a. ([]) a -> a"
     _ <- defineTestFunc "heads" 1 "forall a. ([]) a -> ([]) a"
-    shouldBePartial $ NonRecursive "heads = map head"
+    shouldHaveEffect Partiality $ NonRecursive "heads = map head"
   it "recognizes mutually recursive partial functions" $ shouldSucceedWith $ do
     _ <- defineTestFunc "map" 2 "forall a b. (a -> b) -> ([]) a -> ([]) b"
     _ <- definePartialTestFunc "head" 1 "forall a. ([]) a -> a"
     _ <- defineTestFunc "pairs" 1 "forall a. ([]) a -> ([]) ((,) a)"
     _ <- defineTestFunc "pairs'" 1 "forall a. a -> ([]) a -> ([]) ((,) a)"
-    shouldBePartial
+    shouldHaveEffect Partiality
       $ Recursive
       [ "pairs xys = case xys of {"
           ++ "    ([])     -> ([]);"
@@ -109,3 +119,14 @@ testPartialityAnalysisPass = describe "FreeC.Pass.PartialityAnalysisPass" $ do
           ++ "    (:) y xs -> (:) ((,) x y) (pairs xs)"
           ++ "  }"
       ]
+  it "adds sharing effect to functions with `let`-expressions"
+    $ shouldSucceedWith
+    $ do
+      _ <- defineTestFunc "comp" 1
+        "forall a b c. (b -> c) -> (a -> b) -> a -> c"
+      shouldHaveEffect Sharing
+        $ NonRecursive
+        $ "comp f g x = let { y = g x } in f y"
+  it "recognizes functions with tracing effect" $ shouldSucceedWith $ do
+    _ <- defineTestFunc "id" 1 "forall a. a -> a"
+    shouldHaveEffect Tracing $ NonRecursive $ "id x = trace \"...\" x"

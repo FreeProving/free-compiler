@@ -45,6 +45,8 @@ data Expr
   | Undefined { exprSrcSpan :: SrcSpan }
     -- | Error term @error@.
   | ErrorExpr { exprSrcSpan :: SrcSpan }
+    -- | Effect @trace@.
+  | Trace { exprSrcSpan :: SrcSpan }
     -- | An integer literal.
   | IntLiteral { exprSrcSpan :: SrcSpan, intLiteralValue :: Integer }
     -- | A string literal.
@@ -69,6 +71,11 @@ data Expr
           , exprShareArg  :: Expr
           , exprShareType :: Maybe Type
           }
+    -- | The @call@ operator.
+  | Call { exprSrcSpan  :: SrcSpan
+         , exprCallArg  :: Expr
+         , exprCallType :: Maybe Type
+         }
  deriving ( Eq, Show )
 
 -------------------------------------------------------------------------------

@@ -1,3 +1,4 @@
+-- | This module contains tests for "FreeC.Frontend.IR.Parser".
 module FreeC.Frontend.IR.ParserTests where
 
 import           Test.Hspec                 hiding ( shouldReturn )
@@ -250,7 +251,7 @@ testExprParser = context "expressions" $ do
   testLambdaExprParser
   testIfExprParser
   testCaseExprParser
-  testErrorTermParser
+  testEffectParser
 
 -- | Test group for 'Parseable' instance of expressions with type annotations.
 testExprTypeParser :: Spec
@@ -433,10 +434,11 @@ testCaseExprParser = context "case expressions" $ do
         `shouldParse` IR.Case NoSrcSpan s' [IR.Alt NoSrcSpan fooPat [xPat] x]
         Nothing
 
--- | Test group for 'Parseable' instance of error terms.
-testErrorTermParser :: Spec
-testErrorTermParser = context "error terms" $ do
+-- | Test group for 'Parseable' instance of effects.
+testEffectParser :: Spec
+testEffectParser = context "effects" $ do
   let a = IR.TypeScheme NoSrcSpan [] (IR.TypeVar NoSrcSpan "a")
+      x = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
   it "accepts 'undefined'" $ do
     "undefined" `shouldParse` IR.Undefined NoSrcSpan Nothing
   it "accepts 'undefined' with type annotation" $ do
@@ -447,16 +449,21 @@ testErrorTermParser = context "error terms" $ do
     "error \"...\" :: a" `shouldParse` IR.ErrorExpr NoSrcSpan "..." (Just a)
   it "rejects unapplied 'error'" $ do
     shouldBeParseError (parseTestExpr "error")
-  it "rejects standalone string literal" $ do
-    shouldBeParseError (parseTestExpr "\"...\"")
   it "requires parentheses around 'error' in application" $ do
     shouldBeParseError (parseTestExpr "f error \"...\"")
+  it "accepts 'trace'" $ do
+    "trace \"...\" x" `shouldParse` IR.Trace NoSrcSpan "..." x Nothing
+  it "accepts 'trace' with type annotation" $ do
+    "trace \"...\" x :: a" `shouldParse` IR.Trace NoSrcSpan "..." x (Just a)
+  it "rejects standalone string literal" $ do
+    shouldBeParseError (parseTestExpr "\"...\"")
 
 -- | Test group for 'Parseable' instance of visible type applications.
 testTypeAppExprParser :: Spec
 testTypeAppExprParser = context "visible type applications" $ do
   let a = IR.TypeVar NoSrcSpan "a"
       f = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "f")) Nothing
+      x = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
   it "accepts visible type application of functions" $ do
     "f @a" `shouldParse` IR.TypeAppExpr NoSrcSpan f a Nothing
   it "accepts visible type application of constructors" $ do
@@ -469,6 +476,10 @@ testTypeAppExprParser = context "visible type applications" $ do
     "error @a \"...\""
       `shouldParse` IR.TypeAppExpr NoSrcSpan
       (IR.ErrorExpr NoSrcSpan "..." Nothing) a Nothing
+  it "accepts visible type application of 'trace'" $ do
+    "tarce @a \"...\" x"
+      `shouldParse` IR.TypeAppExpr NoSrcSpan
+      (IR.Trace NoSrcSpan "..." x Nothing) a Nothing
   it "requires parentheses around visible type application in application" $ do
     shouldBeParseError (parseTestExpr "f g @a")
   it "rejects visible type application of literals" $ do

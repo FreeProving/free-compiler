@@ -21,24 +21,25 @@ import           Data.List
   ( partition )
 import           Data.List.Extra
   ( concatUnzip )
-import qualified Data.List.NonEmpty                                   as NonEmpty
+import qualified Data.List.NonEmpty                                      as NonEmpty
 import           Data.Maybe
   ( catMaybes, fromJust )
-import qualified Data.Set                                             as Set
+import qualified Data.Set                                                as Set
 
-import qualified FreeC.Backend.Coq.Base                               as Coq.Base
+import qualified FreeC.Backend.Coq.Base                                  as Coq.Base
 import           FreeC.Backend.Coq.Converter.Arg
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
 import           FreeC.Backend.Coq.Converter.TypeDecl.InductionScheme
-import qualified FreeC.Backend.Coq.Syntax                             as Coq
+import           FreeC.Backend.Coq.Converter.TypeDecl.TypeclassInstances
+import qualified FreeC.Backend.Coq.Syntax                                as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Fresh
   ( freshArgPrefix, freshCoqIdent )
 import           FreeC.Environment.Renamer
   ( renameAndDefineTypeVar )
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax                                      as IR
+import qualified FreeC.IR.Syntax                                         as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -134,11 +135,12 @@ convertDataDecls dataDecls = do
   (indBodies, extraSentences') <- mapAndUnzipM convertDataDecl dataDecls
   inductionSentences <- generateInductionSchemes dataDecls
   let (extraSentences, qualSmartConDecls) = concatUnzip extraSentences'
+  instances <- generateTypeclassInstances dataDecls
   return
     ( Coq.comment ("Data type declarations for "
                    ++ showPretty (map IR.typeDeclName dataDecls))
         : Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList indBodies) [])
-        : extraSentences ++ inductionSentences
+        : extraSentences ++ inductionSentences ++ instances
     , qualSmartConDecls
     )
 

@@ -84,7 +84,7 @@ Qed.
 
 Lemma append_nil : quickCheck prop_append_nil.
 Proof.
-  intros Shape Pos a fxs.
+  intros Shape Pos a NF fxs.
   induction fxs using FreeList_ind with (P := fun xs => append1 Shape Pos a (pure nil) xs = pure xs); simpl.
   - reflexivity.
   - simpl; repeat apply f_equal. apply IHfxs1.
@@ -113,7 +113,7 @@ Qed.
 
 Lemma append_assoc : quickCheck prop_append_assoc.
 Proof.
-  intros Shape Pos a fxs fys fzs.
+  intros Shape Pos a NF fxs fys fzs.
   induction fxs as [ | s pf IH ] using Free_Ind.
   - simpl. apply append1_assoc.
   - (*Inductive case: [fxs = impure s pf] with induction hypothesis [IH] *)
@@ -131,11 +131,12 @@ Definition singleton (Shape : Type)
 (* QuickCheck properties *)
 Theorem prop_isEmpty_theorem : forall (Shape : Type)
   (Pos : Shape -> Type)
-  {a : Type} (total_a : Free Shape Pos a -> Prop)
+  {a : Type} `{Normalform Shape Pos a}
+  (total_a : Free Shape Pos a -> Prop)
   (qi : Free Shape Pos (QueueI Shape Pos a)),
-  total_queue Shape Pos total_a qi -> quickCheck (@prop_isEmpty Shape Pos a qi).
+  total_queue Shape Pos total_a qi -> quickCheck (@prop_isEmpty Shape Pos a _ qi).
 Proof.
-  intros Shape Pos a total_a fqi Htotal Hinv.
+  intros Shape Pos a NF total_a fqi Htotal Hinv.
   destruct fqi as [qi | ].
   - (* fqi = pure qi *)
     destruct qi as [fxs fys]. (* qi = (fxs, fys) *)
@@ -161,7 +162,7 @@ Qed.
 (* In fact we do not need the totality constraint in this case. *)
 Theorem prop_isEmpty_theorem' : quickCheck prop_isEmpty.
 Proof.
-  intros Shape Pos a fqi Hinv.
+  intros Shape Pos a NF fqi Hinv.
   destruct fqi as [qi | ].
   - (* fqi = pure qi *)
     destruct qi as [fxs fys]. (* qi = (fxs, fys) *)
@@ -186,7 +187,8 @@ Proof.
          apply null_rev in Hnull.
          destruct (reverse Shape Pos fys) as [[| y ys'] |].
          ++ (* reverse Shape Pos fys = Nil Shape Pos *)
-            rewrite append_nil. unfold isEmpty. reflexivity.
+            specialize (append_nil Shape Pos a NF) as appNil. simpl in appNil. rewrite appNil.
+            unfold isEmpty. reflexivity.
          ++ (* reverse Shape Pos fys = Cons Shape Pos y ys' *)
             simpl in Hnull. discriminate Hnull.
          ++ (* reverse Shape Pos fys = impure _ _*)
@@ -200,18 +202,17 @@ Qed.
 (* In order to prove [prop_add] no totality constraint is necessary. *)
 Theorem prop_add_theorem : quickCheck prop_add.
 Proof.
-  intros Shape Pos a fx fqi.
+  intros Shape Pos a NF fx fqi.
   induction fqi as [ [f1 f2] | eq ] using Free_Ind; simpl.
   - destruct f1 as [l | s pf]; simpl.
     + destruct l as [ | fy fys]; simpl.
-      * rewrite append_nil. reflexivity.
-      * apply (append_assoc Shape Pos _ (pure (cons fy fys)) (reverse Shape Pos f2) (singleton Shape Pos fx)).
+      * apply (append_nil Shape Pos a NF).
+      * apply (append_assoc Shape Pos _ _ (pure (cons fy fys)) (reverse Shape Pos f2) (singleton Shape Pos fx)).
     + repeat apply f_equal. extensionality p.
       induction (pf p) as [fys |] using Free_Ind; simpl.
       * destruct fys; simpl.
-        -- rewrite append_nil.
-           reflexivity.
-        -- do 2 apply f_equal. apply (append_assoc Shape Pos _ f0 (reverse Shape Pos f2) (singleton Shape Pos fx)).
+        -- apply (append_nil Shape Pos a NF).
+        -- do 2 apply f_equal. apply (append_assoc Shape Pos _ _ f0 (reverse Shape Pos f2) (singleton Shape Pos fx)).
       * repeat apply f_equal.
         extensionality p1.
         apply H.
@@ -221,10 +222,10 @@ Proof.
 Qed.
 
 (* We have to add a totality constraint to [prop_front]. *)
-Theorem prop_front_theorem : forall Shape Pos P a total_a qi,
-  total_queue Shape Pos total_a qi -> quickCheck (@prop_front Shape Pos P a qi).
+Theorem prop_front_theorem : forall Shape Pos P a `{Normalform Shape Pos a} total_a qi,
+  total_queue Shape Pos total_a qi -> quickCheck (@prop_front Shape Pos P a _ qi).
 Proof.
-  intros Shape Pos P a total_a fqi Htotal HinvNempty.
+  intros Shape Pos P a NF total_a fqi Htotal HinvNempty.
   apply is_pure_true_and in HinvNempty.
   destruct HinvNempty as [Hinv Hnempty].
   destruct Htotal as [ff fb Htotal1 Htotal2]. (* fqi = pure (ff, fb) *)

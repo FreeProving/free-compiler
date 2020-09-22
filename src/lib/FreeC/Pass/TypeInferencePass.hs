@@ -610,6 +610,11 @@ annotateExprWith' (IR.Undefined srcSpan _) resType = return
   (IR.Undefined srcSpan (makeExprType resType))
 annotateExprWith' (IR.ErrorExpr srcSpan msg _) resType = return
   (IR.ErrorExpr srcSpan msg (makeExprType resType))
+-- The @trace@ effect is applied to an expression and has the same type as the
+-- traced expression.
+annotateExprWith' (IR.Trace srcSpan msg expr _) resType = do
+  expr' <- annotateExprWith' expr resType
+  return (IR.Trace srcSpan msg expr' (makeExprType resType))
 -- If @n :: τ@ for some integer literal @n@, then add the type equation
 -- @Integer = τ@.
 annotateExprWith' (IR.IntLiteral srcSpan value _) resType = do
@@ -628,12 +633,14 @@ annotateExprWith' (IR.Lambda srcSpan args expr _) resType
         funcType = IR.funcType NoSrcSpan argTypes retType
     addTypeEquation srcSpan funcType resType
     return (IR.Lambda srcSpan args' expr' (makeExprType resType))
+-- If @let { x₀ = e₀ ; … xₙ = eₙ } in e :: τ@ then @x₀ :: α₀, …, xₙ :: αₙ@ for
+-- fresh type variables @α₀, …, αₙ@ and @e :: τ@. In contrast to Haskell, we
+-- do not allow the bindings to be polymorphic at the moment.
 annotateExprWith' (IR.Let srcSpan binds expr _) resType
   = withLocalTypeAssumption $ do
     bindVarPats' <- mapM (annotateVarPat . IR.bindVarPat) binds
-    exprType <- liftConverter freshTypeVar
     binds'' <- zipWithM annotateBindExpr binds bindVarPats'
-    expr' <- annotateExprWith expr exprType
+    expr' <- annotateExprWith expr resType
     return (IR.Let srcSpan binds'' expr' (makeExprType resType))
  where
   annotateBindExpr :: IR.Bind -> IR.VarPat -> TypeInference IR.Bind
@@ -716,7 +723,7 @@ applyVisibly name expr = do
 --   applications in the given expression.
 applyExprVisibly :: IR.Expr -> TypeInference IR.Expr
 
--- Add visible type applications to functions, constructors and error terms.
+-- Add visible type applications to functions, constructors and effect terms.
 -- We can assume that the expression has a type annotation without quantified
 -- type variables since 'annotateExprWith' was applied before.
 applyExprVisibly expr@(IR.Con _ conName _)
@@ -729,6 +736,11 @@ applyExprVisibly expr@(IR.Undefined srcSpan exprType)   = do
 applyExprVisibly expr@(IR.ErrorExpr srcSpan _ exprType) = do
   let Just (IR.TypeScheme _ [] typeArg) = exprType
   return (IR.TypeAppExpr srcSpan expr typeArg exprType)
+applyExprVisibly (IR.Trace srcSpan msg e exprType)      = do
+  e' <- applyExprVisibly e
+  let Just (IR.TypeScheme _ [] typeArg) = exprType
+      expr' = IR.Trace srcSpan msg e' exprType
+  return (IR.TypeAppExpr srcSpan expr' typeArg exprType)
 -- There should be no visible type applications prior to type inference.
 applyExprVisibly (IR.TypeAppExpr srcSpan _ _ _)
   = unexpectedTypeAppExpr srcSpan
@@ -746,10 +758,12 @@ applyExprVisibly (IR.Case srcSpan expr alts exprType)   = do
   expr' <- applyExprVisibly expr
   alts' <- mapM applyAltVisibly alts
   return (IR.Case srcSpan expr' alts' exprType)
-applyExprVisibly (IR.Let srcSpan binds expr exprType)   = do
-  binds' <- mapM applyBindVisibly binds
-  expr' <- applyExprVisibly expr
-  return (IR.Let srcSpan binds' expr' exprType)
+applyExprVisibly (IR.Let srcSpan binds expr exprType)
+  = withLocalTypeAssumption $ do
+    mapM_ (removeVarPatFromTypeAssumption . IR.bindVarPat) binds
+    binds' <- mapM applyBindVisibly binds
+    expr' <- applyExprVisibly expr
+    return (IR.Let srcSpan binds' expr' exprType)
 applyExprVisibly (IR.Lambda srcSpan args expr exprType)
   = withLocalTypeAssumption $ do
     mapM_ removeVarPatFromTypeAssumption args
@@ -884,6 +898,9 @@ abstractVanishingTypeArgs funcDecls
     = let funcNames' = withoutArgs (map IR.bindVarPat binds) funcNames
           expr'      = addInternalTypeArgsToExpr funcNames' expr
       in (IR.Let srcSpan binds expr' exprType, [])
+  addInternalTypeArgsToExpr' funcNames (IR.Trace srcSpan msg expr exprType)
+    = let expr' = addInternalTypeArgsToExpr funcNames expr
+      in (IR.Trace srcSpan msg expr' exprType, [])
   -- Leave all other expressions unchanged.
   addInternalTypeArgsToExpr' _ expr@(IR.Con _ _ _) = (expr, [])
   addInternalTypeArgsToExpr' _ expr@(IR.IntLiteral _ _ _) = (expr, [])

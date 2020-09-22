@@ -26,7 +26,7 @@ Notation "'@Tt' Shape Pos" := (@pure Shape Pos unit tt)
 (* Normalform instance for Unit *)
 
 Instance NormalformUnit (Shape : Type) (Pos : Shape -> Type)
-  : Normalform Shape Pos (Unit Shape Pos) (Unit Identity.Shape Identity.Pos)
+  : Normalform Shape Pos (Unit Shape Pos)
   := { nf' := pure }.
 
 (* ShareableArgs instance for Unit *)

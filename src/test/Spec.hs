@@ -6,6 +6,7 @@ import           Test.Hspec
 import           FreeC.Backend.Agda.Tests
 import           FreeC.Backend.Coq.Tests
 import           FreeC.EnvironmentTests
+import           FreeC.Frontend.Haskell.Tests
 import           FreeC.Frontend.IR.Tests
 import           FreeC.IR.Tests
 import           FreeC.Monad.ReporterTests
@@ -15,6 +16,7 @@ import           FreeC.PipelineTests
 main :: IO ()
 main = hspec $ do
   testEnvironment
+  testHaskellFrontend
   testIR
   testIRFrontend
   testAgdaBackend

@@ -17,9 +17,11 @@ import           FreeC.Pass.DependencyAnalysisPass
 import           FreeC.Pass.EffectAnalysisPass
 import           FreeC.Pass.EtaConversionPass
 import           FreeC.Pass.ExportPass
+import           FreeC.Pass.FlattenExprPass
 import           FreeC.Pass.ImplicitPreludePass
 import           FreeC.Pass.ImportPass
 import           FreeC.Pass.KindCheckPass
+import           FreeC.Pass.PragmaPass
 import           FreeC.Pass.QualifierPass
 import           FreeC.Pass.ResolverPass
 import           FreeC.Pass.TypeInferencePass
@@ -34,6 +36,8 @@ pipeline = implicitPreludePass
   >=> dependencyAnalysisPass defineTypeDeclsPass
   >=> kindCheckPass
   >=> typeSignaturePass
+  >=> pragmaPass
+  >=> flattenExprPass
   >=> dependencyAnalysisPass
   (typeInferencePass >=> defineFuncDeclsPass >=> effectAnalysisPass)
   >=> completePatternPass
