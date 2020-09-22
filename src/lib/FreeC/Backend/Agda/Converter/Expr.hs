@@ -41,6 +41,8 @@ convertLiftedExpr (LIR.Trace srcSpan)         = reportFatal
   $ "The tracing effect is not supported by the Agda backend."
 convertLiftedExpr (LIR.Share _ expr _)
   = generatePure <$> convertLiftedExpr expr
+convertLiftedExpr (LIR.Call _ expr _)
+  = generatePure <$> convertLiftedExpr expr
 
 -- | Converts a single pattern from a LIR case expression to an Agda
 --   expression.
