@@ -15,8 +15,8 @@ doubleRoot l = root l + root l
 
 tracedTreeP = Node (trace "Root" 1) undefined
 
-Property: 
-   doubleRoot tracedTreeP === root tracedTreeP + root tracedTreeP
+QuickCheck-Eigenschaft
+   doubleRoot tracedTreeP === trace "Root" 2
 *)
 
 (* Call-by-name evaluation. *)
@@ -43,7 +43,9 @@ Proof. simpl; unfold Search.collectMessages; simpl.
 discriminate. Qed.
 
 
+
 (* Alternative effect interpretations *)
+
 
 (* Call-by-name evaluation, ignore tracing messages. *)
 Theorem prop_cbn_no_tracing_min_handler : quickCheckHandle 
@@ -66,14 +68,27 @@ discriminate. Qed.
 
 
 
-(* Unhandled version with call-by-need does not hold! *)
-Definition S := (Comb.Comb.Shape Share.Shape (Comb.Comb.Shape Maybe.Shape Trace.Shape)).
-Definition P := (Comb.Comb.Pos Share.Pos (Comb.Comb.Pos Maybe.Pos Trace.Pos)).
-Theorem prop_cbneed_unhandled : ~ quickCheck 
-  (prop_double_root_traced S P Cbneed _ _).
-Proof.
-simpl; unfold doubleRoot. simpl.
-discriminate. Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -123,6 +138,21 @@ discriminate. Qed.
 
 (* Optional
 
+
+
+(*
+
+(* Unhandled version with call-by-need does not hold! *)
+Definition S := (Comb.Comb.Shape Share.Shape (Comb.Comb.Shape Maybe.Shape Trace.Shape)).
+Definition P := (Comb.Comb.Pos Share.Pos (Comb.Comb.Pos Maybe.Pos Trace.Pos)).
+Theorem prop_cbneed_unhandled : ~ quickCheck 
+  (prop_double_root_traced S P Cbneed _ _).
+Proof.
+simpl; unfold doubleRoot. simpl.
+discriminate. Qed.
+
+
+*)
 
 
 tracedTree = Node (trace "Root" 1) [Node (traced "Child") 2 []]
