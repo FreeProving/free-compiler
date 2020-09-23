@@ -8,14 +8,15 @@ From Generated Require Import Demo.
 Require Import Coq.Lists.List.
 Import List.ListNotations.
 Open Scope Z.
+Open Scope string.
 
 (* 
 doubleRoot l = root l + root l
 
-tracedTree = Node (trace "Root" 1) [Node (traced "Child") 2 []]
+tracedTreeP = Node (trace "Root" 1) undefined
 
 Property: 
-   doubleRoot tracedTree === trace "Root" 2
+   doubleRoot tracedTreeP === root tracedTreeP + root tracedTreeP
 *)
 
 (* Call-by-name evaluation. *)
@@ -41,55 +42,81 @@ Theorem prop_cbv : ~ quickCheckHandle
 Proof. simpl; unfold Search.collectMessages; simpl.
 discriminate. Qed.
 
+
+(* Alternative effect interpretations *)
+
+(* Call-by-name evaluation, ignore tracing messages. *)
+Theorem prop_cbn_no_tracing_min_handler : quickCheckHandle 
+  (prop_double_root_traced _ _ Cbn _ {| trace _ _ x := x |})
+  HandlerShareMaybe.
+Proof. 
+simpl; unfold Search.collectMessages; simpl.
+reflexivity. Qed.
+
+(* call-by-value, use Error instead of Maybe for partiality. *)
+Theorem propP_cbv_error : ~ quickCheckHandle 
+  (prop_double_root_traced _ _ Cbv _ _)
+  HandlerErrorShareTrace.
+Proof. simpl; unfold Search.collectMessages; simpl.
+discriminate. Qed. 
+
+
+
+
+
+
+
 (* Unhandled version with call-by-need does not hold! *)
 Definition S := (Comb.Comb.Shape Share.Shape (Comb.Comb.Shape Maybe.Shape Trace.Shape)).
 Definition P := (Comb.Comb.Pos Share.Pos (Comb.Comb.Pos Maybe.Pos Trace.Pos)).
 Theorem prop_cbneed_unhandled : ~ quickCheck 
   (prop_double_root_traced S P Cbneed _ _).
 Proof.
-simpl. unfold doubleRoot. simpl.
+simpl; unfold doubleRoot. simpl.
 discriminate. Qed.
 
-(*
-doubleElems :: [Integer] -> Integer
-doubleElems [] = 0
-doubleElems (x:xs) = x + x + doubleElems xs
 
-prop_double_elems = doubleElems [trace "eval 1" 1, trace "eval 2" 2]
-=== trace "eval 1" (trace "eval 2" 6)
 
-*)
 
-(* Call-by-need evaluation. *)
-Theorem theorem_double_Elems_cbneed : quickCheckHandle (prop_double_Elems _ _ Cbneed _)
- HandlerMaybeShareTrace.
-Proof. simpl; unfold Search.collectMessages; simpl.
-reflexivity. Qed.
 
-(* Call-by-name evaluation. *)
-Theorem theorem_double_Elems_cbn : ~quickCheckHandle (prop_double_Elems _ _ Cbn _)
- HandlerMaybeShareTrace.
-Proof. simpl; unfold Search.collectMessages; simpl.
-discriminate. Qed.
 
-(* Call-by-value evaluation. *)
-Theorem theorem_double_Elems_cbv : quickCheckHandle (prop_double_Elems _ _ Cbv _)
- HandlerMaybeShareTrace.
-Proof. simpl; unfold Search.collectMessages; simpl.
-reflexivity. Qed.
 
-(* Ignore tracing log, only consider results. *)
-Theorem theorem_double_Elems_cbneed_no_trace : quickCheckHandle (prop_double_Elems _ _ Cbneed
- {| trace _ _ x := x |} ) HandlerShareTrace.
-Proof. simpl; unfold Search.collectMessages; simpl.
-reflexivity. Qed.
 
-(* Ignore tracing log, only consider results, use the minimal handler. *)
-Theorem theorem_double_Elems_cbneed_no_trace_min_handler 
-  : quickCheckHandle (prop_double_Elems _ _ Cbneed
-     {| trace _ _ x := x |} ) HandlerShare.
-Proof. simpl; unfold Search.collectMessages; simpl.
-reflexivity. Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -97,52 +124,45 @@ reflexivity. Qed.
 (* Optional
 
 
-(*
-tracedTreeP = Node (trace "Root" 1) undefined
+
+tracedTree = Node (trace "Root" 1) [Node (traced "Child") 2 []]
 
 Property: 
-   doubleRoot tracedTreeP === root tracedTreeP + root tracedTreeP
-*)
-Theorem propP_cbn : quickCheckHandle 
-  (prop_double_root_tracedP _ _ Cbn _ _)
+   doubleRoot tracedTree === trace "Root" 2
+
+
+(* Call-by-name evaluation. *)
+Theorem prop_cbn : ~ quickCheckHandle 
+  (prop_double_root_traced _ _ Cbn _ _)
   HandlerMaybeShareTrace.
-Proof. simpl; unfold Search.collectMessages; simpl.
-reflexivity. Qed. 
+Proof. 
+simpl; unfold Search.collectMessages; simpl.
+discriminate. Qed.
 
-(* call-by-value with Maybe interpretation of error (error s x = Nothing) *)
-Theorem propP_cbv_maybe : quickCheckHandle 
-  (prop_double_root_tracedP _ _ Cbv _ _)
+(* Call-by-need evaluation. *)
+Theorem prop_cbneed : quickCheckHandle 
+  (prop_double_root_traced _ _ Cbneed _ _)
   HandlerMaybeShareTrace.
-Proof. simpl; unfold Search.collectMessages; simpl.
-reflexivity. Qed. 
+Proof. 
+simpl; unfold Search.collectMessages; simpl.
+reflexivity. Qed.
 
-(* call-by-value with Error effect *)
-Theorem propP_cbv_error : quickCheckHandle 
-  (prop_double_root_tracedP _ _ Cbv _ _)
-  HandlerErrorShareTrace.
-Proof. simpl; unfold Search.collectMessages; simpl.
-reflexivity. Qed. 
-
-(* call-by-need *)
-Theorem propP_cbneed : ~ quickCheckHandle 
-  (prop_double_root_tracedP _ _ Cbneed _ _)
+(* Call-by-value evaluation. *)
+Theorem prop_cbv : ~ quickCheckHandle 
+  (prop_double_root_traced _ _ Cbv _ _)
   HandlerMaybeShareTrace.
 Proof. simpl; unfold Search.collectMessages; simpl.
 discriminate. Qed.
 
-(* call-by-need, ignore tracing *)
-Theorem propP_cbneed_no_tracing : quickCheckHandle 
-  (prop_double_root_tracedP _ _ Cbneed _ {| trace _ msg x := x |})
-  HandlerMaybeShareTrace.
-Proof. simpl; unfold Search.collectMessages; simpl.
+(* Call-by-name evaluation, tracing messages not considered, minimal handler. *)
+Theorem prop_cbn_no_tracing_min_handler : quickCheckHandle 
+  (prop_double_root_traced _ _ Cbn _ {| trace _ _ x := x |})
+  HandlerShareMaybe.
+Proof. 
+simpl; unfold Search.collectMessages; simpl.
 reflexivity. Qed.
 
-(* Ignore tracing, removed tracing handler *)
-Theorem propP_cbneed_no_tracing_min_handling : quickCheckHandle 
-  (prop_double_root_tracedP _ _ Cbneed _ {| trace _ msg x := x |})
-  HandlerShareMaybe.
-Proof. simpl.
-reflexivity. Qed.
+(*
 
 (* Partial example without sharing, unhandled (previous model) *)
 Theorem prop_cbn_unhandled : quickCheck (fun (Shape : Type) (Pos : Shape -> Type)
@@ -153,5 +173,7 @@ Theorem prop_cbn_unhandled : quickCheck (fun (Shape : Type) (Pos : Shape -> Type
 Proof. intros Shape Pos M I T.
 simpl. unfold doubleRoot. simpl.
 reflexivity. Qed. 
+
+*)
 
 *)

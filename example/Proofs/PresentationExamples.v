@@ -3,7 +3,74 @@ From Base Require Import Free.Instance.Trace.
 From Base Require Import Free.Instance.Maybe.
 From Base Require Import Free.Instance.Comb.
 From Base Require Import Prelude.
+From Base Require Import Test.QuickCheck.
 From Generated Require Import Data.List.
+
+Require Import Coq.Logic.FunctionalExtensionality.
+Open Scope Z.
+
+(* let x = 1 in x + x =/= 1 + 1 *)
+Definition one_plus_one (Shape : Type) (Pos : Shape -> Type) `{Injectable Share.Shape Share.Pos Shape Pos}
+:= @neqProp Shape Pos _ _ 
+      (@share Shape Pos (Cbneed Shape Pos) _ _ (pure 1) >>= fun x => 
+          (addInteger Shape Pos x x)) 
+      (addInteger Shape Pos (pure 1) (pure 1)).
+
+Lemma one_plus_one_lemma : quickCheck one_plus_one.
+Proof. simpl. intros Shape Pos I. discriminate. Qed.
+
+Definition S := Share.Shape.
+Definition P := Share.Pos.
+Definition one_plus_two 
+:= @neqProp S P _ _
+      (@share S P (Cbneed S P) _ _ (pure 1) >>= fun x => 
+          (@share S P (Cbneed S P) _ _ (pure 2) >>= fun y => 
+              (addInteger S P x y)))
+      (@share S P (Cbneed S P) _ _ (pure 2) >>= fun y => 
+          (@share S P (Cbneed S P) _ _ (pure 1) >>= fun x => 
+              (addInteger S P x y))).
+Lemma one_plus_two_lemma : quickCheck one_plus_two.
+Proof. simpl. unfold addInteger. simpl. Admitted.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(* Handler strictness *)
 
 (* [undefined] *)
 Definition undefList (Shape : Type) (Pos : Shape -> Type)
