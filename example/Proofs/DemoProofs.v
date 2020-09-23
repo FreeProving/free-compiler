@@ -44,6 +44,13 @@ discriminate. Qed.
 
 
 
+
+
+
+
+
+(*
+
 (* Alternative effect interpretations *)
 
 
@@ -63,8 +70,7 @@ Proof. simpl; unfold Search.collectMessages; simpl.
 discriminate. Qed. 
 
 
-
-
+*)
 
 
 

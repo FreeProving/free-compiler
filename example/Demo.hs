@@ -4,7 +4,7 @@ import           Debug.Trace
 import           Test.QuickCheck
 
 -- Data type
-data Tree a = Empty | Node a [Tree a]
+data Tree a = Empty | Node a (Tree a, Tree a)
 
 -- Partial function.
 root :: Tree a -> a
@@ -16,7 +16,7 @@ doubleRoot t = root t + root t
 
 -- Traced value.
 tracedTree :: Tree Integer
-tracedTree = Node (trace "Root" 1) [error "Error!" []]
+tracedTree = Node (trace "Root" 1) (error "Error!" (Empty, Empty), Empty)
 
 -- Example Property
 prop_double_root_traced :: Property
