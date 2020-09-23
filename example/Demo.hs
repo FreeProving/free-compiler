@@ -16,7 +16,7 @@ doubleRoot t = root t + root t
 
 -- Traced value.
 tracedTree :: Tree Integer
-tracedTree = Node (trace "Root" 1) (error "Error!" (Empty, Empty), Empty)
+tracedTree = Node (trace "Root" 1) undefined
 
 -- Example Property
 prop_double_root_traced :: Property
