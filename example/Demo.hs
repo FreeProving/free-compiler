@@ -20,9 +20,12 @@ tracedTree = Node (trace "Root" 1)  [Node (trace "Child" 2) []]
 
 -- traced, partial value
 tracedTreeP :: Tree Integer
-tracedTreeP = Node (trace "Root" 1)  undefined
+tracedTreeP = Node (trace "Root" 1)  (error "Error!" [])
 
 -- Properties
 prop_double_root_traced :: Property
 prop_double_root_traced = doubleRoot tracedTree === trace "Root" 2
+
+prop_double_root_tracedP :: Property
+prop_double_root_tracedP = doubleRoot tracedTreeP === root tracedTreeP + root tracedTreeP
 
