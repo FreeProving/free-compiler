@@ -386,7 +386,7 @@ countVarInExpr varName = countVarInExpr'
     = let varPats = map IR.bindVarPat binds
       in sum (map (countVarInBinds varPats . IR.bindExpr) binds)
          + countVarInBinds varPats expr
-  countVarInExpr' (IR.Trace _ _ expr _) = countVarInExpr' expr
+  countVarInExpr' (IR.Trace _ _ expr _)        = countVarInExpr' expr
 
   -- | Returns the number of all occurrences of the variable with the given name
   --   in the given expression.

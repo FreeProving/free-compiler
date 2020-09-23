@@ -133,8 +133,8 @@ flatExpr (IR.Let bindSrcSpan binds expr typeScheme) typeArgs args = do
     rhs' <- flatExpr rhs [] []
     return $ IR.Bind srcSpan varPat rhs'
 flatExpr (IR.Trace srcSpan traceMsg traceExpr typeScheme) typeArgs args = do
-    expr' <- flatExpr traceExpr [] []
-    buildLet (IR.Trace srcSpan traceMsg expr' typeScheme) typeArgs args
+  expr' <- flatExpr traceExpr [] []
+  buildLet (IR.Trace srcSpan traceMsg expr' typeScheme) typeArgs args
 
 buildLet :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter IR.Expr
 buildLet e' typeArgs args = do

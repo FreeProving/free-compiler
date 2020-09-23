@@ -27,7 +27,8 @@ convertNonRecFuncDecls decls
 --   @Definition@ sentence.
 convertNonRecFuncDecl :: IR.FuncDecl -> Converter Coq.Sentence
 convertNonRecFuncDecl funcDecl = localEnv $ do
-  isProperty <- fmap (Normalform `elem`) (inEnv $ lookupEffects (IR.funcDeclQName funcDecl))
+  isProperty <- fmap (Normalform `elem`)
+    (inEnv $ lookupEffects (IR.funcDeclQName funcDecl))
   (qualid, binders, returnType') <- convertFuncHead funcDecl
   rhs' <- convertExpr' (not isProperty) (IR.funcDeclRhs funcDecl)
   return (Coq.definitionSentence qualid binders returnType' rhs')

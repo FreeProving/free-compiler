@@ -7,4 +7,4 @@ module FreeC.LiftedIR.Effect where
 --   by the @Free@ monad. The order of the constructors in this data type
 --   determines the order of constraints in the generated function declarations.
 data Effect = Sharing | Partiality | Tracing | Normalform
- deriving (Eq, Ord, Read, Show)
+ deriving ( Eq, Ord, Read, Show )
