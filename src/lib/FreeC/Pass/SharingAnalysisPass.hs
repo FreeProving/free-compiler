@@ -67,6 +67,7 @@ module FreeC.Pass.SharingAnalysisPass ( sharingAnalysisPass ) where
 import           Control.Monad           ( (>=>), mapAndUnzipM )
 import           Data.Map.Strict         ( Map )
 import qualified Data.Map.Strict         as Map
+import Data.Maybe (fromJust, isJust)
 import           Data.Set                as Set ( fromList )
 
 import           FreeC.Environment.Fresh ( freshHaskellName )
@@ -75,6 +76,7 @@ import           FreeC.IR.Subst
 import qualified FreeC.IR.Syntax         as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
+import Debug.Trace
 
 -- | Checks all function declarations if they contain variables that occur
 --   multiple times on the same right-hand side.
@@ -182,18 +184,31 @@ buildLet expr vars = localEnv $ do
 --   Also computes substitutions mapping given variables to fresh variables.
 --   Returns the generated @let@-bindings and the substitutions.
 buildBinds :: SrcSpan -> [IR.VarName] -> Converter ([IR.Bind], [Subst IR.Expr])
-buildBinds srcSpan = mapAndUnzipM buildBind
+buildBinds srcSpan varNames = do
+    binds <- mapM buildBind varNames
+    return $ unzip [fromJust x | x <- binds, isJust x] -- isn't there a better way?
  where
-  buildBind :: IR.VarName -> Converter (IR.Bind, Subst IR.Expr)
-  buildBind varName = do
-    varName' <- freshHaskellName (IR.nameFromQName varName)
-    let subst            = singleSubst' varName
-          (\s -> IR.Var s (IR.UnQual varName') Nothing)
-        rhs              = IR.Var srcSpan varName Nothing
-        Just varPatIdent = IR.identFromName varName'
-        varPat           = IR.VarPat srcSpan varPatIdent Nothing False
-        bind             = IR.Bind srcSpan varPat rhs
-    return (bind, subst)
+  buildBind :: IR.VarName -> Converter (Maybe (IR.Bind, Subst IR.Expr))
+  buildBind varName@(IR.Qual modName _) | modName == "Prelude" = return Nothing
+                                        | otherwise = do    varName' <-  freshHaskellName (IR.nameFromQName varName)
+                                                            let subst            = singleSubst' varName
+                                                                  (\s -> IR.Var s (IR.UnQual varName') Nothing)
+                                                                rhs              = IR.Var srcSpan varName Nothing
+                                                                Just varPatIdent = IR.identFromName varName'
+                                                                varPat           = IR.VarPat srcSpan varPatIdent Nothing False
+                                                                bind             = IR.Bind srcSpan varPat rhs
+                                                            return (Just (bind, subst))
+  buildBind varName@(IR.UnQual name) = do
+                                                            varName' <-  freshHaskellName (IR.nameFromQName varName)
+                                                            let subst            = singleSubst' varName
+                                                                   (\s -> IR.Var s (IR.UnQual varName') Nothing)
+                                                                rhs              = IR.Var srcSpan varName Nothing
+                                                                Just varPatIdent = IR.identFromName varName'
+                                                                varPat           = IR.VarPat srcSpan varPatIdent Nothing False
+                                                                bind             = IR.Bind srcSpan varPat rhs
+                                                            return (Just (bind, subst))
+
+
 
 -- | Counts all variable names on right-hand sides of expression that are also
 --   contained by the given list.
