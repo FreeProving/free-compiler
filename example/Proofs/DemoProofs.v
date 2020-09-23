@@ -110,3 +110,19 @@ Theorem prop_cbn_unhandled : quickCheck (fun (Shape : Type) (Pos : Shape -> Type
 Proof. intros Shape Pos M I T.
 simpl. unfold doubleRoot. simpl.
 reflexivity. Qed. 
+
+
+Theorem theorem_double_Elems_cbneed : quickCheckHandle (prop_double_Elems _ _ Cbneed _)
+ HandlerMaybeShareTrace.
+Proof. simpl; unfold Search.collectMessages; simpl.
+reflexivity. Qed.
+
+Theorem theorem_double_Elems_cbn : ~quickCheckHandle (prop_double_Elems _ _ Cbn _)
+ HandlerMaybeShareTrace.
+Proof. simpl; unfold Search.collectMessages; simpl.
+discriminate. Qed.
+
+Theorem theorem_double_Elems_cbv : quickCheckHandle (prop_double_Elems _ _ Cbv _)
+ HandlerMaybeShareTrace.
+Proof. simpl; unfold Search.collectMessages; simpl.
+reflexivity. Qed.

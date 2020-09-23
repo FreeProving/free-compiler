@@ -29,3 +29,13 @@ prop_double_root_traced = doubleRoot tracedTree === trace "Root" 2
 prop_double_root_tracedP :: Property
 prop_double_root_tracedP = doubleRoot tracedTreeP === root tracedTreeP + root tracedTreeP
 
+
+
+
+-- recursive function with sharing
+doubleElems :: [Integer] -> Integer
+doubleElems [] = 0
+doubleElems (x:xs) = x + x + doubleElems xs
+
+prop_double_Elems :: Property
+prop_double_Elems = doubleElems [trace "eval 1" 1,trace "eval 2" 2] === trace "eval 1" (trace "eval 2" 6)
