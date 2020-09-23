@@ -140,6 +140,6 @@ Qed.
 Example flipTree_involutive_counterexample :
   not (quickCheck (prop_flipTree_involutive MShape MPos Cbneed (Branch MShape MPos undefined))).
 Proof.
-  simpl; rewrite allUndefined; simpl.
+  simpl; rewrite impureUndefined; simpl.
   intro H; discriminate H.
 Qed.
