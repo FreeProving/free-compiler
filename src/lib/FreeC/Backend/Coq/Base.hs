@@ -14,6 +14,7 @@ module FreeC.Backend.Coq.Base
   , freeBind
   , freeArgs
   , forFree
+  , inFree
     -- * Partiality
   , partial
   , partialArg
@@ -30,6 +31,8 @@ module FreeC.Backend.Coq.Base
   , shareableArgsBinder
   , implicitArg
   , share
+    -- * Induction Schemes
+  , noProperty
     -- * Effect Selection
   , selectExplicitArgs
   , selectImplicitArgs
@@ -109,6 +112,10 @@ freeArgs = [ (shape, Coq.Sort Coq.Type)
 -- | The Coq identifier for the @ForFree@ property.
 forFree :: Coq.Qualid
 forFree = Coq.bare "ForFree"
+
+-- | The Coq identifier for the @InFree@ property.
+inFree :: Coq.Qualid
+inFree = Coq.bare "InFree"
 
 -------------------------------------------------------------------------------
 -- Partiality                                                                --
@@ -195,6 +202,13 @@ share :: Coq.Qualid
 share = Coq.bare "share"
 
 -------------------------------------------------------------------------------
+-- Induction Schemes                                                          --
+-------------------------------------------------------------------------------
+-- | The Coq Identifier for a trivial property.
+noProperty :: Coq.Qualid
+noProperty = Coq.bare "NoProperty"
+
+-------------------------------------------------------------------------------
 -- Effect selection                                                          --
 -------------------------------------------------------------------------------
 -- | Selects the correct explicit function arguments for the given effect.
@@ -255,6 +269,7 @@ reservedIdents
     , freePureCon
     , freeImpureCon
     , forFree
+    , inFree
       -- Partiality
     , partial
     , partialArg
@@ -268,5 +283,7 @@ reservedIdents
     , strategyArg
     , shareableArgs
     , share
+      -- Induction Schemes
+    , noProperty
     ]
   ++ map fst freeArgs

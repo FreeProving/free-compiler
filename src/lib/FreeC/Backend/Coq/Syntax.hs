@@ -26,7 +26,7 @@ module FreeC.Backend.Coq.Syntax
   , variable
     -- * Definition Sentences
   , definitionSentence
-    -- * Notation sentences
+    -- * Notation Sentences
   , notationSentence
   , nSymbol
   , nIdent
@@ -42,6 +42,8 @@ module FreeC.Backend.Coq.Syntax
   , notEquals
   , conj
   , disj
+  , equiv
+  , forall
     -- * Imports
   , requireImportFrom
   , requireExportFrom
@@ -186,7 +188,7 @@ definitionSentence qualid binders returnType term = DefinitionSentence
   (DefinitionDef Global qualid binders returnType term)
 
 -------------------------------------------------------------------------------
--- Definition sentences                                                      --
+-- Notation sentences                                                      --
 -------------------------------------------------------------------------------
 -- | Smart constructor for a Coq notation sentence.
 notationSentence
@@ -256,6 +258,15 @@ conj t1 t2 = app (Qualid (bare "op_/\\__")) [t1, t2]
 -- | Smart constructor for a disjunction in Coq.
 disj :: Term -> Term -> Term
 disj t1 t2 = app (Qualid (bare "op_\\/__")) [t1, t2]
+
+-- | Smart constructor for a equivalence in Coq.
+equiv :: Term -> Term -> Term
+equiv t1 t2 = app (Qualid (bare "op_<->__")) [t1, t2]
+
+-- | Smart constructor for a forall term in Coq.
+forall :: [Binder] -> Term -> Term
+forall [] t = t
+forall bs t = Forall (NonEmpty.fromList bs) t
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

@@ -92,3 +92,12 @@ convertAnonymousArg mArgType = do
   mArgType' <- mapM convertType mArgType
   binder <- generateArgBinder ident' mArgType'
   return (ident', binder)
+
+-- | Like 'convertAnonymousArg' but does not lift the type into the @Free@
+--   monad.
+convertAnonymousArg' :: Maybe IR.Type -> Converter (Coq.Qualid, Coq.Binder)
+convertAnonymousArg' mArgType = do
+  ident' <- freshCoqQualid freshArgPrefix
+  mArgType' <- mapM convertType' mArgType
+  binder <- generateArgBinder ident' mArgType'
+  return (ident', binder)

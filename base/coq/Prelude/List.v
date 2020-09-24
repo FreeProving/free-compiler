@@ -174,3 +174,81 @@ Section SecFreeListInd.
     FreeList_rect Shape Pos A PF P NilFP ConsFP PureListF ImpureP fxs.
 
 End SecFreeListInd.
+
+(* ForList *)
+Inductive ForList (Shape : Type) (Pos : Shape -> Type) (a : Type) (P0
+    : a -> Prop)
+   : List Shape Pos a -> Prop
+  := ForList_nil : ForList Shape Pos a P0 (@nil Shape Pos a)
+  |  ForList_cons
+   : forall (x : Free Shape Pos a) (x0 : Free Shape Pos (List Shape Pos a)),
+     ForFree Shape Pos a P0 x ->
+     ForFree Shape Pos (List Shape Pos a) (ForList Shape Pos a P0) x0 ->
+     ForList Shape Pos a P0 (@cons Shape Pos a x x0).
+
+Inductive InList (Shape : Type) (Pos : Shape -> Type) (a : Type)
+   : a -> List Shape Pos a -> Prop
+  := InList_cons
+   : forall (x1 : a)
+     (x : Free Shape Pos a)
+     (x0 : Free Shape Pos (List Shape Pos a)),
+     InFree Shape Pos a x1 x -> InList Shape Pos a x1 (@cons Shape Pos a x x0)
+  |  InList_cons0
+   : forall (x1 : a)
+     (x2 : List Shape Pos a)
+     (x : Free Shape Pos a)
+     (x0 : Free Shape Pos (List Shape Pos a)),
+     InList Shape Pos a x1 x2 ->
+     InFree Shape Pos (List Shape Pos a) x2 x0 ->
+     InList Shape Pos a x1 (@cons Shape Pos a x x0).
+
+Lemma ForList_forall : forall (Shape : Type)
+  (Pos : Shape -> Type)
+  (a : Type)
+  (P0 : a -> Prop)
+  (x : List Shape Pos a),
+  ForList Shape Pos a P0 x <->
+  (forall (y : a), InList Shape Pos a y x -> P0 y).
+Proof.
+  intros Shape Pos a.
+  Hint Extern 0 (ForList ?Shape ?Pos ?A _ _) => forall_finish2 (@InList_cons Shape Pos A) : prove_forall_db2.
+  Hint Extern 0 (ForList ?Shape ?Pos ?A _ _) => forall_finish2 (@InList_cons0 Shape Pos A) : prove_forall_db2.
+  prove_forall List_Ind.
+Qed.
+
+(* Add hints for proof generation *)
+Local Ltac list_induction x :=
+  let fx := fresh "fx"
+  in let fxs := fresh "fxs"
+  in let IHfxs := fresh "IHfxs"
+  in induction x as [ | fx fxs IHfxs ] using List_Ind.
+Hint Extern 0 (ForList ?Shape ?Pos ?A ?P ?x) => prove_ind_prove_ForType
+    x
+    (ForList_forall Shape Pos A)
+    (list_induction)
+  : prove_ind_db.
+Local Ltac forall_ForList_InList :=
+  match goal with
+    | [ HF : ForList ?Shape ?Pos ?A _ ?fx
+      , HI : InList ?Shape ?Pos ?A ?x ?fx
+    |- _ ] =>
+      rewrite ForList_forall in HF;
+      specialize (HF x HI)
+  end.
+Hint Extern 0 => forall_ForList_InList : prove_forall_db.
+Local Ltac forall_ForList :=
+  match goal with
+  | [ HF : ForList ?Shape ?Pos ?T _ ?fx
+    |- ForList ?Shape ?Pos ?T _ ?fx ] =>
+       let x  := fresh "x"
+    in let HI := fresh "HI"
+    in apply ForList_forall; intros x HI;
+       rewrite ForList_forall in HF;
+       specialize (HF x HI)
+  | [ H : forall y : ?A, _ |- ForList ?Shape ?Pos ?T ?P ?fx ] =>
+       let x  := fresh "x"
+    in let HI := fresh "HI"
+    in apply ForList_forall; intros x HI;
+       specialize (H x)
+  end.
+Hint Extern 0 => forall_ForList : prove_forall_db2.

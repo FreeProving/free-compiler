@@ -2,6 +2,8 @@ From Base Require Import Free.
 From Base Require Import Free.Instance.Identity.
 From Base Require Import Free.Malias.
 
+Require Import Coq.Program.Equality.
+
 Section SecPair.
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
@@ -62,3 +64,51 @@ Instance ShareableArgsPair {Shape : Type} {Pos : Shape -> Type} (A B : Type)
                                      (pure (pair_ sx sy))
                     end
    }.
+
+(* ForPair *)
+Inductive ForPair (Shape : Type) (Pos : Shape -> Type) (a b : Type) (P0
+    : a -> Prop) (P1 : b -> Prop)
+   : Pair Shape Pos a b -> Prop
+  := ForPair_pair_
+   : forall (x : Free Shape Pos a) (x0 : Free Shape Pos b),
+     ForFree Shape Pos a P0 x ->
+     ForFree Shape Pos b P1 x0 ->
+     ForPair Shape Pos a b P0 P1 (@pair_ Shape Pos a b x x0).
+
+Inductive InPair_1 (Shape : Type) (Pos : Shape -> Type) (a b : Type)
+   : a -> Pair Shape Pos a b -> Prop
+  := InPair_1_pair_
+   : forall (x1 : a) (x : Free Shape Pos a) (x0 : Free Shape Pos b),
+     InFree Shape Pos a x1 x ->
+     InPair_1 Shape Pos a b x1 (@pair_ Shape Pos a b x x0)
+with InPair_2 (Shape : Type) (Pos : Shape -> Type) (a b : Type)
+   : b -> Pair Shape Pos a b -> Prop
+  := InPair_2_pair_
+   : forall (x1 : b) (x : Free Shape Pos a) (x0 : Free Shape Pos b),
+     InFree Shape Pos b x1 x0 ->
+     InPair_2 Shape Pos a b x1 (@pair_ Shape Pos a b x x0).
+
+Lemma ForPair_forall : forall (Shape : Type)
+  (Pos : Shape -> Type)
+  (a b : Type)
+  (P0 : a -> Prop)
+  (P1 : b -> Prop)
+  (x : Pair Shape Pos a b),
+  ForPair Shape Pos a b P0 P1 x <->
+  ((forall (y : a), InPair_1 Shape Pos a b y x -> P0 y) /\
+   (forall (y : b), InPair_2 Shape Pos a b y x -> P1 y)).
+Proof.
+  intros Shape Pos a b.
+  prove_forall Pair_ind.
+Qed.
+
+(* Add hints for proof generation *)
+Local Ltac pair_induction x := 
+  let fx := fresh "fx"
+  in let fy := fresh "fy"
+  in induction x as [ fx fy ] using Pair_ind.
+Hint Extern 0 (ForPair ?Shape ?Pos ?A ?B ?PA ?PB ?x) => prove_ind_prove_ForType
+    x
+    (ForPair_forall Shape Pos A B)
+    (pair_induction)
+  : prove_ind_db.
