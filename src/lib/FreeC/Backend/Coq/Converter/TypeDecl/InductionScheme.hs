@@ -33,7 +33,7 @@ generateInductionSchemes dataDecls = do
   schemeQualidMap <- Map.fromList <$> mapM (generateName "" "_Ind" . IR.typeDeclQName) dataDecls
   schemeBodies <- mapM (generateSchemeLemma schemeQualidMap forQualidMap) dataDecls
   forallQualidMap <- Map.fromList <$> mapM (generateName "For" "_forall". IR.typeDeclQName) complexDataDecls
-  forallBodies <- mapM (generateForallLemma forallQualidMap forQualidMap inQualidMap) dataDecls
+  forallBodies <- mapM (generateForallLemma forallQualidMap forQualidMap inQualidMap) complexDataDecls
   return
     ( [Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList forBodies) []) | not (null forBodies)]
     ++[Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList inBodies) []) | not (null inBodies)]
