@@ -30,7 +30,7 @@ data Type
              , funcTypeArg :: Type
              , funcTypeRes :: Type
              }
- deriving ( Eq, Ord, Show )
+ deriving ( Eq, Show )
 
 -- | Creates a type constructor application type.
 --
