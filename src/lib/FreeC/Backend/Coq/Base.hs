@@ -44,6 +44,9 @@ module FreeC.Backend.Coq.Base
   , stringScope
     -- * Tactics
   , proveInd
+  , proveInd_proveForType
+    -- * Hint Databases
+  , proveInd_db
     -- * Reserved Identifiers
   , reservedIdents
   ) where
@@ -253,8 +256,20 @@ stringScope = Coq.ident "string"
 -- Tactics                                                                   --
 -------------------------------------------------------------------------------
 -- | The tactic that is needed to prove induction schemes.
-proveInd :: Coq.Qualid
-proveInd = Coq.bare "prove_ind"
+proveInd :: Coq.Ident
+proveInd = Coq.ident "prove_ind"
+
+-- | The tactic that has to be instantiated for data types and added to
+--   'proveInd_db'.
+proveInd_proveForType :: Coq.Ident
+proveInd_proveForType = Coq.ident "prove_ind_prove_ForType"
+
+-------------------------------------------------------------------------------
+-- Hint Databases                                                            --
+-------------------------------------------------------------------------------
+-- | The hint database that is used ba 'proveInd'.
+proveInd_db :: Coq.Ident
+proveInd_db = Coq.ident "prove_ind_db"
 
 -------------------------------------------------------------------------------
 -- Reserved Identifiers                                                      --

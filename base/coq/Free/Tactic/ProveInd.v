@@ -32,25 +32,25 @@ Ltac prove_ind_prove_ForFree :=
   | [ fx : Free ?Shape ?Pos ?T |- _ ] =>
     match goal with
     | [ |- ForFree Shape Pos T ?P fx ] =>
-         let x1    := fresh "x"
-      in let H    := fresh "H"
-      in let x2   := fresh "x"
+      apply ForFree_forall;
+      let x1   := fresh "x"
+      in let H := fresh "H"
+      in intros x1 H;
+      let x2   := fresh "x"
       in let s    := fresh "s"
       in let pf   := fresh "pf"
       in let IHpf := fresh "IHpf"
-      in apply ForFree_forall;
-         intros x1 H;
-         induction fx as [ x2 | s pf IHpf ] using Free_Ind;
-         [ inversion H; subst; clear H
-         | dependent destruction H;
-           match goal with
-           | [ IHpf : forall p : Pos s, InFree Shape Pos T ?x1 (pf p) -> P ?x1
-             , H : exists q : Pos s, InFree Shape Pos T ?x1 (pf q)
-             |- _ ] =>
-             let p := fresh "p"
-             in destruct H as [ p H ];
-                apply (IHpf p H)
-           end ]
+      in induction fx as [ x2 | s pf IHpf ] using Free_Ind;
+      [ inversion H; subst; clear H
+      | dependent destruction H;
+        match goal with
+        | [ IHpf : forall p : Pos s, InFree Shape Pos T ?x1 (pf p) -> P ?x1
+          , H : exists q : Pos s, InFree Shape Pos T ?x1 (pf q)
+          |- _ ] =>
+          let p := fresh "p"
+          in destruct H as [ p H ];
+             apply (IHpf p H)
+        end ]
     end
   end.
 
@@ -74,7 +74,7 @@ Ltac prove_ind_prove_ForFree_InFree :=
    rewrite ForFree_forall in IH; prove_ind_apply_hypothesis IH
  | [ HIF : InFree ?Shape ?Pos ?T ?x ?fx
    |- ?P ?x ] =>
-      let x1   := fresh "x"
+   let x1      := fresh "x"
    in let s    := fresh "s"
    in let pf   := fresh "pf"
    in let IHpf := fresh "IHpf"
@@ -90,14 +90,14 @@ Ltac prove_ind_prove_ForFree_InFree :=
  end.
 
 (* This tactic is instantiated for specific types and should be added to [prove_ind_db]. *)
-Ltac prove_ind_prove_ForType x forType_forall type_induction :=
-        let y      := fresh "y"
-     in let H      := fresh "H"
-     in apply forType_forall;
-        repeat split;
-        type_induction x;
-        intros y H; inversion H; subst; clear H;
-        prove_ind_prove_ForFree_InFree.
+Ltac prove_ind_prove_ForType x forType_forall type_ind :=
+  apply forType_forall;
+  repeat split;
+  induction x using type_ind;
+  let y    := fresh "y"
+  in let H := fresh "H"
+  in intros y H; inversion H; subst; clear H;
+  prove_ind_prove_ForFree_InFree.
 
 (* This tactic is instantiated for specific types and should be added to [prove_ind_db]. *)
 (*Ltac prove_ind_prove_ForType x type_induction :=

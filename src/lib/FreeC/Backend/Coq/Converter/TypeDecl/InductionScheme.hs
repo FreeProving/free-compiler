@@ -14,7 +14,7 @@ import           FreeC.Backend.Coq.Converter.Type
 import qualified FreeC.Backend.Coq.Syntax         as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Fresh
-  ( freshArgPrefix, freshCoqQualid )
+  ( freshArgPrefix, freshCoqQualid, freshCoqIdent )
 import qualified FreeC.IR.Syntax                  as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
@@ -30,15 +30,17 @@ generateInductionSchemes dataDecls = do
   forBodies <- mapM (generateForProperty forQualidMap) complexDataDecls
   inQualidMap <- Map.fromList <$> mapM (generateInNames . IR.typeDeclQName) complexDataDecls
   inBodies  <- concatMapM (generateInProperties inQualidMap) complexDataDecls
-  schemeQualidMap <- Map.fromList <$> mapM (generateName "" "_Ind" . IR.typeDeclQName) dataDecls
+  schemeQualidMap <- Map.fromList <$> mapM (generateName "" "_ind" . IR.typeDeclQName) dataDecls
   schemeBodies <- mapM (generateSchemeLemma schemeQualidMap forQualidMap) dataDecls
   forallQualidMap <- Map.fromList <$> mapM (generateName "For" "_forall". IR.typeDeclQName) complexDataDecls
   forallBodies <- mapM (generateForallLemma forallQualidMap forQualidMap inQualidMap) complexDataDecls
+  hintSentences <- concatMapM (generateHints schemeQualidMap forQualidMap inQualidMap) complexDataDecls
   return
     ( [Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList forBodies) []) | not (null forBodies)]
     ++[Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList inBodies) []) | not (null inBodies)]
     ++(map (\(name, binders, term, proof) ->
               Coq.AssertionSentence (Coq.Assertion Coq.Lemma name binders term) proof) (schemeBodies ++ forallBodies))
+    ++ hintSentences
     )
  where
 
@@ -105,8 +107,8 @@ generateInductionSchemes dataDecls = do
         if (tconArity == length typeArgs) && (not $ null $ catMaybes hypotheses)
           then do let hypotheses' = map (fromMaybe (Coq.Qualid Coq.Base.noProperty)) hypotheses
                   coqArgs <- mapM convertType' typeArgs
-                  forType <- getForType forQualidMap tconName
-                  return $ Just $ genericApply forType [] [] (coqArgs ++ hypotheses')
+                  mbForType <- getForType Map.empty tconName -- Do not search in mutually recursive types
+                  return ((\forType -> genericApply forType [] [] (coqArgs ++ hypotheses')) <$> mbForType)
           else return Nothing
       generateForHypothesis_2 (IR.TypeVar _ _) _ = return Nothing
 
@@ -191,17 +193,29 @@ generateInductionSchemes dataDecls = do
           Just tconArity <- inEnv $ lookupArity IR.TypeScope tconName
           if tconArity == length typeArgs
             then do
-              coqArgs <- mapM convertType' typeArgs
-              inTypes <- getInTypes inQualidMap tconName
-              (containerQualid, containerBinder) <- convertAnonymousArg' (Just fullType)
-              occurrences <- concatMapM (\(it,arg) -> findOccurrences_1 elemQualid (inHypothesis it coqArgs containerQualid) arg) $ zip inTypes typeArgs
-              let mkNewOcc (occBinders, inHypotheses) = (containerBinder : (reverse occBinders), mkInHyp containerQualid : inHypotheses)
-              return $ map mkNewOcc occurrences
+              mbInTypes <- getInTypes Map.empty tconName -- Do not search in mutually recursive types
+              case mbInTypes of
+                Just inTypes -> do
+                  coqArgs <- mapM convertType' typeArgs
+                  (containerQualid, containerBinder) <- convertAnonymousArg' (Just fullType)
+                  occurrences <- concatMapM (\(it,arg) -> findOccurrences_1 elemQualid (inHypothesis it coqArgs containerQualid) arg) $ zip inTypes typeArgs
+                  let mkNewOcc (occBinders, inHypotheses) = (containerBinder : (reverse occBinders), mkInHyp containerQualid : inHypotheses)
+                  return $ map mkNewOcc occurrences
+                Nothing -> return []
             else return []
 
   -----------------------------------------------------------------------------
   -- Induction Schemes                                                       --
   -----------------------------------------------------------------------------
+
+  -- | The maximal depth to search for recursive occurrences when construction
+  --   induction hypotheses.
+  --   @0@ -> Create only induction hypotheses for direct recursion.
+  --   @n@ -> Create only induction hypotheses for constructor arguments where
+  --          the recursive occurrence is encapsulated in at most @n@ data
+  --          types.
+  maxDepth :: Int
+  maxDepth = 1
 
   -- | Generates an induction scheme for the data type.
   generateSchemeLemma :: Map.Map IR.QName Coq.Qualid -> Map.Map IR.QName Coq.Qualid -> IR.TypeDecl -> Converter (Coq.Qualid, [Coq.Binder], Coq.Term, Coq.Proof)
@@ -234,7 +248,7 @@ generateInductionSchemes dataDecls = do
                  (Text.pack
                   $  "  intros" ++ concatMap (\v -> ' ' : v) vars ++ ";\n"
                   ++ "  fix " ++ fixpoint ++ " 1; intro " ++ var ++ "; "
-                  ++ fromJust (Coq.unpackQualid Coq.Base.proveInd)
+                  ++ Text.unpack Coq.Base.proveInd
                   ++ ".")
     return (schemeName, [], term, proof)
    where
@@ -255,39 +269,39 @@ generateInductionSchemes dataDecls = do
 
     generateInductionHypothesis :: Coq.Qualid -> Coq.Term -> Coq.Qualid -> IR.Type -> Converter (Maybe Coq.Term)
     generateInductionHypothesis propQualid conType argQualid argType = do
-      mbHypothesis <- generateInductionHypothesis_1 argType
+      mbHypothesis <- generateInductionHypothesis_1 maxDepth argType
       argType' <- convertType' argType
       case mbHypothesis of
         Just hypothesis -> return $ Just $ genericApply Coq.Base.forFree [] [] [argType', hypothesis, Coq.Qualid argQualid]
         Nothing -> return Nothing
      where
-      generateInductionHypothesis_1 :: IR.Type -> Converter (Maybe Coq.Term)
-      generateInductionHypothesis_1 (IR.FuncType _ _ _) = return Nothing
-      generateInductionHypothesis_1 t@(IR.TypeApp _ tcon lastArg) = do
+      generateInductionHypothesis_1 :: Int -> IR.Type -> Converter (Maybe Coq.Term)
+      generateInductionHypothesis_1 _ (IR.FuncType _ _ _) = return Nothing
+      generateInductionHypothesis_1 md t@(IR.TypeApp _ tcon lastArg) = do
         t' <- convertType' t
         if conType == t'
           then return $ Just $ Coq.Qualid propQualid
-          else generateInductionHypothesis_2 tcon [lastArg]
-      generateInductionHypothesis_1 t@(IR.TypeCon _ _) = do
+          else if md > 0 then generateInductionHypothesis_2 (md-1) tcon [lastArg] else return Nothing
+      generateInductionHypothesis_1 _ t@(IR.TypeCon _ _) = do
         t' <- convertType' t
         if conType == t'
           then return $ Just $ Coq.Qualid propQualid
           else return Nothing -- Ignore type constructors that do not have any type variable or are partially applied
-      generateInductionHypothesis_1 (IR.TypeVar _ _) = return Nothing
+      generateInductionHypothesis_1 _ (IR.TypeVar _ _) = return Nothing
 
-      generateInductionHypothesis_2 :: IR.Type -> [IR.Type] -> Converter (Maybe Coq.Term)
-      generateInductionHypothesis_2 (IR.FuncType _ _ _) _ = return Nothing
-      generateInductionHypothesis_2 (IR.TypeApp _ tcon lastArg) typeArgs = generateInductionHypothesis_2 tcon (lastArg : typeArgs)
-      generateInductionHypothesis_2 (IR.TypeCon _ tconName) typeArgs = do
+      generateInductionHypothesis_2 :: Int -> IR.Type -> [IR.Type] -> Converter (Maybe Coq.Term)
+      generateInductionHypothesis_2 _ (IR.FuncType _ _ _) _ = return Nothing
+      generateInductionHypothesis_2 md (IR.TypeApp _ tcon lastArg) typeArgs = generateInductionHypothesis_2 md tcon (lastArg : typeArgs)
+      generateInductionHypothesis_2 md (IR.TypeCon _ tconName) typeArgs = do
         Just tconArity <- inEnv $ lookupArity IR.TypeScope tconName
-        hypotheses <- mapM generateInductionHypothesis_1 typeArgs
+        hypotheses <- mapM (generateInductionHypothesis_1 md) typeArgs
         if (tconArity == length typeArgs) && (not $ null $ catMaybes hypotheses)
           then do let hypotheses' = map (fromMaybe (Coq.Qualid Coq.Base.noProperty)) hypotheses
                   coqArgs <- mapM convertType' typeArgs
-                  forType <- getForType forQualidMap tconName
-                  return $ Just $ genericApply forType [] [] (coqArgs ++ hypotheses')
+                  mbForType <- getForType forQualidMap tconName
+                  return ((\forType -> genericApply forType [] [] (coqArgs ++ hypotheses')) <$> mbForType)
           else return Nothing
-      generateInductionHypothesis_2 (IR.TypeVar _ _) _ = return Nothing
+      generateInductionHypothesis_2 _ (IR.TypeVar _ _) _ = return Nothing
 
   -----------------------------------------------------------------------------
   -- Forall Lemmas                                                           --
@@ -309,7 +323,12 @@ generateInductionSchemes dataDecls = do
         rhs = let (inQualids', [lastIn]) = splitAt (length inTerms - 1) $ inTerms
               in  foldr Coq.conj lastIn inQualids'
         term = Coq.forall binders (Coq.equiv lhs rhs)
-        proof = Coq.ProofQed $ Text.pack ""
+        vars    = map (fromJust . Coq.unpackQualid) (Coq.Base.shape : Coq.Base.pos : tvarQualids ++ propQualids ++ [valQualid])
+        proof   = Coq.ProofQed
+                 (Text.pack
+                  $  "  intros" ++ concatMap (\v -> ' ' : v) vars ++ ";\n"
+                  ++ Text.unpack Coq.Base.proveInd
+                  ++ ".")
     return (forallQualid, [], term, proof)
    where
     generateInTerm :: Coq.Qualid -> [Coq.Qualid] -> Int -> Coq.Qualid -> Converter Coq.Term
@@ -318,6 +337,32 @@ generateInductionSchemes dataDecls = do
       (val2Qualid, val2Binder) <- generateArg "y" (Coq.Qualid $ tvarQualids !! index)
       let isIn = genericApply inQualid [] [] (map Coq.Qualid $ tvarQualids ++ [val2Qualid, valQualid])
       return $ Coq.forall [val2Binder] $ Coq.Arrow isIn (Coq.app (Coq.Qualid propQualid) [Coq.Qualid val2Qualid])
+
+  -----------------------------------------------------------------------------
+  -- Hints                                                                   --
+  -----------------------------------------------------------------------------
+  -- | Generates hints that are used in the proofs of induction schemes and
+  --   'forall' sentences.
+  generateHints :: Map.Map IR.QName Coq.Qualid -> Map.Map IR.QName Coq.Qualid -> Map.Map IR.QName [Coq.Qualid] -> IR.TypeDecl -> Converter [Coq.Sentence]
+  generateHints _ _ _ (IR.TypeSynDecl _ _ _ _) = error "generateHint: Type synonym not allowed"
+  generateHints schemeQualidMap forallQualidMap _inQualidMap (IR.DataDecl _ (IR.DeclIdent _ typeName) typeVarDecls _) = do
+    let forType = forallQualidMap Map.! typeName
+        scheme  = schemeQualidMap Map.! typeName
+    proveIndHint <- generateProveIndHint forType scheme (length typeVarDecls)
+    return [proveIndHint]
+  
+  generateProveIndHint :: Coq.Qualid -> Coq.Qualid -> Int -> Converter (Coq.Sentence)
+  generateProveIndHint forType scheme nTvars = localEnv $ do
+    valStr <- localEnv $ freshCoqIdent freshArgPrefix
+    let tacticConStr    = Text.unpack Coq.Base.proveInd_proveForType
+        Just forTypeStr = Coq.unpackQualid forType
+        Just schemeStr  = Coq.unpackQualid scheme
+        tactic          = tacticConStr ++ ' ' : valStr ++ ' ' : forTypeStr ++ ' ' : schemeStr
+        underscores     = replicate (2 * nTvars + 2) Coq.UnderscorePat
+        valPattern      = Coq.QualidPat $ Coq.bare $ '?':valStr
+        forTypePattern  = Coq.ArgsPat forType $ underscores ++ [valPattern]
+    return $ Coq.externHint (Just Coq.Global) 0 (Just forTypePattern) tactic [Coq.Base.proveInd_db]
+
 
   -----------------------------------------------------------------------------
   -- Helper Functions                                                        --
@@ -341,20 +386,20 @@ generateInductionSchemes dataDecls = do
         Just conName    = Coq.unpackQualid conQualid 
     freshCoqQualid $ baseName ++ "_" ++ conName
 
-  getForType :: Map.Map IR.QName Coq.Qualid -> IR.QName -> Converter Coq.Qualid
+  getForType :: Map.Map IR.QName Coq.Qualid -> IR.QName -> Converter (Maybe Coq.Qualid)
   getForType forQualidMap t = case forQualidMap Map.!? t of
-    Just qualid -> return qualid
+    Just qualid -> return $ Just qualid
     Nothing -> do
       -- TODO use environment to store and load other 'For-' properties
       Just qualid <- inEnv $ lookupIdent IR.TypeScope t
       let name = case qualid of
             Coq.Bare n -> Text.unpack n
             Coq.Qualified _ n -> Text.unpack n
-      return $ Coq.bare $ "For" ++ name
+      return $ Just $ Coq.bare $ "For" ++ name
 
-  getInTypes :: Map.Map IR.QName [Coq.Qualid] -> IR.QName -> Converter [Coq.Qualid]
+  getInTypes :: Map.Map IR.QName [Coq.Qualid] -> IR.QName -> Converter (Maybe [Coq.Qualid])
   getInTypes inQualidMap t = case inQualidMap Map.!? t of
-    Just qualids -> return  qualids
+    Just qualids -> return $ Just qualids
     Nothing -> do
       -- TODO use environment to store and load other 'In-' properties
       Just qualid <- inEnv $ lookupIdent IR.TypeScope t
@@ -365,7 +410,7 @@ generateInductionSchemes dataDecls = do
           suffixes = if arity == 1
             then [""]
             else map (\index -> "_" ++ show index) [1 .. arity]
-      return $ map (\suffix -> Coq.bare $ "In" ++ name ++ suffix) suffixes
+      return $ Just $ map (\suffix -> Coq.bare $ "In" ++ name ++ suffix) suffixes
 
   generateArg :: String -> Coq.Term -> Converter (Coq.Qualid, Coq.Binder)
   generateArg argName argType = do

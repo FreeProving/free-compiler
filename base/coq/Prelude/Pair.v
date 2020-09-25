@@ -103,12 +103,5 @@ Proof.
 Qed.
 
 (* Add hints for proof generation *)
-Local Ltac pair_induction x := 
-  let fx := fresh "fx"
-  in let fy := fresh "fy"
-  in induction x as [ fx fy ] using Pair_ind.
-Hint Extern 0 (ForPair ?Shape ?Pos ?A ?B ?PA ?PB ?x) => prove_ind_prove_ForType
-    x
-    (ForPair_forall Shape Pos A B)
-    (pair_induction)
-  : prove_ind_db.
+Hint Extern 0 (ForPair _ _ _ _ _ _ ?x) =>
+  prove_ind_prove_ForType x ForPair_forall pair_induction : prove_ind_db.

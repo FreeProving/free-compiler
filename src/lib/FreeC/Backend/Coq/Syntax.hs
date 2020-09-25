@@ -44,6 +44,11 @@ module FreeC.Backend.Coq.Syntax
   , disj
   , equiv
   , forall
+    -- * Options
+  , setOption
+  , unsetOption
+    -- * Hints
+  , externHint
     -- * Imports
   , requireImportFrom
   , requireExportFrom
@@ -267,6 +272,31 @@ equiv t1 t2 = app (Qualid (bare "op_<->__")) [t1, t2]
 forall :: [Binder] -> Term -> Term
 forall [] t = t
 forall bs t = Forall (NonEmpty.fromList bs) t
+
+-------------------------------------------------------------------------------
+-- Options                                                                   --
+-------------------------------------------------------------------------------
+-- | Smart constructor for a sentence which sets an option or flag.
+setOption :: Maybe Locality -> String -> Maybe (Either Num String) -> Sentence
+setOption mbLoc opt mbArg =
+  OptionSentence $ SetOption mbLoc (Text.pack opt) mbArg'
+ where
+   mbArg' = case mbArg of
+     Nothing -> Nothing
+     (Just (Left num)) -> Just (OVNum num)
+     (Just (Right str)) -> Just (OVText (Text.pack str))
+
+-- | Smart constructor for a sentence which unsets an option or flag.
+unsetOption :: Maybe Locality -> String -> Sentence
+unsetOption mbLoc opt = OptionSentence $ UnsetOption mbLoc (Text.pack opt)
+
+-------------------------------------------------------------------------------
+-- Hints                                                                     --
+-------------------------------------------------------------------------------
+-- | Smart constructor for an extern hint.
+externHint :: Maybe Locality -> Num -> Maybe Pattern -> String -> [Ident] -> Sentence
+externHint mbLoc num mbPat tactic dbs =
+  HintSentence $ Hint mbLoc (HintExtern num mbPat $ Text.pack tactic) dbs
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

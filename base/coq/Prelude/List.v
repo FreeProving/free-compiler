@@ -9,11 +9,13 @@ Section SecList.
   Variable Pos : Shape -> Type.
   Notation "'Free''" := (Free Shape Pos).
 
+  Unset Elimination Schemes.
   Inductive List (A : Type) : Type :=
     | nil  : List A
     | cons : Free' A -> Free' (List A) -> List A.
+  Set Elimination Schemes.
 
-End SecList.
+  End SecList.
 
 (* smart constructors *)
 
@@ -105,14 +107,14 @@ Section SecListInd.
                             (fxs : Free Shape Pos (List Shape Pos A)),
       ForFree Shape Pos (List Shape Pos A) P fxs -> P (cons fx fxs).
 
-  Fixpoint List_Ind (l : List Shape Pos A) : P l.
+  Fixpoint List_ind (l : List Shape Pos A) : P l.
   Proof.
     destruct l.
     - apply nilP.
     - apply consP.
       apply (ForFree_forall Shape Pos). intros xs HIn.
       induction f0 using Free_Ind.
-      + inversion HIn; subst. apply List_Ind.
+      + inversion HIn; subst. apply List_ind.
       + dependent destruction HIn; subst. destruct H0 as [ p ].
         apply H with (p := p). apply H0.
   Defined.
@@ -213,20 +215,12 @@ Proof.
   intros Shape Pos a.
   Hint Extern 0 (ForList ?Shape ?Pos ?A _ _) => forall_finish2 (@InList_cons Shape Pos A) : prove_forall_db2.
   Hint Extern 0 (ForList ?Shape ?Pos ?A _ _) => forall_finish2 (@InList_cons0 Shape Pos A) : prove_forall_db2.
-  prove_forall List_Ind.
+  prove_forall List_ind.
 Qed.
 
 (* Add hints for proof generation *)
-Local Ltac list_induction x :=
-  let fx := fresh "fx"
-  in let fxs := fresh "fxs"
-  in let IHfxs := fresh "IHfxs"
-  in induction x as [ | fx fxs IHfxs ] using List_Ind.
-Hint Extern 0 (ForList ?Shape ?Pos ?A ?P ?x) => prove_ind_prove_ForType
-    x
-    (ForList_forall Shape Pos A)
-    (list_induction)
-  : prove_ind_db.
+Hint Extern 0 (ForList _ _ _ _ ?x) =>
+  prove_ind_prove_ForType x ForList_forall list_induction : prove_ind_db.
 Local Ltac forall_ForList_InList :=
   match goal with
     | [ HF : ForList ?Shape ?Pos ?A _ ?fx
