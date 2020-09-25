@@ -248,6 +248,7 @@ testExprParser = context "expressions" $ do
   testVarExprParser
   testIntLiteralParser
   testAppExprParser
+  testTypeAppExprParser
   testLambdaExprParser
   testIfExprParser
   testCaseExprParser
@@ -464,10 +465,11 @@ testTypeAppExprParser = context "visible type applications" $ do
   let a = IR.TypeVar NoSrcSpan "a"
       f = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "f")) Nothing
       x = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
+      c = IR.Con NoSrcSpan (IR.UnQual (IR.Ident "C")) Nothing
   it "accepts visible type application of functions" $ do
     "f @a" `shouldParse` IR.TypeAppExpr NoSrcSpan f a Nothing
   it "accepts visible type application of constructors" $ do
-    "C @a" `shouldParse` IR.TypeAppExpr NoSrcSpan f a Nothing
+    "C @a" `shouldParse` IR.TypeAppExpr NoSrcSpan c a Nothing
   it "accepts visible type application of 'undefined'" $ do
     "undefined @a"
       `shouldParse` IR.TypeAppExpr NoSrcSpan (IR.Undefined NoSrcSpan Nothing) a
@@ -477,7 +479,7 @@ testTypeAppExprParser = context "visible type applications" $ do
       `shouldParse` IR.TypeAppExpr NoSrcSpan
       (IR.ErrorExpr NoSrcSpan "..." Nothing) a Nothing
   it "accepts visible type application of 'trace'" $ do
-    "tarce @a \"...\" x"
+    "trace @a \"...\" x"
       `shouldParse` IR.TypeAppExpr NoSrcSpan
       (IR.Trace NoSrcSpan "..." x Nothing) a Nothing
   it "requires parentheses around visible type application in application" $ do
