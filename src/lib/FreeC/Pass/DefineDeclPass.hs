@@ -71,12 +71,14 @@ defineTypeDecl (IR.TypeSynDecl srcSpan declIdent typeArgs typeExpr) = do
   return ()
 defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
   _ <- renameAndAddEntry DataEntry
-    { entrySrcSpan   = srcSpan
-    , entryArity     = length typeArgs
-    , entryName      = IR.declIdentName declIdent
-    , entryConsNames = map IR.conDeclQName conDecls
-    , entryIdent     = undefined -- filled by renamer
-    , entryAgdaIdent = undefined -- filled by renamer
+    { entrySrcSpan          = srcSpan
+    , entryArity            = length typeArgs
+    , entryName             = IR.declIdentName declIdent
+    , entryConsNames        = map IR.conDeclQName conDecls
+    , entryIdent            = undefined -- filled by renamer
+    , entryAgdaIdent        = undefined -- filled by renamer
+    , entryForPropertyIdent = Nothing   -- may be filled by induction scheme generation
+    , entryInPropertyIdent  = Nothing   -- may be filled by induction scheme generation
     }
   mapM_ defineConDecl conDecls
  where

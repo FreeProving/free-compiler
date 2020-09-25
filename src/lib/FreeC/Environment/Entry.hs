@@ -29,6 +29,10 @@ data EnvEntry
         -- ^ The name of the data type in the module it has been defined in.
       , entryConsNames :: [IR.ConName]
         -- ^ The names of the constructors of the data type.
+      , entryForPropertyIdent  :: Maybe Coq.Qualid
+        -- ^ The name of the 'For-' property in Coq.
+      , entryInPropertyIdents :: Maybe [Coq.Qualid]
+        -- ^ The names of the 'In-' properties in Coq.
       }
     -- | Entry for a type synonym declaration.
   | TypeSynEntry

@@ -90,12 +90,17 @@ instance Aeson.ToJSON ModuleInterface where
 encodeEntry :: EnvEntry -> Maybe Aeson.Value
 encodeEntry entry
   | isDataEntry entry = return
-    $ Aeson.object [ "haskell-name" .= haskellName
-                   , "coq-name" .= coqName
-                   , "agda-name" .= agdaName
-                   , "cons-names" .= consNames
-                   , "arity" .= arity
-                   ]
+    $ Aeson.object $
+    [ "haskell-name" .= haskellName
+    , "coq-name" .= coqName
+    , "agda-name" .= agdaName
+    , "cons-names" .= consNames
+    , "arity" .= arity
+    ]
+    ++ mapMaybe id
+    [ ("coq-for-property-name" .=) <$> coqForPropertyName
+    , ("coq-in-property-names" .=) <$> coqInPropertyNames
+    ]
   | isTypeSynEntry entry = return
     $ Aeson.object
     [ "haskell-name" .= haskellName
@@ -134,6 +139,11 @@ encodeEntry entry
   coqName = Aeson.toJSON (entryIdent entry)
 
   coqSmartName = Aeson.toJSON (entrySmartIdent entry)
+
+  coqForPropertyName, coqInPropertyNames :: Maybe Aeson.Value
+  coqForPropertyName = Aeson.toJSON <$> (entryForPropertyIdent entry)
+
+  coqInPropertyNames = Aeson.toJSON <$> (entryInPropertyIdents entry)
 
   -- @entryAgdaIdent entry@ is undefined because the agda renamer isn't
   -- implemented at the moment. To allow encoding a dummy value is needed.
