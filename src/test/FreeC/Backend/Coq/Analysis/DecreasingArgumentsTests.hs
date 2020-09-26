@@ -71,3 +71,17 @@ testDecreasingArguments
         ++ "           }"
         ++ "  }"
       identifyDecArgs [funcDecl] `shouldReturn` [0]
+    it "allows aliases of the decreasing argument" $ do
+      funcDecl <- expectParseTestFuncDecl
+        $ "tails xs = let { xs0 = xs } in Cons xs0 (case xs0 of {"
+        ++ "      Nil        -> Nil;"
+        ++ "      Cons x xs' -> tails xs'"
+        ++ "    })"
+      identifyDecArgs [funcDecl] `shouldReturn` [0]
+    it "allows aliases of structurally smaller variables" $ do
+      funcDecl <- expectParseTestFuncDecl
+        $ "pow2 n = case n of {"
+        ++ "    Zero -> Succ Zero;"
+        ++ "    Succ n' -> let { n'0 = n' } in add (pow2 n'0) (pow2 n'0)"
+        ++ "  }"
+      identifyDecArgs [funcDecl] `shouldReturn` [0]

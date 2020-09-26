@@ -13,18 +13,25 @@ Section SecList.
     | nil  : List A
     | cons : Free' A -> Free' (List A) -> List A.
 
-  Arguments nil  {A}.
-  Arguments cons {A}.
-
-  (* smart constructors *)
-
-  Definition Nil {A : Type} : Free' (List A) := pure nil.
-
-  Definition Cons {A : Type} (x : Free' A) (xs : Free' (List A))
-    : Free' (List A) :=
-    pure (cons x xs).
-
 End SecList.
+
+(* smart constructors *)
+
+Notation "'Nil' Shape Pos" :=
+  (@pure Shape Pos (List Shape Pos _) (@nil Shape Pos _))
+  ( at level 10, Shape, Pos at level 9 ).
+
+Notation "'@Nil' Shape Pos A" :=
+  (@pure Shape Pos (List Shape Pos A) (@nil Shape Pos A))
+  ( only parsing, at level 10, Shape, Pos, A at level 9 ).
+
+Notation "'Cons' Shape Pos x xs" :=
+  (@pure Shape Pos (List Shape Pos _) (@cons Shape Pos _ x xs))
+  ( at level 10, Shape, Pos, x, xs at level 9 ).
+
+Notation "'@Cons' Shape Pos A x xs" :=
+  (@pure Shape Pos (List Shape Pos A) (@cons Shape Pos A x xs))
+  ( only parsing, at level 10, Shape, Pos, A, x, xs at level 9 ).
 
 Arguments nil  {Shape} {Pos} {A}.
 Arguments cons {Shape} {Pos} {A}.

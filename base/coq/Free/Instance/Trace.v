@@ -121,7 +121,7 @@ Module Trace.
 End Trace.
 
 (* The type, smart constructors, tracing function and handlers should be
-   visible to other modules but to use the shape or position function the
+   visible to other modules, but to use the shape or position function the
    identifier must be fully qualified, i.e. [Trace.Shape]. *)
 Export Trace.Handler.
 Export Trace.Monad.

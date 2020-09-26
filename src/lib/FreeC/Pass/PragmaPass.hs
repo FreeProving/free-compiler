@@ -1,6 +1,31 @@
--- | This module contains a function for processing the decreasing argument
---   pragma.
-module FreeC.IR.Pragma where
+-- | This module contains a compiler pass that processes pragmas.
+--
+--   = Specification
+--
+--   == Preconditions
+--
+--   There are no special requirements.
+--
+--   == Translation
+--
+--    * If there is a pragma of the form @{-# FreeC f DECREASES ON xᵢ #-}@
+--      or @{-# FreeC f DECREASES ON ARGUMENT i #-}@ and a declaration
+--      @f x₁ … xᵢ … xₙ = e@, the index @i - 1@ and identifier @xᵢ@ are
+--      inserted into the environment as the decreasing argument of @f@.
+--
+--   == Postconditions
+--
+--    * There is an entry for all explicitly annotated decreasing arguments
+--      in the environment.
+--
+--   == Error Cases
+--
+--    * If there is a pragma of the form @{-# FreeC f DECREASES ON xᵢ #-}@ or
+--      @{-# FreeC f DECREASES ON ARGUMENT i #-}@, but there is no such
+--      function declaration or the function does not have an argument with
+--      the specified name or at the specified position, a fatal error is
+--      reported.
+module FreeC.Pass.PragmaPass ( pragmaPass ) where
 
 import           Data.List             ( find, findIndex )
 
@@ -8,7 +33,14 @@ import           FreeC.Environment
 import qualified FreeC.IR.Syntax       as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
+import           FreeC.Pass
 import           FreeC.Pretty
+
+-- | A pass that processes the pragmas of a module.
+pragmaPass :: Pass IR.Module IR.Module
+pragmaPass ast = do
+  mapM_ (addDecArgPragma (IR.modFuncDecls ast)) (IR.modPragmas ast)
+  return ast
 
 -- | Inserts the decreasing argument's index annotated by the given pragma
 --   into the environment.

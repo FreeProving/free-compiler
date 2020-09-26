@@ -108,6 +108,11 @@
         "force-linebreak": false,
         "spaces": "both",
         "linebreaks": "after"
+      },
+      "@ in pattern": {
+        "force-linebreak": false,
+        "spaces": "none",
+        "linebreaks": "none"
       }
     },
     "options": {
