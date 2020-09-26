@@ -208,14 +208,16 @@ exported-values = [
 ##############################################################################
 
 [[types]]
-  haskell-name = 'Prelude.([])'
-  coq-name     = 'List'
-  agda-name    = 'List'
-  arity        = 1
-  cons-names   = [
+  haskell-name          = 'Prelude.([])'
+  coq-name              = 'List'
+  agda-name             = 'List'
+  arity                 = 1
+  cons-names            = [
       'Prelude.([])',
       'Prelude.(:)',
     ]
+  coq-for-property-name = 'ForList'
+  coq-in-property-names = ['InList']
 
 [[constructors]]
   haskell-type    = 'Prelude.([]) a'
@@ -240,11 +242,16 @@ exported-values = [
 ##############################################################################
 
 [[types]]
-  haskell-name = 'Prelude.(,)'
-  coq-name     = 'Pair'
-  agda-name    = 'Pair'
-  arity        = 2
-  cons-names   = ['Prelude.(,)']
+  haskell-name          = 'Prelude.(,)'
+  coq-name              = 'Pair'
+  agda-name             = 'Pair'
+  arity                 = 2
+  cons-names            = ['Prelude.(,)']
+  coq-for-property-name = 'ForPair'
+  coq-in-property-names = [
+      'InPair_1',
+      'InPair_2'
+    ]
 
 [[constructors]]
   haskell-type    = 'a -> b -> Prelude.(,) a b'

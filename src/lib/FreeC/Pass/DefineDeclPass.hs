@@ -77,8 +77,8 @@ defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
     , entryConsNames        = map IR.conDeclQName conDecls
     , entryIdent            = undefined -- filled by renamer
     , entryAgdaIdent        = undefined -- filled by renamer
-    , entryForPropertyIdent = Nothing   -- may be filled by induction scheme generation
-    , entryInPropertyIdent  = Nothing   -- may be filled by induction scheme generation
+    , entryForPropertyIdent = Nothing   -- may be filled by induction scheme generator
+    , entryInPropertyIdents = Nothing   -- may be filled by induction scheme generator
     }
   mapM_ defineConDecl conDecls
  where

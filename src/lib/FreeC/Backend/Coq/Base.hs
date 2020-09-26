@@ -45,8 +45,11 @@ module FreeC.Backend.Coq.Base
     -- * Tactics
   , proveInd
   , proveInd_proveForType
+  , proveForall
     -- * Hint Databases
   , proveInd_db
+  , proveForall_ltr_db
+  , proveForall_rtl_db
     -- * Reserved Identifiers
   , reservedIdents
   ) where
@@ -264,12 +267,29 @@ proveInd = Coq.ident "prove_ind"
 proveInd_proveForType :: Coq.Ident
 proveInd_proveForType = Coq.ident "prove_ind_prove_ForType"
 
+
+-- | The tactic that is needed to prove 'forall' lemmas.
+proveForall :: Coq.Ident
+proveForall = Coq.ident "prove_forall"
+
 -------------------------------------------------------------------------------
 -- Hint Databases                                                            --
 -------------------------------------------------------------------------------
--- | The hint database that is used ba 'proveInd'.
+-- | The hint database that is used by 'proveInd'.
 proveInd_db :: Coq.Ident
 proveInd_db = Coq.ident "prove_ind_db"
+
+
+-- | The hint database that is used by 'proveForall' to prove the '->'
+--   direction of the equivalence.
+proveForall_ltr_db :: Coq.Ident
+proveForall_ltr_db = Coq.ident "prove_ind_ltr_db"
+
+
+-- | The hint database that is used by 'proveForall' to prove the '<-'
+--   direction of the equivalence.
+proveForall_rtl_db :: Coq.Ident
+proveForall_rtl_db = Coq.ident "prove_ind_rtl_db"
 
 -------------------------------------------------------------------------------
 -- Reserved Identifiers                                                      --

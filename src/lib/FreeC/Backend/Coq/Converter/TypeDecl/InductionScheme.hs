@@ -35,6 +35,7 @@ generateInductionSchemes dataDecls = do
   forallQualidMap <- Map.fromList <$> mapM (generateName "For" "_forall". IR.typeDeclQName) complexDataDecls
   forallBodies <- mapM (generateForallLemma forallQualidMap forQualidMap inQualidMap) complexDataDecls
   hintSentences <- concatMapM (generateHints schemeQualidMap forQualidMap inQualidMap) complexDataDecls
+  mapM_ (insertPropertiesInEnv forQualidMap inQualidMap . IR.typeDeclQName) complexDataDecls 
   return
     ( [Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList forBodies) []) | not (null forBodies)]
     ++[Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList inBodies) []) | not (null inBodies)]
@@ -327,7 +328,7 @@ generateInductionSchemes dataDecls = do
         proof   = Coq.ProofQed
                  (Text.pack
                   $  "  intros" ++ concatMap (\v -> ' ' : v) vars ++ ";\n"
-                  ++ Text.unpack Coq.Base.proveInd
+                  ++ Text.unpack Coq.Base.proveForall
                   ++ ".")
     return (forallQualid, [], term, proof)
    where
@@ -387,30 +388,20 @@ generateInductionSchemes dataDecls = do
     freshCoqQualid $ baseName ++ "_" ++ conName
 
   getForType :: Map.Map IR.QName Coq.Qualid -> IR.QName -> Converter (Maybe Coq.Qualid)
-  getForType forQualidMap t = case forQualidMap Map.!? t of
+  getForType forQualidMap name = case forQualidMap Map.!? name of
     Just qualid -> return $ Just qualid
-    Nothing -> do
-      -- TODO use environment to store and load other 'For-' properties
-      Just qualid <- inEnv $ lookupIdent IR.TypeScope t
-      let name = case qualid of
-            Coq.Bare n -> Text.unpack n
-            Coq.Qualified _ n -> Text.unpack n
-      return $ Just $ Coq.bare $ "For" ++ name
+    Nothing     -> inEnv $ lookupForProperty name
 
   getInTypes :: Map.Map IR.QName [Coq.Qualid] -> IR.QName -> Converter (Maybe [Coq.Qualid])
-  getInTypes inQualidMap t = case inQualidMap Map.!? t of
+  getInTypes inQualidMap name = case inQualidMap Map.!? name of
     Just qualids -> return $ Just qualids
-    Nothing -> do
-      -- TODO use environment to store and load other 'In-' properties
-      Just qualid <- inEnv $ lookupIdent IR.TypeScope t
-      Just arity <- inEnv $ lookupArity IR.TypeScope t
-      let name = case qualid of
-            Coq.Bare n -> Text.unpack n
-            Coq.Qualified _ n -> Text.unpack n
-          suffixes = if arity == 1
-            then [""]
-            else map (\index -> "_" ++ show index) [1 .. arity]
-      return $ Just $ map (\suffix -> Coq.bare $ "In" ++ name ++ suffix) suffixes
+    Nothing      -> inEnv $ lookupInProperties name
+
+  insertPropertiesInEnv :: Map.Map IR.QName Coq.Qualid -> Map.Map IR.QName [Coq.Qualid] -> IR.QName -> Converter ()
+  insertPropertiesInEnv forQualidMap inQualidMap name = do
+    let forName = forQualidMap Map.!? name
+        inNames = inQualidMap Map.!? name
+    modifyEnv $ addPropertyNamesToEntry name forName inNames
 
   generateArg :: String -> Coq.Term -> Converter (Coq.Qualid, Coq.Binder)
   generateArg argName argType = do
