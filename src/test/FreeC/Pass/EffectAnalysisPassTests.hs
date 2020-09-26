@@ -20,7 +20,8 @@ import           FreeC.Test.Parser
 -------------------------------------------------------------------------------
 -- | Parses the function declarations in the given dependency component,
 --   runs the 'effectAnalysisPass' and sets the expectation that there
---   is an environment entry for each function that marks it as partial.
+--   is an environment entry for each function that contains the given effect
+--   in its effect set.
 shouldHaveEffect
   :: Effect -> DependencyComponent String -> Converter Expectation
 shouldHaveEffect effect = withEffects $ \funcName effects -> if effect
@@ -36,7 +37,7 @@ shouldHaveEffect effect = withEffects $ \funcName effects -> if effect
     ++ "."
 
 -- | Like 'shouldHaveEffect' but sets the expectation that none of the
---   functions are partial.
+--   functions have the given effect.
 shouldNotHaveEffect
   :: Effect -> DependencyComponent String -> Converter Expectation
 shouldNotHaveEffect effect = withEffects $ \funcName effects -> if effect
