@@ -212,37 +212,21 @@ Lemma ForList_forall : forall (Shape : Type)
   ForList Shape Pos a P0 x <->
   (forall (y : a), InList Shape Pos a y x -> P0 y).
 Proof.
-  intros Shape Pos a.
-  Hint Extern 0 (ForList ?Shape ?Pos ?A _ _) => forall_finish2 (@InList_cons Shape Pos A) : prove_forall_db2.
-  Hint Extern 0 (ForList ?Shape ?Pos ?A _ _) => forall_finish2 (@InList_cons0 Shape Pos A) : prove_forall_db2.
+  intros Shape Pos a P0.
+  Local Hint Extern 1 => prove_forall_finish_rtl InList_cons : prove_forall_db.
+  Local Hint Extern 1 => prove_forall_finish_rtl InList_cons0 : prove_forall_db.
   prove_forall List_ind.
-Qed.
+Defined.
 
 (* Add hints for proof generation *)
 Hint Extern 0 (ForList _ _ _ _ ?x) =>
-  prove_ind_prove_ForType x ForList_forall list_induction : prove_ind_db.
-Local Ltac forall_ForList_InList :=
-  match goal with
-    | [ HF : ForList ?Shape ?Pos ?A _ ?fx
-      , HI : InList ?Shape ?Pos ?A ?x ?fx
-    |- _ ] =>
-      rewrite ForList_forall in HF;
-      specialize (HF x HI)
-  end.
-Hint Extern 0 => forall_ForList_InList : prove_forall_db.
-Local Ltac forall_ForList :=
+  prove_ind_prove_ForType x ForList_forall List_ind : prove_ind_db.
+Hint Extern 0 =>
   match goal with
   | [ HF : ForList ?Shape ?Pos ?T _ ?fx
-    |- ForList ?Shape ?Pos ?T _ ?fx ] =>
-       let x  := fresh "x"
-    in let HI := fresh "HI"
-    in apply ForList_forall; intros x HI;
-       rewrite ForList_forall in HF;
-       specialize (HF x HI)
-  | [ H : forall y : ?A, _ |- ForList ?Shape ?Pos ?T ?P ?fx ] =>
-       let x  := fresh "x"
-    in let HI := fresh "HI"
-    in apply ForList_forall; intros x HI;
-       specialize (H x)
-  end.
-Hint Extern 0 => forall_ForList : prove_forall_db2.
+    , HI : InList ?Shape ?Pos ?T ?x ?fx
+    |- _ ] =>
+      prove_forall_ForType_InType HF HI x ForList_forall
+  end : prove_forall_db.
+Hint Extern 0 (ForList _ _ _ _ _) =>
+  prove_forall_prove_ForType ForList_forall : prove_forall_db.

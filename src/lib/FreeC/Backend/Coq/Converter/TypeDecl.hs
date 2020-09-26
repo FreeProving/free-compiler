@@ -129,11 +129,11 @@ convertDataDecls dataDecls = do
   inductionSentences <- generateInductionSchemes dataDecls
   let (extraSentences, qualSmartConDecls) = concatUnzip extraSentences'
   return
-    ( Coq.unsetOption (Just Coq.Local) "EliminationSchemes"
+    ( Coq.unsetOption (Just Coq.Local) "Elimination Schemes"
         : Coq.comment ("Data type declarations for "
                    ++ showPretty (map IR.typeDeclName dataDecls))
         : Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList indBodies) [])
-        : Coq.setOption (Just Coq.Local) "EliminationSchemes" Nothing
+        : Coq.setOption (Just Coq.Local) "Elimination Schemes" Nothing
         : extraSentences ++ inductionSentences
     , qualSmartConDecls
     )

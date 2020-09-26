@@ -98,10 +98,28 @@ Lemma ForPair_forall : forall (Shape : Type)
   ((forall (y : a), InPair_1 Shape Pos a b y x -> P0 y) /\
    (forall (y : b), InPair_2 Shape Pos a b y x -> P1 y)).
 Proof.
-  intros Shape Pos a b.
+  intros Shape Pos a b P0 P1.
+  Local Hint Extern 1 => prove_forall_finish_rtl InPair_1_pair_ : prove_forall_db.
+  Local Hint Extern 1 => prove_forall_finish_rtl InPair_2_pair_ : prove_forall_db.
   prove_forall Pair_ind.
-Qed.
+Defined.
 
 (* Add hints for proof generation *)
 Hint Extern 0 (ForPair _ _ _ _ _ _ ?x) =>
-  prove_ind_prove_ForType x ForPair_forall pair_induction : prove_ind_db.
+  prove_ind_prove_ForType x ForPair_forall Pair_ind : prove_ind_db.
+Hint Extern 0 =>
+  match goal with
+  | [ HF : ForPair ?Shape ?Pos ?T1 ?T2 _ _ ?fx
+    , HI : InPair_1 ?Shape ?Pos ?T1 ?T2 ?x ?fx
+    |- _ ] =>
+      prove_forall_ForType_InType HF HI x ForPair_forall
+  end : prove_forall_db.
+Hint Extern 0 =>
+  match goal with
+  | [ HF : ForPair ?Shape ?Pos ?T1 ?T2 _ _ ?fx
+    , HI : InPair_2 ?Shape ?Pos ?T1 ?T2 ?x ?fx
+    |- _ ] =>
+      prove_forall_ForType_InType HF HI x ForPair_forall
+  end : prove_forall_db.
+Hint Extern 0 (ForPair _ _ _ _ _ _ _) =>
+  prove_forall_prove_ForType ForPair_forall : prove_forall_db.

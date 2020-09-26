@@ -9,30 +9,42 @@ From Base Require Import Free.ForFree.
 
 Require Import Coq.Program.Equality.
 
-Ltac forall_ForType_InType forType inType forType_forall :=
+Create HintDb prove_ind_db.
+
+Ltac prove_forall_split_hypotheses :=
+  repeat (match goal with
+          | [H : _ /\ _ |- _] => destruct H
+          end).
+
+Ltac prove_forall_ForType_InType HF HI x forType_forall :=
+  rewrite forType_forall in HF;
+  prove_forall_split_hypotheses;
   match goal with
-    | [ HF : forType _ ?fx
-      , HI : inType ?x ?fx
+  | [ HF1 : forall y, _ -> _ |- _ ] =>
+    specialize (HF1 x HI);
+    auto with prove_forall_db
+  end.
+
+Hint Extern 0 =>
+  match goal with
+  | [ HF : ForFree _ _ _ _ ?fx
+    , HI : InFree _ _ _ ?x ?fx
     |- _ ] =>
-      rewrite forType_forall in HF;
-      specialize (HF x HI)
-  end.
+      prove_forall_ForType_InType HF HI x ForFree_forall
+  end : prove_forall_db.
 
-Ltac forall_ForFree_InFree :=
-  match goal with
-    | [ HF : ForFree ?Shape ?Pos ?T _ ?fx
-      , HI : InFree ?Shape ?Pos ?T ?x ?fx
-    |- _ ] =>
-      rewrite ForFree_forall in HF;
-      specialize (HF x HI)
-  end.
+Ltac prove_forall_prove_ForType forType_forall :=
+  rewrite forType_forall;
+  repeat split;
+  let x  := fresh "x"
+  in let HI := fresh "HI"
+  in intros x HI;
+  auto with prove_forall_db.
 
-Ltac forall_trivial :=
-  match goal with
-  | [ H : ?P |- ?P ] => apply H
-  end.
+Hint Extern 0 (ForFree _ _ _ _ _) =>
+  prove_forall_prove_ForType ForFree_forall : prove_forall_db.
 
-Ltac forall_trivial_imp2 :=
+Ltac prove_forall_trivial_imp :=
   match goal with
   | [ HImp : ?TF -> ?TI -> ?P
     , HF : ?TF
@@ -41,84 +53,42 @@ Ltac forall_trivial_imp2 :=
     apply (HImp HF HI)
   end.
 
-Hint Extern 0 => forall_trivial : prove_forall_db.
-Hint Extern 0 => forall_trivial_imp2 : prove_forall_db.
-Hint Extern 0 => forall_ForFree_InFree : prove_forall_db.
+Hint Extern 1 => prove_forall_trivial_imp : prove_forall_db.
 
-Ltac prove_forall Ind :=
-     repeat (match goal with
-             | [ |- forall (_ : _ -> Prop), _ ] => intro
-             end);
-     let C  := fresh "C"
-  in let HF := fresh "HF"
-  in let x  := fresh "x"
-  in let HI := fresh "HI"
-  in let H  := fresh "H"
+Ltac prove_forall_finish_rtl Con :=
+  match goal with
+  | [ H : (forall y, _ -> ?P y) -> _
+    |- _ ] =>
+      apply H;
+      let x  := fresh "x"
+      in let HI := fresh "HI"
+      in intros x HI;
+      auto with prove_forall_db
+  | [ H : forall y, ?TI -> ?P y |- ?P ?x ] =>
+    apply H;
+    eapply Con;
+    eauto
+  end.
+
+Hint Extern 1 => prove_forall_finish_rtl : prove_forall_db.
+
+Ltac prove_forall type_ind :=
+  let C := fresh "C"
   in intro C; split;
-     [ intro HF;
-       repeat split;
-       intros x HI;
-       induction C using Ind;
-       dependent destruction HI;
-       dependent destruction HF;
-       auto with prove_forall_db
-     | intro H;
-       repeat (match goal with
-               | [H1 : _ /\ _ |- _] => destruct H1
-               end);
-       induction C using Ind;
-       constructor;
-       auto with prove_forall_db2
-     ].
-
-Ltac forall_ForType forType forType_forall :=
-  match goal with
-  | [ HF : forType _ ?fx
-    |- forType _ ?fx ] =>
-       let x  := fresh "x"
+  [ let HF := fresh "HF"
+    in intro HF;
+    repeat split;
+    let x  := fresh "x"
     in let HI := fresh "HI"
-    in apply forType_forall; intros x HI;
-       rewrite forType_forall in HF;
-       specialize (HF x HI)
-  | [ H : forall y : ?A, _ |- forType ?P ?fx ] =>
-       let x  := fresh "x"
-    in let HI := fresh "HI"
-    in apply forType_forall; intros x HI;
-       specialize (H x)
-  end.
-
-Ltac forall_ForFree :=
-  match goal with
-  | [ HF : ForFree ?Shape ?Pos ?T _ ?fx
-    |- ForFree ?Shape ?Pos ?T _ ?fx ] =>
-       let x  := fresh "x"
-    in let HI := fresh "HI"
-    in apply ForFree_forall; intros x HI;
-       rewrite ForFree_forall in HF;
-       specialize (HF x HI)
-  | [ H : forall y : ?A, _ |- ForFree ?Shape ?Pos ?T ?P ?fx ] =>
-       let x  := fresh "x"
-    in let HI := fresh "HI"
-    in apply ForFree_forall; intros x HI;
-       specialize (H x)
-  end.
-
-Ltac forall_finish :=
-  match goal with
-  | [ H : ?TI -> ?P |- ?P ] =>
-    apply H; constructor; trivial
-  end.
-
-Hint Extern 0 => forall_finish : prove_forall_db2.
-Hint Extern 0 => forall_trivial : prove_forall_db2.
-Hint Extern 0 => forall_ForFree : prove_forall_db2.
-
-Ltac forall_finish2 Con :=
-  match goal with
-  | [ H1 : (forall y : ?A, _ -> ?P y) -> ?TF ?P ?C
-    , H2 : forall z : ?A, _ -> ?P z
-    |- ?TF ?P ?C ] =>
-       let x  := fresh "x"
-    in let HI := fresh "HI"
-    in apply H1; intros x HI; apply H2; eauto using Con
-  end.
+    in intros x HI;
+    induction C using type_ind;
+    dependent destruction HI;
+    dependent destruction HF;
+    auto with prove_forall_db
+  | let H  := fresh "H"
+    in intro H;
+    prove_forall_split_hypotheses;
+    induction C using type_ind;
+    constructor;
+    auto with prove_forall_db
+  ].

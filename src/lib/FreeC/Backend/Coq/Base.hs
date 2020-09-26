@@ -46,10 +46,12 @@ module FreeC.Backend.Coq.Base
   , proveInd
   , proveInd_proveForType
   , proveForall
+  , proveForall_ForType_InType
+  , proveForall_proveForType
+  , proveForall_finish
     -- * Hint Databases
   , proveInd_db
-  , proveForall_ltr_db
-  , proveForall_rtl_db
+  , proveForall_db
     -- * Reserved Identifiers
   , reservedIdents
   ) where
@@ -272,6 +274,21 @@ proveInd_proveForType = Coq.ident "prove_ind_prove_ForType"
 proveForall :: Coq.Ident
 proveForall = Coq.ident "prove_forall"
 
+-- | One of the tactics that have to be instantiated for data types and added
+--   to 'proveInd_db'.
+proveForall_ForType_InType :: Coq.Ident
+proveForall_ForType_InType = Coq.ident "prove_forall_ForType_InType"
+
+-- | One of the tactics that have to be instantiated for data types and added
+--   to 'proveInd_db'.
+proveForall_proveForType :: Coq.Ident
+proveForall_proveForType = Coq.ident "prove_forall_prove_ForType"
+
+-- | This tactic has to be instantiated for data types and added locally to
+--   'proveInd_db' in the proof of the corresponding 'forall' lemma.
+proveForall_finish :: Coq.Ident
+proveForall_finish = Coq.ident "prove_forall_finish_rtl"
+
 -------------------------------------------------------------------------------
 -- Hint Databases                                                            --
 -------------------------------------------------------------------------------
@@ -280,16 +297,9 @@ proveInd_db :: Coq.Ident
 proveInd_db = Coq.ident "prove_ind_db"
 
 
--- | The hint database that is used by 'proveForall' to prove the '->'
---   direction of the equivalence.
-proveForall_ltr_db :: Coq.Ident
-proveForall_ltr_db = Coq.ident "prove_ind_ltr_db"
-
-
--- | The hint database that is used by 'proveForall' to prove the '<-'
---   direction of the equivalence.
-proveForall_rtl_db :: Coq.Ident
-proveForall_rtl_db = Coq.ident "prove_ind_rtl_db"
+-- | The hint database that is used by 'proveForall'.
+proveForall_db :: Coq.Ident
+proveForall_db = Coq.ident "prove_forall_db"
 
 -------------------------------------------------------------------------------
 -- Reserved Identifiers                                                      --
