@@ -45,7 +45,7 @@ convertTypeDecls typeDecls = do
   let components = typeDependencyComponents typeDecls
   (sentences, qualSmartCons)
     <- concatUnzip <$> mapM convertTypeComponent components
-  let
+  let 
     -- Put qualified notations into a single local module
     qualNotModule = if null qualSmartCons
       then []
