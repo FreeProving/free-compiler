@@ -30,10 +30,10 @@ import qualified HST.Effect.InputModule            as HST
 import qualified HST.Effect.Report                 as HST
 import qualified HST.Environment                   as HST
 import           HST.Frontend.HSE.Config           ( HSE )
+import qualified HST.Frontend.HSE.Config           as HSE.Config
 import qualified HST.Frontend.HSE.From             as FromHSE
 import qualified HST.Frontend.HSE.To               as ToHSE
 import qualified HST.Frontend.Syntax               as HST
-import qualified HST.Frontend.Transformer          as HST
 import qualified HST.Options                       as HST
 import qualified HST.Util.Messages                 as HST
 import qualified HST.Util.PrettyName               as HST
@@ -58,13 +58,15 @@ import           FreeC.Monad.Reporter
 --   Since the pattern matching compiler library does not support source
 --   spans, location information is removed during the transformation.
 transformPatternMatching
-  :: HSE.Module SrcSpan -> Converter (HSE.Module SrcSpan)
+  :: IR.ModuleOf [HSE.Decl SrcSpan]
+  -> Converter (IR.ModuleOf [HSE.Decl SrcSpan])
 transformPatternMatching inputModule = do
-  let inputSrcSpan      = HSE.ann inputModule
+  let inputSrcSpan      = IR.modSrcSpan inputModule
       inputFilename
         = [srcSpanFilename inputSrcSpan | hasSrcSpanFilename inputSrcSpan]
-      inputFileContents
-        = [unlines (srcSpanCodeLines inputSrcSpan) | hasSourceCode inputSrcSpan]
+      inputFileContents = [unlines (srcSpanCodeLines inputSrcSpan)
+                          | hasSourceCode inputSrcSpan
+                          ]
       inputFileMap      = Map.fromList (zip inputFilename inputFileContents)
   runM
     $ HST.runInputFileNoIO inputFileMap
@@ -77,17 +79,44 @@ transformPatternMatching inputModule = do
   cancelMessage
     = HST.message HST.Info HST.NoSrcSpan "Pattern matching compilation failed."
 
+-- | Like 'transformPatternMatching' but uses the @haskell-src-transformations@
+--   effect stack instead of the 'Converter' monad.
 transformPatternMatching'
   :: Members '[Embed Converter, HST.GetOpt, HST.Report] r
-  => HSE.Module SrcSpan
-  -> Sem r (HSE.Module SrcSpan)
+  => IR.ModuleOf [HSE.Decl SrcSpan]
+  -> Sem r (IR.ModuleOf [HSE.Decl SrcSpan])
 transformPatternMatching' inputModule = do
-  inputModule' <- HST.transformModule (HST.ModuleHSE inputModule)
+  inputModule' <- transformModuleToHST inputModule
   env <- initEnv inputModule'
   HST.runWithEnv env . HST.runFresh (HST.findIdentifiers inputModule') $ do
-    outputModule' <- HST.processModule inputModule'
-    outputModule <- HST.unTransformModule outputModule'
-    return (HST.getModuleHSE outputModule)
+    HST.Module _ _ _ _ outputDecls <- HST.processModule inputModule'
+    return inputModule { IR.modContents = map ToHSE.transformDecl outputDecls }
+
+-- | Converts the given module to the internal representation of the pattern
+--   matching compiler.
+transformModuleToHST
+  :: Member HST.Report r
+  => IR.ModuleOf [HSE.Decl SrcSpan]
+  -> Sem r (HST.Module Frontend)
+transformModuleToHST inputModule = do
+  let srcSpan' = FromHSE.transformSrcSpan (IR.modSrcSpan inputModule)
+      origModHead' = HSE.Config.OriginalModuleHead { HSE.Config.originalModuleHead = Nothing, HSE.Config.originalModulePragmas = [], HSE.Config.originalModuleImports = [] }
+      modName' = Just (HST.ModuleName HST.NoSrcSpan (IR.modName inputModule))
+      importDecls' = map transformImportToHST (IR.modImports inputModule)
+  decls' <- mapM FromHSE.transformDecl (IR.modContents inputModule)
+  return (HST.Module srcSpan' origModHead' modName' importDecls' decls')
+
+-- | Converts the given import declaration to the internal representation of
+--   the pattern matching compiler.
+transformImportToHST :: IR.ImportDecl -> HST.ImportDecl Frontend
+transformImportToHST importDecl =
+  let srcSpan = FromHSE.transformSrcSpan (IR.importSrcSpan importDecl)
+  in HST.ImportDecl
+      { HST.importSrcSpan = srcSpan
+      , HST.importModule  = HST.ModuleName srcSpan (IR.importName importDecl)
+      , HST.importIsQual  = False
+      , HST.importAsName  = Nothing
+      }
 
 -------------------------------------------------------------------------------
 -- Source Spans                                                              --

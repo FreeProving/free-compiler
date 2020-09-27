@@ -144,15 +144,30 @@ instance Similar node => Similar [node] where
 -------------------------------------------------------------------------------
 -- Similarity Test for Modules                                               --
 -------------------------------------------------------------------------------
-instance Similar IR.Module where
+-- | Two modules are similar if their names and contents are similar.
+instance Similar contents => Similar (IR.ModuleOf contents) where
   similar' moduleA moduleB = const (IR.modName moduleA == IR.modName moduleB)
-    .&&.
-    --  similar' (IR.modImports moduleA) (IR.modImports moduleB) .&&.
-    similar' (IR.modTypeDecls moduleA) (IR.modTypeDecls moduleB)
-    .&&.
-    --  similar' (IR.modTypeSigs moduleA) (IR.modTypeSigs moduleB) .&&.
-    --  similar' (IR.modPragmas moduleA) (IR.modPragmas moduleB) .&&.
-    similar' (IR.modFuncDecls moduleA) (IR.modFuncDecls moduleB)
+    .&&. similar' (IR.modImports moduleA) (IR.modImports moduleB)
+    .&&. similar' (IR.modPragmas moduleA) (IR.modPragmas moduleB)
+    .&&. similar' (IR.modContents moduleA) (IR.modContents moduleB)
+
+-- | Two import declarations are similar if they import the same module.
+instance Similar IR.ImportDecl where
+  similar' (IR.ImportDecl _ n1) (IR.ImportDecl _ n2) = const (n1 == n2)
+
+-- | Two pragmas are similar if they are equal except for the source span.
+instance Similar IR.Pragma where
+  similar' (IR.DecArgPragma _ f1 a1) (IR.DecArgPragma _ f2 a2) = const
+    (f1 == f2 && a1 == a2)
+
+-- | Only top-level declarations of the same type can be similar.
+instance Similar IR.TopLevelDecl where
+  similar' (IR.TopLevelTypeDecl t1) (IR.TopLevelTypeDecl t2) = similar' t1 t2
+  similar' (IR.TopLevelTypeDecl _) _ = const False
+  similar' (IR.TopLevelTypeSig s1) (IR.TopLevelTypeSig s2) = similar' s1 s2
+  similar' (IR.TopLevelTypeSig _) _ = const False
+  similar' (IR.TopLevelFuncDecl f1) (IR.TopLevelFuncDecl f2) = similar' f1 f2
+  similar' (IR.TopLevelFuncDecl _) _ = const False
 
 -------------------------------------------------------------------------------
 -- Similarity Test for Types                                                 --
@@ -389,6 +404,21 @@ instance Similar IR.Alt where
 instance Similar IR.VarPat where
   similar' (IR.VarPat _ _ t1 s1) (IR.VarPat _ _ t2 s2) = const (s1 == s2)
     .&&. similar' t1 t2
+
+-------------------------------------------------------------------------------
+-- Similarity Test for Type Signatures                                       --
+-------------------------------------------------------------------------------
+-- | Two type signatures are similar if they annotate the type of the same
+--   functions with similar types.
+--
+--   >  Γ ⊢ τ ≈ τ'
+--   > ————————————————————————————————————————
+--   >  Γ ⊢ f₁, … , fₙ :: τ ≈ f₁, … , fₙ :: τ'
+instance Similar IR.TypeSig where
+  similar' (IR.TypeSig _ fs s) (IR.TypeSig _ gs t) = const
+    (length fs == length gs
+     && map IR.declIdentName fs == map IR.declIdentName gs)
+    .&&. similar' s t
 
 -------------------------------------------------------------------------------
 -- Similarity Test for Declarations                                          --

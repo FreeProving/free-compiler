@@ -332,7 +332,7 @@ lookupResolverEntries scope name env = Map.findWithDefault Set.empty
 resolverEnvFromModule :: IR.Module -> Converter ResolverEnv
 resolverEnvFromModule ast = do
   importEnv <- resolverEnvFromImports (IR.modImports ast)
-  topLevelEnv <- resolverEnvFromTopLevel ast
+  topLevelEnv <- resolverEnvFromTopLevel (IR.modContents ast)
   return (importEnv `mergeResolverEnv` topLevelEnv)
 
 -------------------------------------------------------------------------------
@@ -380,20 +380,20 @@ resolverEnvFromImport (IR.ImportDecl srcSpan modName) = do
 -- Top-level Declarations                                                    --
 -------------------------------------------------------------------------------
 -- | Type class for declarations that declare top-level entries.
-class TopLevelDeclaration node where
+class HasTopLevelEntries node where
   -- | Gets the top-level entries declared by the given node.
   topLevelEntries :: node -> [ResolverEntry]
 
--- | A module declares all of the contained type synonym, data type and
---   function declarations at top-level.
-instance TopLevelDeclaration IR.Module where
-  topLevelEntries ast = concatMap topLevelEntries (IR.modTypeDecls ast)
-    ++ concatMap topLevelEntries (IR.modFuncDecls ast)
+-- | Top level declarations declare top-level entries.
+instance HasTopLevelEntries IR.TopLevelDecl where
+  topLevelEntries (IR.TopLevelTypeDecl typeDecl) = topLevelEntries typeDecl
+  topLevelEntries (IR.TopLevelTypeSig _)         = []
+  topLevelEntries (IR.TopLevelFuncDecl funcDecl) = topLevelEntries funcDecl
 
 -- | Type synonym declarations declare a type constructor at top-level and
 --   data type declarations declare a type constructor and their data
 --   constructors at top-level.
-instance TopLevelDeclaration IR.TypeDecl where
+instance HasTopLevelEntries IR.TypeDecl where
   topLevelEntries typeSynDecl@IR.TypeSynDecl {}
     = [makeTopLevelEntry IR.TypeScope (IR.typeDeclIdent typeSynDecl)]
   topLevelEntries dataDecl@IR.DataDecl {}       = makeTopLevelEntry IR.TypeScope
@@ -401,12 +401,12 @@ instance TopLevelDeclaration IR.TypeDecl where
     : concatMap topLevelEntries (IR.dataDeclCons dataDecl)
 
 -- | Constructors of data type declarations are declared at top-level.
-instance TopLevelDeclaration IR.ConDecl where
+instance HasTopLevelEntries IR.ConDecl where
   topLevelEntries conDecl
     = [makeTopLevelEntry IR.ValueScope (IR.conDeclIdent conDecl)]
 
 -- | Function declarations are declared at top-level.
-instance TopLevelDeclaration IR.FuncDecl where
+instance HasTopLevelEntries IR.FuncDecl where
   topLevelEntries funcDecl
     = [makeTopLevelEntry IR.ValueScope (IR.funcDeclIdent funcDecl)]
 
@@ -426,9 +426,9 @@ makeTopLevelEntry scope declIdent = LocalEntry
 --
 --   There must not be two declarations for the same name in the same scope.
 --   Otherwise a fatal error is reported.
-resolverEnvFromTopLevel :: TopLevelDeclaration a => a -> Converter ResolverEnv
+resolverEnvFromTopLevel :: [IR.TopLevelDecl] -> Converter ResolverEnv
 resolverEnvFromTopLevel node = do
-  entries <- checkSingleDeclarations (topLevelEntries node)
+  entries <- checkSingleDeclarations (concatMap topLevelEntries node)
   let qualEnv   = resolverEnvFromEntries entries
       unQualEnv = resolverEnvFromUnQualEntries entries
   return (qualEnv `mergeResolverEnv` unQualEnv)
@@ -583,17 +583,28 @@ checkIsDefined srcSpan scope name = do
 class Resolvable node where
   resolve :: node -> Resolver node
 
--- | References in top-level declarations and type signatures can be
---   resolved.
-instance Resolvable IR.Module where
+-- | References in multiple nodes can be resolved.
+instance Resolvable node => Resolvable [node] where
+  resolve = mapM resolve
+
+-- | References in optional nodes can be resolved.
+instance Resolvable node => Resolvable (Maybe node) where
+  resolve = mapM resolve
+
+-- | References in the contents of a module can be resolved.
+instance Resolvable contents => Resolvable (IR.ModuleOf contents) where
   resolve ast = do
-    typeDecls' <- mapM resolve (IR.modTypeDecls ast)
-    typeSigs' <- mapM resolve (IR.modTypeSigs ast)
-    funcDecls' <- mapM resolve (IR.modFuncDecls ast)
-    return ast { IR.modTypeDecls = typeDecls'
-               , IR.modTypeSigs  = typeSigs'
-               , IR.modFuncDecls = funcDecls'
-               }
+    contents' <- resolve (IR.modContents ast)
+    return ast { IR.modContents = contents' }
+
+-- | References in top-level declarations and type signatures can be resolved.
+instance Resolvable IR.TopLevelDecl where
+  resolve (IR.TopLevelTypeDecl typeDecl)
+    = IR.TopLevelTypeDecl <$> resolve typeDecl
+  resolve (IR.TopLevelTypeSig typeSig)
+    = IR.TopLevelTypeSig <$> resolve typeSig
+  resolve (IR.TopLevelFuncDecl funcDecl)
+    = IR.TopLevelFuncDecl <$> resolve funcDecl
 
 -- | References to other types can be resolved in type synonyms and the fields
 --   of constructors of data type declarations.
@@ -607,13 +618,13 @@ instance Resolvable IR.TypeDecl where
     return typeSynDecl { IR.typeSynDeclRhs = rhs' }
   resolve dataDecl@IR.DataDecl {}       = withLocalResolverEnv $ do
     defineTypeVars (IR.typeDeclArgs dataDecl)
-    cons' <- mapM resolve (IR.dataDeclCons dataDecl)
+    cons' <- resolve (IR.dataDeclCons dataDecl)
     return dataDecl { IR.dataDeclCons = cons' }
 
 -- | References can be resolved in the field types of constructor declarations.
 instance Resolvable IR.ConDecl where
   resolve conDecl = do
-    fields' <- mapM resolve (IR.conDeclFields conDecl)
+    fields' <- resolve (IR.conDeclFields conDecl)
     return conDecl { IR.conDeclFields = fields' }
 
 -- | References to types in type signatures can be resolved.
@@ -664,9 +675,9 @@ instance Resolvable IR.FuncDecl where
   resolve funcDecl = withLocalResolverEnv $ do
     defineTypeVars (IR.funcDeclTypeArgs funcDecl)
     defineVarPats (IR.funcDeclArgs funcDecl)
-    args' <- mapM resolve (IR.funcDeclArgs funcDecl)
+    args' <- resolve (IR.funcDeclArgs funcDecl)
     rhs' <- resolve (IR.funcDeclRhs funcDecl)
-    retType' <- mapM resolve (IR.funcDeclReturnType funcDecl)
+    retType' <- resolve (IR.funcDeclReturnType funcDecl)
     return funcDecl { IR.funcDeclArgs       = args'
                     , IR.funcDeclRhs        = rhs'
                     , IR.funcDeclReturnType = retType'
@@ -683,11 +694,11 @@ instance Resolvable IR.Expr where
   -- Lookup the original name of constructors and functions.
   resolve (IR.Con srcSpan conName exprType)               = do
     originalName <- lookupOriginalNameOrFail srcSpan IR.ValueScope conName
-    exprType' <- mapM resolve exprType
+    exprType' <- resolve exprType
     return (IR.Con srcSpan originalName exprType')
   resolve (IR.Var srcSpan varName exprType)               = do
     originalName <- lookupOriginalNameOrFail srcSpan IR.ValueScope varName
-    exprType' <- mapM resolve exprType
+    exprType' <- resolve exprType
     return (IR.Var srcSpan originalName exprType')
   -- Shadow the arguments of lambda arguments or variable patterns in @let@
   -- bindings. Resolve all right hand sides of @let@ bindings or the right
@@ -695,48 +706,48 @@ instance Resolvable IR.Expr where
   resolve (IR.Lambda srcSpan args rhs exprType)
     = withLocalResolverEnv $ do
       defineVarPats args
-      args' <- mapM resolve args
+      args' <- resolve args
       rhs' <- resolve rhs
-      exprType' <- mapM resolve exprType
+      exprType' <- resolve exprType
       return (IR.Lambda srcSpan args' rhs' exprType')
   resolve (IR.Let srcSpan binds e exprType)
     = withLocalResolverEnv $ do
       defineVarPats (map IR.bindVarPat binds)
-      binds' <- mapM resolve binds
+      binds' <- resolve binds
       e' <- resolve e
-      exprType' <- mapM resolve exprType
+      exprType' <- resolve exprType
       return (IR.Let srcSpan binds' e' exprType')
   -- Resolve references recursively.
   resolve (IR.App srcSpan e1 e2 exprType)                 = do
     e1' <- resolve e1
     e2' <- resolve e2
-    exprType' <- mapM resolve exprType
+    exprType' <- resolve exprType
     return (IR.App srcSpan e1' e2' exprType')
   resolve (IR.TypeAppExpr srcSpan expr typeExpr exprType) = do
     expr' <- resolve expr
     typeExpr' <- resolve typeExpr
-    exprType' <- mapM resolve exprType
+    exprType' <- resolve exprType
     return (IR.TypeAppExpr srcSpan expr' typeExpr' exprType')
   resolve (IR.If srcSpan e1 e2 e3 exprType)               = do
     e1' <- resolve e1
     e2' <- resolve e2
     e3' <- resolve e3
-    exprType' <- mapM resolve exprType
+    exprType' <- resolve exprType
     return (IR.If srcSpan e1' e2' e3' exprType')
   resolve (IR.Case srcSpan scrutinee alts exprType)       = do
     scrutinee' <- resolve scrutinee
-    alts' <- mapM resolve alts
-    exprType' <- mapM resolve exprType
+    alts' <- resolve alts
+    exprType' <- resolve exprType
     return (IR.Case srcSpan scrutinee' alts' exprType')
   -- Only resolve in type annotation of other expressions.
   resolve (IR.Undefined srcSpan exprType)                 = do
-    exprType' <- mapM resolve exprType
+    exprType' <- resolve exprType
     return (IR.Undefined srcSpan exprType')
   resolve (IR.ErrorExpr srcSpan msg exprType)             = do
-    exprType' <- mapM resolve exprType
+    exprType' <- resolve exprType
     return (IR.ErrorExpr srcSpan msg exprType')
   resolve (IR.IntLiteral srcSpan value exprType)          = do
-    exprType' <- mapM resolve exprType
+    exprType' <- resolve exprType
     return (IR.IntLiteral srcSpan value exprType')
 
 -- | The reference to the constructor in the constructor pattern of a
@@ -749,7 +760,7 @@ instance Resolvable IR.Alt where
   resolve (IR.Alt srcSpan conPat varPats rhs) = withLocalResolverEnv $ do
     defineVarPats varPats
     conPat' <- resolve conPat
-    varPats' <- mapM resolve varPats
+    varPats' <- resolve varPats
     rhs' <- resolve rhs
     return (IR.Alt srcSpan conPat' varPats' rhs')
 
@@ -764,7 +775,7 @@ instance Resolvable IR.ConPat where
 --   be resolved.
 instance Resolvable IR.VarPat where
   resolve varPat = do
-    varType' <- mapM resolve (IR.varPatType varPat)
+    varType' <- resolve (IR.varPatType varPat)
     return varPat { IR.varPatType = varType' }
 
 -- | The reference of variable pattern and expression from a given @let@ binding
