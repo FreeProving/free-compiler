@@ -30,7 +30,6 @@ import qualified HST.Effect.InputModule            as HST
 import qualified HST.Effect.Report                 as HST
 import qualified HST.Environment                   as HST
 import           HST.Frontend.HSE.Config           ( HSE )
-import qualified HST.Frontend.HSE.Config           as HSE.Config
 import qualified HST.Frontend.HSE.From             as FromHSE
 import qualified HST.Frontend.HSE.To               as ToHSE
 import qualified HST.Frontend.Syntax               as HST
@@ -58,10 +57,9 @@ import           FreeC.Monad.Reporter
 --   Since the pattern matching compiler library does not support source
 --   spans, location information is removed during the transformation.
 transformPatternMatching
-  :: IR.ModuleOf [HSE.Decl SrcSpan]
-  -> Converter (IR.ModuleOf [HSE.Decl SrcSpan])
+  :: HSE.Module SrcSpan -> Converter (HSE.Module SrcSpan)
 transformPatternMatching inputModule = do
-  let inputSrcSpan      = IR.modSrcSpan inputModule
+  let inputSrcSpan      = HSE.ann inputModule
       inputFilename
         = [srcSpanFilename inputSrcSpan | hasSrcSpanFilename inputSrcSpan]
       inputFileContents = [unlines (srcSpanCodeLines inputSrcSpan)
@@ -83,40 +81,14 @@ transformPatternMatching inputModule = do
 --   effect stack instead of the 'Converter' monad.
 transformPatternMatching'
   :: Members '[Embed Converter, HST.GetOpt, HST.Report] r
-  => IR.ModuleOf [HSE.Decl SrcSpan]
-  -> Sem r (IR.ModuleOf [HSE.Decl SrcSpan])
+  => HSE.Module SrcSpan
+  -> Sem r (HSE.Module SrcSpan)
 transformPatternMatching' inputModule = do
-  inputModule' <- transformModuleToHST inputModule
+  inputModule' <- FromHSE.transformModule inputModule
   env <- initEnv inputModule'
   HST.runWithEnv env . HST.runFresh (HST.findIdentifiers inputModule') $ do
-    HST.Module _ _ _ _ outputDecls <- HST.processModule inputModule'
-    return inputModule { IR.modContents = map ToHSE.transformDecl outputDecls }
-
--- | Converts the given module to the internal representation of the pattern
---   matching compiler.
-transformModuleToHST
-  :: Member HST.Report r
-  => IR.ModuleOf [HSE.Decl SrcSpan]
-  -> Sem r (HST.Module Frontend)
-transformModuleToHST inputModule = do
-  let srcSpan' = FromHSE.transformSrcSpan (IR.modSrcSpan inputModule)
-      origModHead' = HSE.Config.OriginalModuleHead { HSE.Config.originalModuleHead = Nothing, HSE.Config.originalModulePragmas = [], HSE.Config.originalModuleImports = [] }
-      modName' = Just (HST.ModuleName HST.NoSrcSpan (IR.modName inputModule))
-      importDecls' = map transformImportToHST (IR.modImports inputModule)
-  decls' <- mapM FromHSE.transformDecl (IR.modContents inputModule)
-  return (HST.Module srcSpan' origModHead' modName' importDecls' decls')
-
--- | Converts the given import declaration to the internal representation of
---   the pattern matching compiler.
-transformImportToHST :: IR.ImportDecl -> HST.ImportDecl Frontend
-transformImportToHST importDecl =
-  let srcSpan = FromHSE.transformSrcSpan (IR.importSrcSpan importDecl)
-  in HST.ImportDecl
-      { HST.importSrcSpan = srcSpan
-      , HST.importModule  = HST.ModuleName srcSpan (IR.importName importDecl)
-      , HST.importIsQual  = False
-      , HST.importAsName  = Nothing
-      }
+    outputModule <- HST.processModule inputModule'
+    return (ToHSE.transformModule outputModule)
 
 -------------------------------------------------------------------------------
 -- Source Spans                                                              --

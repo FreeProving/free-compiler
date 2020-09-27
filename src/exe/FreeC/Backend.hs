@@ -1,5 +1,11 @@
 -- | This module contains the 'Backend' data type and all available backends.
-module FreeC.Backend ( Backend(..), backends, showBackends, defaultBackend ) where
+module FreeC.Backend
+  ( Backend(..)
+  , BackendConverter
+  , backends
+  , showBackends
+  , defaultBackend
+  ) where
 
 import           Control.Monad.Extra                 ( unlessM, whenM )
 import           Control.Monad.IO.Class
@@ -20,11 +26,14 @@ import qualified FreeC.IR.Syntax                     as IR
 import           FreeC.Monad.Application
 import           FreeC.Pretty                        ( showPretty )
 
+-- | Type synonym for the conversion function of a 'Backend'.
+type BackendConverter = IR.Module -> Application String
+
 -- | Data type that represents a backend.
 data Backend = Backend
   { backendName          :: String
     -- ^ The name of the backend.
-  , backendConvertModule :: IR.Module -> Application String
+  , backendConvertModule :: BackendConverter
     -- ^ The conversion function that converts a module to program text.
   , backendFileExtension :: String
     -- ^ The file extension associated with the backend.

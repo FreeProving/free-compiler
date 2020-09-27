@@ -130,9 +130,14 @@ simplifyModuleWithComments inputModule comments = do
   simplifyModuleBody inputModule'
 
 -- | Simplifies the module head, imports and pragmas of a module.
-simplifyModuleHeadWithComments :: HSE.Module SrcSpan -> [IR.Comment] -> Simplifier (IR.ModuleOf [HSE.Decl SrcSpan])
-simplifyModuleHeadWithComments inputModule@(HSE.Module srcSpan _ pragmas imports decls)
-  comments = do
+--
+--   The contents of the resulting module is the entire module. The module is
+--   preserved such that the pattern matching compiler can be applied.
+simplifyModuleHeadWithComments :: HSE.Module SrcSpan
+                               -> [IR.Comment]
+                               -> Simplifier (IR.ModuleOf (HSE.Module SrcSpan))
+simplifyModuleHeadWithComments
+  inputModule@(HSE.Module srcSpan _ pragmas imports _) comments = do
     unless (null pragmas) $ skipNotSupported "Module pragmas" (head pragmas)
     modName <- extractModName inputModule
     imports' <- mapM simplifyImport imports
@@ -141,16 +146,17 @@ simplifyModuleHeadWithComments inputModule@(HSE.Module srcSpan _ pragmas imports
                        , IR.modName     = modName
                        , IR.modImports  = imports'
                        , IR.modPragmas  = customPragmas
-                       , IR.modContents = decls
+                       , IR.modContents = inputModule
                        }
 simplifyModuleHeadWithComments modDecl _ = notSupported "XML modules" modDecl
 
--- | Simplifies the contents of a module.
-simplifyModuleBody :: IR.ModuleOf [HSE.Decl SrcSpan] -> Simplifier IR.Module
+-- | Simplifies the contents of a module that has been preprocessed by
+--   'simplifyModuleHeadWithComments'.
+simplifyModuleBody :: IR.ModuleOf (HSE.Module SrcSpan) -> Simplifier IR.Module
 simplifyModuleBody inputModule = do
-  decls' <- mapMaybeM simplifyDecl (IR.modContents inputModule)
+  let HSE.Module _ _ _ _ decls = IR.modContents inputModule
+  decls' <- mapMaybeM simplifyDecl decls
   return inputModule { IR.modContents = decls' }
-
 
 -- | Gets the name of the given module.
 extractModName :: HSE.Module SrcSpan -> Simplifier IR.ModName
