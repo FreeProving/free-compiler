@@ -224,13 +224,19 @@ loadModule srcSpan modName = do
   --
   --   Reports a fatal message if the file could not be found.
   findIfaceFile :: [FilePath] -> Application FilePath
-  findIfaceFile []       = reportFatal
+  findIfaceFile directories = do
+    let ifaceFiles = [directory </> filename <.> extension
+                     | directory <- directories
+                     , extension <- extensions
+                     ]
+    ifraceFile <- findM (liftIO . doesFileExist) ifaceFiles
+    maybe reportMissingModule return ifraceFile
+
+  -- | Reports a fatal error message that the module could not be found.
+  reportMissingModule :: Application a
+  reportMissingModule = reportFatal
     $ Message srcSpan Error
     $ "Could not find imported module " ++ showPretty modName ++ "."
-  findIfaceFile (d : ds) = do
-    let ifaceFiles = [d </> filename <.> ext | ext <- extensions]
-    ifraceFile <- findM (liftIO . doesFileExist) ifaceFiles
-    maybe (findIfaceFile ds) return ifraceFile
 
 -------------------------------------------------------------------------------
 -- Base Library                                                              --
