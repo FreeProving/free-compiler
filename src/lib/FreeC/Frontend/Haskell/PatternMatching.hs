@@ -60,10 +60,14 @@ import           FreeC.Monad.Reporter
 transformPatternMatching
   :: HSE.Module SrcSpan -> Converter (HSE.Module SrcSpan)
 transformPatternMatching inputModule = do
-  let inputFilename     = undefined
-      inputFileContents = undefined
+  let inputSrcSpan      = HSE.ann inputModule
+      inputFilename
+        = [srcSpanFilename inputSrcSpan | hasSrcSpanFilename inputSrcSpan]
+      inputFileContents
+        = [unlines (srcSpanCodeLines inputSrcSpan) | hasSourceCode inputSrcSpan]
+      inputFileMap      = Map.fromList (zip inputFilename inputFileContents)
   runM
-    $ HST.runInputFileNoIO (Map.singleton inputFilename inputFileContents)
+    $ HST.runInputFileNoIO inputFileMap
     $ reportToReporter
     $ HST.cancelToReport cancelMessage
     $ HST.runWithOptions HST.defaultOptions
@@ -135,9 +139,9 @@ convertModuleInterface iface = HST.ModuleInterface
   { HST.interfaceModName   = Just
       (HST.ModuleName HST.NoSrcSpan (interfaceModName iface))
   , HST.interfaceDataCons  = Map.fromList
-      (map (convertQName *** convertDataEntryCons) (Map.assocs conEntries))
+      (map (convertQName *** convertDataEntryCons) (Map.assocs dataEntries))
   , HST.interfaceTypeNames = Map.fromList
-      (map (convertQName *** convertConEntryType) (Map.assocs dataEntries))
+      (map (convertQName *** convertConEntryType) (Map.assocs conEntries))
   }
  where
   -- | All entries that are exported by the module.
