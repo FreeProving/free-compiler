@@ -119,6 +119,19 @@ instance Pretty DeclIdent where
 
   prettyList = prettySeparated (comma <> space) . map pretty
 
+-- | Type class for AST nodes with a declaration identifier.
+class HasDeclIdent node where
+  -- | Gets the name of the given AST node.
+  declIdent :: node -> DeclIdent
+
+-- | Gets the qualified name of the given AST node.
+declQName :: HasDeclIdent node => node -> QName
+declQName = declIdentName . declIdent
+
+-- | Gets the unqualified name of the given AST node.
+declName :: HasDeclIdent node => node -> Name
+declName = nameFromQName . declQName
+
 -------------------------------------------------------------------------------
 -- Internal Identifiers                                                      --
 -------------------------------------------------------------------------------
