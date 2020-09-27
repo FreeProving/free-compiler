@@ -240,7 +240,7 @@ identifyConstArgs' decls = map Map.fromList
 
   -- | The dependency graph of the function declarations.
   callGraph :: DependencyGraph IR.FuncDecl
-  callGraph = funcDependencyGraph decls
+  callGraph = valueDependencyGraph decls
 
   -- | Tests whether the given strongly connected component describes a
   --   valid set of constant arguments.
