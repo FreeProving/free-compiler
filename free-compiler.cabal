@@ -260,6 +260,7 @@ test-suite freec-unit-tests
                     , FreeC.Pass.KindCheckPassTests
                     , FreeC.Pass.PartialityAnalysisPassTests
                     , FreeC.Pass.ResolverPassTests
+                    , FreeC.Pass.SharingAnalysisPassTests
                     , FreeC.Pass.TypeInferencePassTests
                     , FreeC.PipelineTests
                     , FreeC.Test.Arbitrary

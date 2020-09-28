@@ -11,6 +11,7 @@ import           FreeC.Pass.FlattenExprPassTests
 import           FreeC.Pass.KindCheckPassTests
 import           FreeC.Pass.PartialityAnalysisPassTests
 import           FreeC.Pass.ResolverPassTests
+import           FreeC.Pass.SharingAnalysisPassTests
 import           FreeC.Pass.TypeInferencePassTests
 
 -- | Test group for tests of passes in 'FreeC.Pipeline.pipeline'.
@@ -23,4 +24,5 @@ testPipeline = do
   testKindCheckPass
   testPartialityAnalysisPass
   testResolverPass
+  testSharingAnalysisPass
   testTypeInferencePass
