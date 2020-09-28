@@ -6,6 +6,8 @@
 --   declarations and guards would not be supported.
 module PatternMatching where
 
+import           Data.Maybe
+
 -------------------------------------------------------------------------------
 -- Peano numbers                                                             --
 -------------------------------------------------------------------------------
@@ -14,6 +16,15 @@ data Peano = Zero | Succ Peano
 plus :: Peano -> Peano -> Peano
 plus Zero q     = q
 plus (Succ p) q = plus p (Succ q)
+
+-------------------------------------------------------------------------------
+-- Impoted Data Types                                                        --
+-------------------------------------------------------------------------------
+-- In the following example, the pattern matching compiler knows that the data
+-- type @Maybe@ that was imported from @Data.Maybe@ has a constructor @Just@.
+alternative :: Maybe a -> Maybe a -> Maybe a
+alternative Nothing my = my
+alternative mx _       = mx
 
 -------------------------------------------------------------------------------
 -- Non-inductively defined functions                                         --
@@ -53,20 +64,20 @@ unzip :: [(a, b)] -> ([a], [b])
 unzip []             = ([], [])
 unzip ((x, y) : xys) = case unzip xys of
   (xs, ys) -> (x : xs, y : ys)
+
 -------------------------------------------------------------------------------
 -- Guards                                                                    --
 -------------------------------------------------------------------------------
 -- The following two functions cannot be translated at the moment, because the
 -- pattern matching compiler generates @let@ expressions when eliminating guards
 -- but our compiler does not support local declarations.
-
 max :: Integer -> Integer -> Integer
-max n m | n > m     = n
+max n m | n > m = n
         | otherwise = m
 
 data Ordering = LT | EQ | GT
 
 compare :: Integer -> Integer -> Ordering
-compare n m | n < m     = LT
-            | n > m     = GT
+compare n m | n < m = LT
+            | n > m = GT
             | otherwise = EQ
