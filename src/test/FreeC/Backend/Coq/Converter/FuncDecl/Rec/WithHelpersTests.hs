@@ -638,7 +638,7 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
               ]
             convertRecFuncDeclsWithHelpers input
       in shouldThrow (avoidLaziness res) (errorCall "Maybe.fromJust: Nothing")
-  it "translates recursive functions with `let`-bindings correctly"
+  it "eliminates `let`-bindings for decreasing argument in helper functions"
     $ shouldSucceedWith
     $ do
       "Integer" <- defineTestTypeCon "Integer" 0 []
@@ -671,3 +671,39 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
         ++ "  := call Shape Pos S xs >>= (fun ys =>"
         ++ "       ys >>= (fun (ys0 : List Shape Pos a) =>"
         ++ "         @length0 Shape Pos a ys0))."
+  it "does not eliminate other `let`-bindings in helper functions"
+    $ shouldSucceedWith
+    $ do
+        "Integer" <- defineTestTypeCon "Integer" 0 []
+        "succ" <- defineTestFunc "succ" 1 "Integer -> Integer"
+        "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
+        ("nil", "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
+        ("cons", "Cons")
+          <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+        "length" <- defineTestFunc "length" 1 "forall a. List a -> Integer"
+        shouldConvertWithHelpersTo
+          [ "length @a (xs :: List a) :: Integer"
+              ++ "  = let { zero = 0 } in case xs of {"
+              ++ "      Nil        -> zero;"
+              ++ "      Cons x xs' -> let { y = x ; z = zero }"
+              ++ "                    in succ (length @a xs')"
+              ++ "    }"
+          ]
+          $ "(* Helper functions for length *) "
+          ++ "Fixpoint length0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ "  (xs : List Shape Pos a)"
+          ++ "  (zero : Integer Shape Pos)"
+          ++ "  {struct xs}"
+          ++ "  := match xs with"
+          ++ "     | nil        => zero"
+          ++ "     | cons x xs' => succ Shape Pos"
+          ++ "         call Shape Pos S (pure 0%Z) >>= (fun zero0 =>"
+          ++ "           (xs' >>= (fun (xs'0 : List Shape Pos a) =>"
+          ++ "             @length0 Shape Pos a xs'0 zero0))"
+          ++ "     end. "
+          ++ "Definition length (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+          ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+          ++ "  : Free Shape Pos (Integer Shape Pos)"
+          ++ "  := call Shape Pos S zero >>= (fun z =>"
+          ++ "       xs >>= (fun (xs0 : List Shape Pos a) =>"
+          ++ "         @length0 Shape Pos a xs0 zero))."
