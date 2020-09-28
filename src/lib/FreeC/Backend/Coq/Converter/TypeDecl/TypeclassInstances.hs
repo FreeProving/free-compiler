@@ -421,41 +421,32 @@ generateTypeclassInstances dataDecls = do
     -- | Like 'buildNormalformValue', but with an additional parameter to accumulate
     --   bound variables.
     buildNormalformValue'
-      :: [Coq.Qualid] -> [(StrippedType, Coq.Qualid)] -> Converter Coq.Term
+      :: [Coq.Term] -> [(StrippedType, Coq.Qualid)] -> Converter Coq.Term
 
     -- If all components have been normalized, apply the constructor to
     -- the normalized components.
     buildNormalformValue' boundVars [] = do
-      args <- mapM (generatePure . Coq.Qualid) (reverse boundVars)
+      args <- mapM generatePure (reverse boundVars)
       generatePure (Coq.app (Coq.Qualid consName) args)
     -- For each component, apply the appropriate function, bind the
     -- result and do the remaining computation.
     buildNormalformValue' boundVars ((t, varName) : consVars)
-      = case Map.lookup t nameMap of
-        -- For recursive or indirectly recursive calls, the type map
-        -- returns the name of the appropriate function to call.
-        Just funcName -> do
-          -- Because the functions work on bare values, the component
-          -- must be bound (to a fresh variable).
-          x <- freshCoqQualid freshArgPrefix
-          -- The result of the normalization will also be bound to a fresh variable.
-          nx <- freshCoqQualid freshNormalformArgPrefix
-          -- Do the rest of the computation with the added bound result.
-          rhs <- buildNormalformValue' (nx : boundVars) consVars
-          -- Construct the actual bindings and return the result.
-          let c = Coq.fun [nx] [Nothing] rhs
-          let c' = applyBind (Coq.app (Coq.Qualid funcName) [Coq.Qualid x]) c
-          return $ applyBind (Coq.Qualid varName) (Coq.fun [x] [Nothing] c')
-        -- If there is no entry in the type map, we can assume that an instance
-        -- already exists. Therefore, we apply @nf@ to the component to receive
-        -- a normalized value.
-        Nothing       -> do
-          nx <- freshCoqQualid freshNormalformArgPrefix
-          rhs <- buildNormalformValue' (nx : boundVars) consVars
-          let c = Coq.fun [nx] [Nothing] rhs
-          return
-            $ applyBind (Coq.app (Coq.Qualid Coq.Base.nf) [Coq.Qualid varName])
-            c
+      = let f = (\nx -> buildNormalformValue' (nx : boundVars) consVars)
+        in case Map.lookup t nameMap of
+             -- For recursive or indirectly recursive calls, the type map
+             -- returns the name of the appropriate function to call.
+             Just funcName -> do
+               -- Because the functions work on bare values, the component
+               -- must be bound before applying the normalization.
+               generateBind (Coq.Qualid varName) freshArgPrefix Nothing
+                 (\x -> generateBind (Coq.app (Coq.Qualid funcName) [x])
+                  freshNormalformArgPrefix Nothing f)
+             -- If there is no entry in the type map, we can assume that an instance
+             -- already exists. Therefore, we apply @nf@ to the component to receive
+             -- a normalized value.
+             Nothing       -> generateBind
+               (Coq.app (Coq.Qualid Coq.Base.nf) [Coq.Qualid varName])
+               freshNormalformArgPrefix Nothing f
 
   -------------------------------------------------------------------------------
   -- Functions to Produce @ShareableArgs@ Instances                              --
@@ -496,26 +487,20 @@ generateTypeclassInstances dataDecls = do
   buildShareArgsValue nameMap consName = buildShareArgsValue' []
    where
     buildShareArgsValue'
-      :: [Coq.Qualid] -> [(StrippedType, Coq.Qualid)] -> Converter Coq.Term
+      :: [Coq.Term] -> [(StrippedType, Coq.Qualid)] -> Converter Coq.Term
     buildShareArgsValue' vals [] = generatePure
-      (Coq.app (Coq.Qualid consName) (map Coq.Qualid (reverse vals)))
+      (Coq.app (Coq.Qualid consName) (reverse vals))
     buildShareArgsValue' vals ((t, varName) : consVars) = do
-      sx <- freshCoqQualid freshSharingArgPrefix
-      rhs <- buildShareArgsValue' (sx : vals) consVars
-      case Map.lookup t nameMap of
-        Just funcName -> do
-          return
-            $ applyBind
-            (Coq.app (Coq.Qualid Coq.Base.cbneed)
-             (shapeAndPos ++ [Coq.Qualid funcName, Coq.Qualid varName]))
-            (Coq.fun [sx] [Nothing] rhs)
-        Nothing       -> do
-          return
-            $ applyBind
-            (Coq.app (Coq.Qualid Coq.Base.cbneed)
-             (shapeAndPos
-              ++ [Coq.Qualid Coq.Base.shareArgs, Coq.Qualid varName]))
-            (Coq.fun [sx] [Nothing] rhs)
+      let lhs = case Map.lookup t nameMap of
+            Just funcName ->
+              (Coq.app (Coq.Qualid Coq.Base.cbneed)
+               (shapeAndPos ++ [Coq.Qualid funcName, Coq.Qualid varName]))
+            Nothing       ->
+              (Coq.app (Coq.Qualid Coq.Base.cbneed)
+               (shapeAndPos
+                ++ [Coq.Qualid Coq.Base.shareArgs, Coq.Qualid varName]))
+      generateBind lhs freshSharingArgPrefix Nothing
+        (\val -> buildShareArgsValue' (val : vals) consVars)
 
   -------------------------------------------------------------------------------
   -- Helper Functions                                                          --
@@ -635,10 +620,6 @@ generateTypeclassInstances dataDecls = do
   typeVarBinder :: [Coq.Qualid] -> Coq.Binder
   typeVarBinder typeVars
     = Coq.typedBinder Coq.Ungeneralizable Coq.Implicit typeVars Coq.sortType
-
-  -- | Shortcut for the application of @>>=@.
-  applyBind :: Coq.Term -> Coq.Term -> Coq.Term
-  applyBind mx f = Coq.app (Coq.Qualid Coq.Base.freeBind) [mx, f]
 
   -- | Given an @A@, returns @Free Shape Pos A@.
   applyFree :: Coq.Term -> Coq.Term
