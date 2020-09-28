@@ -10,10 +10,11 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpers
 import           Control.Monad
   ( forM, join, mapAndUnzipM )
 import           Data.List
-  ( delete, elemIndex )
+  ( delete, elemIndex, partition )
 import qualified Data.List.NonEmpty                             as NonEmpty
 import qualified Data.Map.Strict                                as Map
-import           Data.Maybe                                     ( fromJust )
+import           Data.Maybe
+  ( fromJust, isJust )
 import           Data.Set                                       ( Set )
 import qualified Data.Set                                       as Set
 
@@ -62,7 +63,8 @@ convertRecFuncDeclsWithHelpers' decls = do
   helperDecls'
     <- forM (concat helperDecls) $ \(helperDecl, decArgIndex) -> localEnv $ do
       inlinedHelperDecl <- inlineFuncDecls mainDecls helperDecl
-      convertRecHelperFuncDecl inlinedHelperDecl decArgIndex
+      eliminatedHelperDecl <- eliminateAliases inlinedHelperDecl decArgIndex
+      convertRecHelperFuncDecl eliminatedHelperDecl decArgIndex
   mainDecls' <- convertNonRecFuncDecls mainDecls
   -- Create common fixpoint sentence for all helper functions.
   return
@@ -135,13 +137,12 @@ transformRecFuncDecl
     -- Pass all type arguments to the helper function.
     let helperTypeArgs = typeArgs
     -- Replace aliases of decreasing argument with decreasing argument.
-    let mkDecArgVar aliasSrcSpan = IR.Var aliasSrcSpan decArg Nothing
-        aliasSubst               = composeSubsts
-          [singleSubst' alias mkDecArgVar
+    let aliasSubst = composeSubsts
+          [mkVarSubst alias decArg
           | alias <- Set.toList (decArgAliasesAt caseExprPos)
           ]
-        caseExpr                 = selectSubterm' expr caseExprPos
-        caseExpr'                = applySubst aliasSubst caseExpr
+        caseExpr   = selectSubterm' expr caseExprPos
+        caseExpr'  = applySubst aliasSubst caseExpr
     -- Pass used variables as additional arguments to the helper function
     -- but don't pass shadowed arguments to helper functions.
     let boundVarTypeMap = boundVarsWithTypeAt expr caseExprPos
@@ -201,6 +202,55 @@ transformRecFuncDecl
            (IR.Var NoSrcSpan helperName helperAppType) helperTypeArgs')
           (map IR.varPatToExpr helperArgs)
     return ((helperDecl, decArgIndex'), helperApp)
+
+-- | Replaces aliases of the decreasing argument or variables that are
+--   structurally smaller than the decreasing argument in the right-hand
+--   side of the given helper function declaration with the corresponding
+--   variable.
+--
+--   For example, if @xs@ is the decreasing argument expression of the form
+--
+--   > let ys = xs in e
+--
+--   all occurences of @ys@ is replaced by @xs@ in @e@ and the binding for @ys@
+--   is removed.
+--
+--   The purpose of this transformation is to prevent applications of @share@
+--   and @call@ to be generated within helper functions for subterms of the
+--   decreasing since they interfere with Coq's termination checker.
+eliminateAliases :: IR.FuncDecl -> DecArgIndex -> Converter IR.FuncDecl
+eliminateAliases helperDecl decArgIndex = do
+  let decArg = IR.varPatQName (IR.funcDeclArgs helperDecl !! decArgIndex)
+  rhs' <- eliminateAliases' (initDepthMap decArg) (IR.funcDeclRhs helperDecl)
+  return helperDecl { IR.funcDeclRhs = rhs' }
+
+-- | Replaces aliases in the given expression and keeps track of which
+--   variables are structurally smaller or equal with the given 'DepthMap'.
+eliminateAliases' :: DepthMap -> IR.Expr -> Converter IR.Expr
+eliminateAliases' depthMap expr = case expr of
+  (IR.Let srcSpan binds inExpr exprType) -> do
+    let (elimBinds, unElimBinds) = partition shouldEliminate binds
+        elimNames                = map (IR.varPatQName . IR.bindVarPat)
+          elimBinds
+        elimExprs                = map IR.bindExpr elimBinds
+        subst                    = composeSubsts
+          (zipWith singleSubst elimNames elimExprs)
+    let binds'   = map (applySubst subst) unElimBinds
+        inExpr'  = applySubst subst inExpr
+        letExpr' = IR.Let srcSpan binds' inExpr' exprType
+    eliminateInChildren letExpr'
+  _ -> eliminateInChildren expr
+ where
+  -- | Tests whether the given @let@-binding is an alias for a variable that
+  --   is structurally smaller or equal to the decreasing argument.
+  shouldEliminate :: IR.Bind -> Bool
+  shouldEliminate = isJust . flip lookupDepth depthMap . IR.bindExpr
+
+  -- | Applies 'eliminateAliases'' to the children of the given expression.
+  eliminateInChildren :: IR.Expr -> Converter IR.Expr
+  eliminateInChildren expr' = do
+    children' <- mapChildrenWithDepthMapsM eliminateAliases' depthMap expr'
+    return (fromJust (replaceChildTerms expr' children'))
 
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
 --   sentence with the decreasing argument at the given index annotated with

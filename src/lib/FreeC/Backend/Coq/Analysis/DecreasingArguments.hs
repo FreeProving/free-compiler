@@ -82,9 +82,14 @@ module FreeC.Backend.Coq.Analysis.DecreasingArguments
   , identifyDecArgs
     -- * Depth Map
   , DepthMap
+  , lookupDepth
+  , initDepthMap
   , depthMapAt
+  , mapChildrenWithDepthMaps
+  , mapChildrenWithDepthMapsM
   ) where
 
+import           Data.Composition      ( (.:.) )
 import           Data.List             ( find )
 import           Data.Map.Strict       ( Map )
 import qualified Data.Map.Strict       as Map
@@ -163,7 +168,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
   checkDecArg (Just _) _ _ = True
   checkDecArg _ decArgIndex (IR.FuncDecl _ _ _ args _ rhs)
     = let decArg = IR.varPatQName (args !! decArgIndex)
-      in checkExpr (Map.singleton decArg 0) rhs
+      in checkExpr (initDepthMap decArg) rhs
 
   -- | Tests whether there is a variable that is structurally smaller than the
   --   potential decreasing argument in the position of the decreasing argumnet
@@ -201,11 +206,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
     checkExpr' (IR.TypeAppExpr _ expr _ _) args = checkExpr' expr args
     -- Check all other expressions recursively and extend the 'depthMap' if
     -- there are variable binders. Arguments are not passed to subterms.
-    checkExpr' expr _
-      = let children   = childTerms expr
-            indicies   = [1 .. length children]
-            depthMaps' = map (($ depthMap) . flip extendDepthMap expr) indicies
-        in all (uncurry checkExpr) (zip depthMaps' children)
+    checkExpr' expr _ = and (mapChildrenWithDepthMaps checkExpr depthMap expr)
 
 -------------------------------------------------------------------------------
 -- Depth Map                                                                 --
@@ -247,6 +248,10 @@ withDepths = flip (foldr (uncurry withDepth))
 withoutArgs :: [IR.VarPat] -> DepthMap -> DepthMap
 withoutArgs = flip Map.withoutKeys . Set.fromList . map IR.varPatQName
 
+-- | Creates the initial 'DepthMap' for the given decreasing argument.
+initDepthMap :: IR.QName -> DepthMap
+initDepthMap decArg = Map.singleton decArg 0
+
 -- | Builds a 'DepthMap' for variables that are bound at the given position
 --   in the given expression.
 depthMapAt
@@ -254,14 +259,29 @@ depthMapAt
   -> IR.Expr  -- ^ The root expression.
   -> IR.QName -- ^ The name of the decreasing argument.
   -> DepthMap
-depthMapAt p expr decArg = foldr (uncurry extendDepthMap)
-  (Map.singleton decArg 0) (mapMaybe selectParent (ancestorPos p))
+depthMapAt p expr decArg = foldr (uncurry extendDepthMap) (initDepthMap decArg)
+  (mapMaybe selectParent (ancestorPos p))
  where
   -- | Gets the subterm at the parent position of the given position as well
   --   as the index (starting at @1@) of the position within its parent
   --   position.
   selectParent :: Pos -> Maybe (Int, IR.Expr)
   selectParent = fmap (fmap (selectSubterm' expr)) . unConsPos
+
+-- | Applies the given function to the children of the given expression
+--   and the extended 'DepthMap' for that child.
+mapChildrenWithDepthMaps
+  :: (DepthMap -> IR.Expr -> a) -> DepthMap -> IR.Expr -> [a]
+mapChildrenWithDepthMaps f depthMap expr
+  = let children   = childTerms expr
+        indicies   = [1 .. length children]
+        depthMaps' = map (($ depthMap) . flip extendDepthMap expr) indicies
+    in zipWith f depthMaps' children
+
+-- | Monadic version of 'mapChildrenWithDepthMaps'.
+mapChildrenWithDepthMapsM
+  :: Monad m => (DepthMap -> IR.Expr -> m a) -> DepthMap -> IR.Expr -> m [a]
+mapChildrenWithDepthMapsM = sequence .:. mapChildrenWithDepthMaps
 
 -- | Updates the given 'DepthMap' for binders that bind variables in the child
 --   expression with the given index (starting at @1@) in the given expression.
