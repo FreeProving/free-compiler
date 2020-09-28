@@ -3,7 +3,7 @@
    result of [append] and [comp]. *)
 
 From Base Require Import Free Prelude.
-From Razor.Extra Require Import ExprInd Tactic.
+From Razor.Extra Require Import Tactic.
 From Generated Require Import Razor.
 
 Require Import Coq.Program.Equality.

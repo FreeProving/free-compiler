@@ -4,7 +4,7 @@
    position function. *)
 
 From Base Require Import Free Free.Instance.Maybe Prelude QuickCheck.
-From Razor.Extra Require Import ExprInd Tactic Pureness.
+From Razor.Extra Require Import Tactic Pureness.
 From Generated Require Import Razor.
 From Proofs Require Import AppendAssocProofs.
 

@@ -6,7 +6,6 @@
 ../Proofs/AppendAssocProofs.v
 ../generated/Proofs/AppendAssoc.v
 ../generated/Razor.v
-Extra/ExprInd.v
 Extra/FreeDB.v
 Extra/Pureness.v
 Extra/Tactic.v

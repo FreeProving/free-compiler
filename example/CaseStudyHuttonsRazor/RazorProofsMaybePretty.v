@@ -2,7 +2,7 @@
    tactics of [Extra/FreeDB]. *)
 
 From Base Require Import Free Free.Instance.Maybe Prelude QuickCheck.
-From Razor.Extra Require Import ExprInd FreeDB Pureness Tactic.
+From Razor.Extra Require Import FreeDB Pureness Tactic.
 From Generated Require Import Razor.
 From Proofs Require Import AppendAssocProofs.
 

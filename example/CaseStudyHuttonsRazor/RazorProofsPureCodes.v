@@ -4,7 +4,7 @@
    require to deal with lemmas on the [>>=] operator. *)
    
 From Base Require Import Free Free.Instance.Maybe Free.Instance.Error Prelude Test.QuickCheck.
-From Razor.Extra Require Import ExprInd Tactic Pureness.
+From Razor.Extra Require Import Tactic Pureness.
 From Generated Require Import Razor.
 From Proofs Require Import AppendAssocProofs.
 
