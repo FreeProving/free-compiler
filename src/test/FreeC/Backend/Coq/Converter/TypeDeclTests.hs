@@ -442,5 +442,3 @@ testConvertDataDecls
             ++ "Notation \"'@A.Bar2' Shape Pos a x\" := "
             ++ "(@pure Shape Pos (Foo2 Shape Pos) (@bar2 Shape Pos a x)) "
             ++ "( only parsing, at level 10, Shape, Pos, a, x at level 9 )."
-
-

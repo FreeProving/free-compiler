@@ -31,21 +31,25 @@ module FreeC.IR.Subterm
   , findSubtermWithPos
   , findSubterms
   , findFirstSubterm
+    -- * Replacing Subterms
+  , mapSubterms
+  , mapSubtermsM
     -- * Bound Variables
   , boundVarsAt
   , boundVarsWithTypeAt
   ) where
 
-import           Control.Monad    ( foldM )
-import           Data.Composition ( (.:) )
-import           Data.List        ( inits, intersperse, isPrefixOf )
-import           Data.Map.Strict  ( Map )
-import qualified Data.Map.Strict  as Map
-import           Data.Maybe       ( fromMaybe, listToMaybe )
-import           Data.Set         ( Set )
-import           Data.Tuple.Extra ( (&&&) )
+import           Control.Monad         ( foldM )
+import           Data.Composition      ( (.:) )
+import           Data.Functor.Identity ( runIdentity )
+import           Data.List             ( inits, intersperse, isPrefixOf )
+import           Data.Map.Strict       ( Map )
+import qualified Data.Map.Strict       as Map
+import           Data.Maybe            ( fromMaybe, listToMaybe )
+import           Data.Set              ( Set )
+import           Data.Tuple.Extra      ( (&&&) )
 
-import qualified FreeC.IR.Syntax  as IR
+import qualified FreeC.IR.Syntax       as IR
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
@@ -91,6 +95,20 @@ class Pretty a => Subterm a where
 
   -- | Replaces the child nodes of the given AST node.
   replaceChildTerms :: a -> [a] -> Maybe a
+
+-- | Like 'replaceChildTerms' but throws an error if the wrong number of child
+--   terms is provided.
+replaceChildTerms' :: Subterm a => a -> [a] -> a
+replaceChildTerms' term children' = fromMaybe argCountError
+  (replaceChildTerms term children')
+ where
+  -- | The error to throw when the wrong number of new child terms is provided.
+  argCountError = error
+    $ "replaceChildTerms: Wrong number of child terms. Got "
+    ++ show (length children')
+    ++ " but expected "
+    ++ show (length (childTerms term))
+    ++ "!"
 
 -- | Expressions have subterms.
 instance Subterm IR.Expr where
@@ -311,6 +329,22 @@ findSubterms predicate = map fst . findSubtermWithPos (flip (const predicate))
 --   Return @Nothing@ if there is no such subterm.
 findFirstSubterm :: Subterm a => (a -> Bool) -> a -> Maybe a
 findFirstSubterm = listToMaybe .: findSubterms
+
+-------------------------------------------------------------------------------
+-- Replacing for Subterms                                                    --
+-------------------------------------------------------------------------------
+-- | Applies the given function to all subterms of the given node.
+--
+--   The subterms of the returned expression are replaced recursively.
+mapSubterms :: Subterm a => (a -> a) -> a -> a
+mapSubterms f = runIdentity . mapSubtermsM (return . f)
+
+-- Monadic version of 'mapSubterms'.
+mapSubtermsM :: (Subterm a, Monad m) => (a -> m a) -> a -> m a
+mapSubtermsM f term = do
+  term' <- f term
+  children' <- mapM (mapSubtermsM f) (childTerms term')
+  return (replaceChildTerms' term' children')
 
 -------------------------------------------------------------------------------
 -- Bound Variables                                                           --

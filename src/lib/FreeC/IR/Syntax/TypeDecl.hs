@@ -25,6 +25,10 @@ data TypeDecl
                 }
  deriving ( Eq, Show )
 
+-- | Instance to get the name of a type synonym or data type declaration.
+instance HasDeclIdent TypeDecl where
+  declIdent = typeDeclIdent
+
 -- | Gets the qualified name of the given type declaration.
 typeDeclQName :: TypeDecl -> QName
 typeDeclQName = declIdentName . typeDeclIdent
@@ -35,16 +39,16 @@ typeDeclName = nameFromQName . typeDeclQName
 
 -- | Pretty instance for type declarations.
 instance Pretty TypeDecl where
-  pretty (DataDecl _ declIdent typeVarDecls conDecls) = prettyString "data"
-    <+> pretty declIdent
+  pretty (DataDecl _ declIdent' typeVarDecls conDecls) = prettyString "data"
+    <+> pretty declIdent'
     <+> hsep (map pretty typeVarDecls)
     <+> align (vcat (zipWith prettyConDecl [0 ..] conDecls))
    where
     prettyConDecl :: Int -> ConDecl -> Doc
     prettyConDecl i conDecl | i == 0 = equals <+> pretty conDecl
                             | otherwise = char '|' <+> pretty conDecl
-  pretty (TypeSynDecl _ declIdent typeVarDecls typeExpr) = prettyString "type"
-    <+> pretty declIdent
+  pretty (TypeSynDecl _ declIdent' typeVarDecls typeExpr) = prettyString "type"
+    <+> pretty declIdent'
     <+> hsep (map pretty typeVarDecls)
     <+> equals
     <+> pretty typeExpr
@@ -59,6 +63,10 @@ data ConDecl = ConDecl { conDeclSrcSpan :: SrcSpan
                        }
  deriving ( Eq, Show )
 
+-- | Instance to get the name of a constructor declaration.
+instance HasDeclIdent ConDecl where
+  declIdent = conDeclIdent
+
 -- | Gets the qualified name of the given constructor declaration.
 conDeclQName :: ConDecl -> QName
 conDeclQName = declIdentName . conDeclIdent
@@ -69,5 +77,5 @@ conDeclName = nameFromQName . conDeclQName
 
 -- | Pretty instance for data constructor declarations.
 instance Pretty ConDecl where
-  pretty (ConDecl _ declIdent types) = pretty declIdent
+  pretty (ConDecl _ declIdent' types) = pretty declIdent'
     <+> hsep (map pretty types)

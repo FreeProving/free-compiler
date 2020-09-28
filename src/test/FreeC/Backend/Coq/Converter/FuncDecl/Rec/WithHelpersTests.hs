@@ -668,6 +668,6 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
         ++ "Definition length (Shape : Type) (Pos : Shape -> Type) {a : Type}"
         ++ "  (xs : Free Shape Pos (List Shape Pos a))"
         ++ "  : Free Shape Pos (Integer Shape Pos)"
-        ++ "  := share Shape Pos S xs >>= (fun ys =>"
+        ++ "  := call Shape Pos S xs >>= (fun ys =>"
         ++ "       ys >>= (fun (ys0 : List Shape Pos a) =>"
         ++ "         @length0 Shape Pos a ys0))."
