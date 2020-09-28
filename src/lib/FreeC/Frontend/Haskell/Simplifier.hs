@@ -886,4 +886,4 @@ simplifyBinds (HSE.BDecls _ decls) = mapM simplifyBind decls
     = experimentallySupported "Guards" rhss
   simplifyBind (HSE.PatBind _ _ _ (Just binds))
     = notSupported "Local declarations" binds
-  simplifyBind decl = expected "A variable pattern binding" decl
+  simplifyBind decl = expected "a variable pattern binding" decl

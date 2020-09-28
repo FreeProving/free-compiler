@@ -59,7 +59,6 @@ unzip ((x, y) : xys) = case unzip xys of
 -- The following two functions cannot be translated at the moment, because the
 -- pattern matching compiler generates @let@ expressions when eliminating guards
 -- but our compiler does not support local declarations.
-{-
 
 max :: Integer -> Integer -> Integer
 max n m | n > m     = n
@@ -71,5 +70,3 @@ compare :: Integer -> Integer -> Ordering
 compare n m | n < m     = LT
             | n > m     = GT
             | otherwise = EQ
-
--}

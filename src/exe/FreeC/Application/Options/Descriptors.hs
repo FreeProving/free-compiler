@@ -58,8 +58,6 @@ optionDescriptors
         (unlines
          [ "Experimental. Enables the automatic transformation of pattern"
          , "matching, including guard elimination and case completion."
-         , "If this option is enabled, no location information will be"
-         , "available in error messages."
          ])
     , Option [] ["dump-transformed-modules"]
         (ReqArg (\p opts -> opts { optDumpTransformedModulesDir = Just p })

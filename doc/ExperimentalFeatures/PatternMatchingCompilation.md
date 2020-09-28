@@ -69,31 +69,6 @@ Now, the compiler is also able to provide location information.
 The feature is still marked as experimental since there are known conflicts with other features, the transformed code is not always accepted by our compiler and the pattern-matching transformation does not always terminate.
 All of the following examples do not work.
 
-### Module imports
-
-The pattern matching compiler does not yet work in conjunction with module imports.
-For example, if we have a module `A` that declares a data type `Foo` with two constructors `Bar` and `Baz`
-
-```haskell
-module A where
-
-data Foo = Bar | Baz
-```
-
-and another module that imports `A`,
-
-```haskell
-module B where
-
-import A
-
-barToBaz :: Foo -> Foo
-barToBaz Bar = Baz
-```
-
-the pattern matching compiler will not know the constructor `Bar`.
-However, it needs to know all constructors to perform case completion (i.e., to add an error case for the unhandled constructor `Baz`).
-
 ### Recursive functions
 
 If variable patterns and more complex patterns are mixed, the pattern matching compiler substitutes variables on the right-hand side by constructor applications.
@@ -126,32 +101,6 @@ intercalate _ []       = []
 intercalate _ (x : []) = [x]
 intercalate s (x : xs) = x : s : intercalate s xs
 ```
-
-### Guards
-
-Even though the pattern matching compiler supports guard elimination, guards cannot be used since they are transformed to `let` expressions which are not yet supported.
-
-```haskell
-max :: Integer -> Integer -> Integer
-max n m | n > m     = n
-        | otherwise = m
-```
-
-### Unsupported patterns
-
-The pattern matching compiler does not yet support all patterns.
-When pattern matching compilation is enabled, make sure that your program uses supported patterns only.
-Otherwise, there is a risk that the transformation does not terminate and consumes a lot of memory.
-For example, the following function uses as-patterns which are not supported.
-
-```haskell
-duplicateHead :: [a] -> [a]
-duplicateHead []           = []
-duplicateHead xs@(x : xs') = x : xs
-```
-
-> **Warning:** Be aware that high memory consumption can impair system responsiveness and stability.
-> If you test the example above, keep an eye on your system memory and be prepared to cancel compilation.
 
 [`example/PatternMatching.hs`]:
   ../../example/PatternMatching.hs
