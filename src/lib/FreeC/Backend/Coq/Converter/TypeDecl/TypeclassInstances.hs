@@ -492,13 +492,11 @@ generateTypeclassInstances dataDecls = do
       (Coq.app (Coq.Qualid consName) (reverse vals))
     buildShareArgsValue' vals ((t, varName) : consVars) = do
       let lhs = case Map.lookup t nameMap of
-            Just funcName ->
-              (Coq.app (Coq.Qualid Coq.Base.cbneed)
-               (shapeAndPos ++ [Coq.Qualid funcName, Coq.Qualid varName]))
-            Nothing       ->
-              (Coq.app (Coq.Qualid Coq.Base.cbneed)
-               (shapeAndPos
-                ++ [Coq.Qualid Coq.Base.shareArgs, Coq.Qualid varName]))
+            Just funcName -> Coq.app (Coq.Qualid Coq.Base.cbneed)
+              (shapeAndPos ++ [Coq.Qualid funcName, Coq.Qualid varName])
+            Nothing       -> Coq.app (Coq.Qualid Coq.Base.cbneed)
+              (shapeAndPos
+               ++ [Coq.Qualid Coq.Base.shareArgs, Coq.Qualid varName])
       generateBind lhs freshSharingArgPrefix Nothing
         (\val -> buildShareArgsValue' (val : vals) consVars)
 
