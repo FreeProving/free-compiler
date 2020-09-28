@@ -86,10 +86,8 @@ module FreeC.Backend.Coq.Analysis.DecreasingArguments
   , initDepthMap
   , depthMapAt
   , mapChildrenWithDepthMaps
-  , mapChildrenWithDepthMapsM
   ) where
 
-import           Data.Composition      ( (.:.) )
 import           Data.List             ( find )
 import           Data.Map.Strict       ( Map )
 import qualified Data.Map.Strict       as Map
@@ -277,11 +275,6 @@ mapChildrenWithDepthMaps f depthMap expr
         indicies   = [1 .. length children]
         depthMaps' = map (($ depthMap) . flip extendDepthMap expr) indicies
     in zipWith f depthMaps' children
-
--- | Monadic version of 'mapChildrenWithDepthMaps'.
-mapChildrenWithDepthMapsM
-  :: Monad m => (DepthMap -> IR.Expr -> m a) -> DepthMap -> IR.Expr -> m [a]
-mapChildrenWithDepthMapsM = sequence .:. mapChildrenWithDepthMaps
 
 -- | Updates the given 'DepthMap' for binders that bind variables in the child
 --   expression with the given index (starting at @1@) in the given expression.

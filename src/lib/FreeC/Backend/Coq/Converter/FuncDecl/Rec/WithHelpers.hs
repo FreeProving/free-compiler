@@ -63,7 +63,7 @@ convertRecFuncDeclsWithHelpers' decls = do
   helperDecls'
     <- forM (concat helperDecls) $ \(helperDecl, decArgIndex) -> localEnv $ do
       inlinedHelperDecl <- inlineFuncDecls mainDecls helperDecl
-      eliminatedHelperDecl <- eliminateAliases inlinedHelperDecl decArgIndex
+      let eliminatedHelperDecl = eliminateAliases inlinedHelperDecl decArgIndex
       convertRecHelperFuncDecl eliminatedHelperDecl decArgIndex
   mainDecls' <- convertNonRecFuncDecls mainDecls
   -- Create common fixpoint sentence for all helper functions.
@@ -201,7 +201,12 @@ transformRecFuncDecl
           (IR.visibleTypeApp NoSrcSpan
            (IR.Var NoSrcSpan helperName helperAppType) helperTypeArgs')
           (map IR.varPatToExpr helperArgs)
-    return ((helperDecl, decArgIndex'), helperApp)
+    -- The decreasing argument must be instantiated with the scrutinee of the
+    -- @case@-expression the helper function has been created for (prior to
+    -- renaming of aliases).
+    let scrutinee = IR.caseExprScrutinee caseExpr
+        helperApp' = applySubst (singleSubst decArg scrutinee) helperApp
+    return ((helperDecl, decArgIndex'), helperApp')
 
 -- | Replaces aliases of the decreasing argument or variables that are
 --   structurally smaller than the decreasing argument in the right-hand
@@ -218,27 +223,24 @@ transformRecFuncDecl
 --   The purpose of this transformation is to prevent applications of @share@
 --   and @call@ to be generated within helper functions for subterms of the
 --   decreasing since they interfere with Coq's termination checker.
-eliminateAliases :: IR.FuncDecl -> DecArgIndex -> Converter IR.FuncDecl
-eliminateAliases helperDecl decArgIndex = do
+eliminateAliases :: IR.FuncDecl -> DecArgIndex -> IR.FuncDecl
+eliminateAliases helperDecl decArgIndex =
   let decArg = IR.varPatQName (IR.funcDeclArgs helperDecl !! decArgIndex)
-  rhs' <- eliminateAliases' (initDepthMap decArg) (IR.funcDeclRhs helperDecl)
-  return helperDecl { IR.funcDeclRhs = rhs' }
+  in helperDecl { IR.funcDeclRhs = eliminateAliases' (initDepthMap decArg) (IR.funcDeclRhs helperDecl) }
 
 -- | Replaces aliases in the given expression and keeps track of which
 --   variables are structurally smaller or equal with the given 'DepthMap'.
-eliminateAliases' :: DepthMap -> IR.Expr -> Converter IR.Expr
+eliminateAliases' :: DepthMap -> IR.Expr -> IR.Expr
 eliminateAliases' depthMap expr = case expr of
-  (IR.Let srcSpan binds inExpr exprType) -> do
-    let (elimBinds, unElimBinds) = partition shouldEliminate binds
-        elimNames                = map (IR.varPatQName . IR.bindVarPat)
-          elimBinds
-        elimExprs                = map IR.bindExpr elimBinds
-        subst                    = composeSubsts
-          (zipWith singleSubst elimNames elimExprs)
-    let binds'   = map (applySubst subst) unElimBinds
-        inExpr'  = applySubst subst inExpr
+  (IR.Let srcSpan binds inExpr exprType) ->
+    let (eliminatedBinds, perservedBinds) = partition shouldEliminate binds
+        names = map (IR.varPatQName . IR.bindVarPat) eliminatedBinds
+        exprs = map IR.bindExpr eliminatedBinds
+        subst = composeSubsts (zipWith singleSubst names exprs)
+        binds' = map (applySubst subst) perservedBinds
+        inExpr' = applySubst subst inExpr
         letExpr' = IR.Let srcSpan binds' inExpr' exprType
-    eliminateInChildren letExpr'
+    in eliminateInChildren letExpr'
   _ -> eliminateInChildren expr
  where
   -- | Tests whether the given @let@-binding is an alias for a variable that
@@ -247,10 +249,10 @@ eliminateAliases' depthMap expr = case expr of
   shouldEliminate = isJust . flip lookupDepth depthMap . IR.bindExpr
 
   -- | Applies 'eliminateAliases'' to the children of the given expression.
-  eliminateInChildren :: IR.Expr -> Converter IR.Expr
-  eliminateInChildren expr' = do
-    children' <- mapChildrenWithDepthMapsM eliminateAliases' depthMap expr'
-    return (fromJust (replaceChildTerms expr' children'))
+  eliminateInChildren :: IR.Expr -> IR.Expr
+  eliminateInChildren expr'
+    = let children' = mapChildrenWithDepthMaps eliminateAliases' depthMap expr'
+      in fromJust (replaceChildTerms expr' children')
 
 -- | Converts a recursive helper function to the body of a Coq @Fixpoint@
 --   sentence with the decreasing argument at the given index annotated with
