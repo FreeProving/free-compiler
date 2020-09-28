@@ -2,6 +2,10 @@
 
 ## Unrealeased
 
+ - **Added command line options for front- and backend selection**
+    + A frontend / backend can be specified with `--to LANG` / `--from LANG`.
+    + Added IR frontend and backend for debugging purposes.
+
 ## [0.2.0.0][tag/v0.2.0.0] / 2020-05-25
 
  - **Implemented module imports**
@@ -28,10 +32,10 @@
  - **Initial version**
 
 [`doc/ExperimentalFeatures/PatternMatchingCompilation.md`]:
-  https://github.com/FreeProving/free-compiler/blob/master/doc/ExperimentalFeatures/PatternMatchingCompilation.md
+  https://github.com/FreeProving/free-compiler/blob/main/doc/ExperimentalFeatures/PatternMatchingCompilation.md
   "Free Compiler Documentation — Pattern Matching Compilation"
 [`doc/CustomPragma/DecreasingArgumentPragma.md`]:
-  https://github.com/FreeProving/free-compiler/blob/master/doc/CustomPragma/DecreasingArgumentPragma.md
+  https://github.com/FreeProving/free-compiler/blob/main/doc/CustomPragma/DecreasingArgumentPragma.md
   "Free Compiler Documentation — Decreasing Argument Pragma"
 
 [tag/v0.1.0.0]:

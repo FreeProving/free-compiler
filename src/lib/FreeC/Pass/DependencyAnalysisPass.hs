@@ -35,15 +35,13 @@
 --   == Error cases
 --
 --   The messages reported by the child passes are reported.
-
 module FreeC.Pass.DependencyAnalysisPass
   ( DependencyAwarePass
   , dependencyAnalysisPass
-  )
-where
+  ) where
 
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax          as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 
@@ -51,6 +49,7 @@ import           FreeC.Pass
 --   on individual strongly connected components of the dependency graph
 --   for declarations of type @decl@.
 type DependencyAwarePass decl = Pass (DependencyComponent decl)
+  (DependencyComponent decl)
 
 -- | Type class for declaration AST nodes whose dependencies can be analyzed.
 class DependencyAnalysisPass decl where
@@ -65,25 +64,29 @@ class DependencyAnalysisPass decl where
 
 -- | The dependencies of type declarations can be analyzed.
 instance DependencyAnalysisPass IR.TypeDecl where
-  groupDecls = groupTypeDecls
-  getDecls   = IR.modTypeDecls
+  groupDecls         = typeDependencyComponents
+
+  getDecls           = IR.modTypeDecls
+
   setDecls ast decls = ast { IR.modTypeDecls = decls }
 
 -- | The dependencies of function declarations can be analyzed.
 instance DependencyAnalysisPass IR.FuncDecl where
-  groupDecls = groupFuncDecls
-  getDecls   = IR.modFuncDecls
+  groupDecls         = valueDependencyComponents
+
+  getDecls           = IR.modFuncDecls
+
   setDecls ast decls = ast { IR.modFuncDecls = decls }
 
 -- | Applies the given child passes to the strongly connected components
 --   of the dependency graph for declarations of type @decl@ of the given
 --   module.
-dependencyAnalysisPass
-  :: DependencyAnalysisPass decl
-  => [DependencyAwarePass decl]
-  -> IR.Module
-  -> Converter IR.Module
+dependencyAnalysisPass :: DependencyAnalysisPass decl
+                       => DependencyAwarePass decl
+                       -> IR.Module
+                       -> Converter IR.Module
 dependencyAnalysisPass = subPipelinePass getComponents setComponents
  where
-  getComponents = groupDecls . getDecls
+  getComponents     = groupDecls . getDecls
+
   setComponents ast = setDecls ast . concatMap unwrapComponent

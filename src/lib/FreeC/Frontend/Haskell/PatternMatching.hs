@@ -1,30 +1,25 @@
 -- | This module provides an interface to the pattern matching compiler and
---   case complition library by Malte Clement
+--   case completion library by Malte Clement
 --   <https://git.informatik.uni-kiel.de/stu204333/placc-thesis>.
 --   We are using a slightly adapted version of the library located at
 --   <https://github.com/FreeProving/haskell-src-transformations>.
-
-module FreeC.Frontend.Haskell.PatternMatching
-  ( transformPatternMatching
-  )
-where
-
-import           Control.Monad                  ( void )
-import           Data.Map.Strict                ( Map )
-import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( mapMaybe )
-import qualified Data.Set                      as Set
+module FreeC.Frontend.Haskell.PatternMatching ( transformPatternMatching ) where
 
 import           Application
+import           Control.Monad                     ( void )
+import           Data.Map.Strict                   ( Map )
+import qualified Data.Map.Strict                   as Map
+import           Data.Maybe                        ( mapMaybe )
+import qualified Data.Set                          as Set
 import           FreshVars
-import qualified Language.Haskell.Exts.Syntax  as HSE
+import qualified Language.Haskell.Exts.Syntax      as HSE
 
 import           FreeC.Environment
-import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
-import qualified FreeC.IR.Base.Prelude         as IR.Prelude
+import           FreeC.Environment.ModuleInterface
+import qualified FreeC.IR.Base.Prelude             as IR.Prelude
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Converter
 
 -- | Constructs the initial state of the pattern matching compiler library.
@@ -58,12 +53,12 @@ makeConsMapEntry entry
   extractTypeConIdent :: IR.Type -> Maybe String
   extractTypeConIdent (IR.TypeCon _ (IR.UnQual name)) = extractIdent name
   extractTypeConIdent (IR.TypeCon _ (IR.Qual _ name)) = extractIdent name
-  extractTypeConIdent (IR.TypeApp _ t1 _            ) = extractTypeConIdent t1
-  extractTypeConIdent _                               = Nothing
+  extractTypeConIdent (IR.TypeApp _ t1 _) = extractTypeConIdent t1
+  extractTypeConIdent _ = Nothing
 
   extractIdent :: IR.Name -> Maybe String
-  extractIdent (IR.Ident  ident) = Just ident
-  extractIdent (IR.Symbol sym  ) = Just sym
+  extractIdent (IR.Ident ident) = Just ident
+  extractIdent (IR.Symbol sym)  = Just sym
 
   -- | The @haskell-src-exts@ name of the constructor.
   conQName :: HSE.QName ()
@@ -78,7 +73,7 @@ makeConsMapEntry entry
   isInfix = case entryName entry of
     IR.Qual _ (IR.Symbol (':' : _)) -> True
     IR.UnQual (IR.Symbol (':' : _)) -> True
-    _                               -> False
+    _ -> False
 
   -- | Converts a qualifiable IR name to a Haskell name.
   convertQName :: IR.QName -> HSE.QName ()
@@ -90,15 +85,15 @@ makeConsMapEntry entry
 
   -- | Converts an unqualified IR name to a Haskell name.
   convertName :: IR.Name -> HSE.QName ()
-  convertName (IR.Ident  ident) = HSE.UnQual () (HSE.Ident () ident)
-  convertName (IR.Symbol sym  ) = HSE.UnQual () (HSE.Symbol () sym)
+  convertName (IR.Ident ident) = HSE.UnQual () (HSE.Ident () ident)
+  convertName (IR.Symbol sym)  = HSE.UnQual () (HSE.Symbol () sym)
 
   -- | Maps special IR constructor names to the corresponding Haskell name.
   specialNames :: Map IR.QName (HSE.SpecialCon ())
   specialNames = Map.fromList
-    [ (IR.Prelude.unitConName   , HSE.UnitCon ())
-    , (IR.Prelude.nilConName    , HSE.ListCon ())
-    , (IR.Prelude.consConName   , HSE.Cons ())
+    [ (IR.Prelude.unitConName, HSE.UnitCon ())
+    , (IR.Prelude.nilConName, HSE.ListCon ())
+    , (IR.Prelude.consConName, HSE.Cons ())
     , (IR.Prelude.tupleConName 2, HSE.TupleCon () HSE.Boxed 2)
     ]
 
@@ -107,13 +102,15 @@ makeConsMapEntry entry
 --
 --   Since the pattern matching compiler library does not support source
 --   spans, location information is removed during the transformation.
-transformPatternMatching :: HSE.Module SrcSpan -> Converter (HSE.Module SrcSpan)
-transformPatternMatching haskellAst =
-  transformPatternMatching' haskellAst <$> initialState
+transformPatternMatching
+  :: HSE.Module SrcSpan -> Converter (HSE.Module SrcSpan)
+transformPatternMatching haskellAst
+  = transformPatternMatching' haskellAst <$> initialState
 
 -- | Removes the source spans of the given Haskell AST and applies the pattern
 --   matching compilation.
-transformPatternMatching' :: HSE.Module SrcSpan -> PMState -> HSE.Module SrcSpan
+transformPatternMatching'
+  :: HSE.Module SrcSpan -> PMState -> HSE.Module SrcSpan
 transformPatternMatching' haskellAst = evalPM $ do
   let haskellAst' = void haskellAst
   haskellAst'' <- processModule haskellAst'

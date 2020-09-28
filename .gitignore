@@ -29,6 +29,10 @@ Makefile.conf
 *.d
 \#*#
 
+### Agda ###
+*.agdai
+_build/
+
 ### LaTeX ###
 
 ## Core latex/pdflatex auxiliary files:

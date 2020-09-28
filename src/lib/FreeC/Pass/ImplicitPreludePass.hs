@@ -17,12 +17,12 @@
 --   an import for the @Prelude@ module is added to the import list
 --
 --   > module Queue where
---   > 
+--   >
 --   > import Prelude
 --   > import Test.QuickCheck
---   > 
+--   >
 --   > type Queue a = ([a], [a])
---   > 
+--   >
 --   > {- ... -}
 --
 --   = Specification
@@ -39,27 +39,24 @@
 --   == Postconditions
 --
 --   There is an explicit import for the @Prelude@ module.
-module FreeC.Pass.ImplicitPreludePass
-  ( implicitPreludePass
-  )
-where
+module FreeC.Pass.ImplicitPreludePass ( implicitPreludePass ) where
 
-import qualified FreeC.IR.Base.Prelude         as IR.Prelude
+import qualified FreeC.IR.Base.Prelude as IR.Prelude
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax       as IR
 import           FreeC.Pass
 
 -- | A compiler pass that adds an import declaration for the @Prelude@ module
 --   if there is no such import.
-implicitPreludePass :: Pass IR.Module
-implicitPreludePass ast =
-  return ast { IR.modImports = addImplicitPreludeImport (IR.modImports ast) }
+implicitPreludePass :: Pass IR.Module IR.Module
+implicitPreludePass ast = return
+  ast { IR.modImports = addImplicitPreludeImport (IR.modImports ast) }
 
 -- | Adds an import for the @Prelude@ module to the given list of imports if
 --   there is no explicit import for the @Prelude@ already.
 addImplicitPreludeImport :: [IR.ImportDecl] -> [IR.ImportDecl]
 addImplicitPreludeImport imports | importsPrelude = imports
-                                 | otherwise      = preludeImport : imports
+                                 | otherwise = preludeImport : imports
  where
   -- | Whether there is an explicit import for the @Prelude@ module.
   importsPrelude :: Bool

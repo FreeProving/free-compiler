@@ -1,7 +1,7 @@
 -R ./ Razor
 -R ../generated Generated
 -R ../Proofs Proofs
--R ../../base Base
+-R ../../base/coq Base
 
 ../Proofs/AppendAssocProofs.v
 ../generated/Proofs/AppendAssoc.v

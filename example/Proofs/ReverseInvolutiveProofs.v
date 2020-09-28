@@ -12,7 +12,9 @@ Example partial_reverse_non_involutive:
   ~quickCheck (@prop_reverse_involutive Maybe.Shape Maybe.Pos).
 Proof.
   simpl. intros H.
-  discriminate (H unit (reverse_involutive_counterexample Maybe.Shape Maybe.Pos Maybe.Partial)).
+  discriminate 
+    (H unit 
+     (reverse_involutive_counterexample Maybe.Shape Maybe.Pos (Maybe.Partial Maybe.Shape Maybe.Pos))).
 Qed.
 
 (* If we consider the [Identity] monad on the other hand, [reverse] becomes involutive.
@@ -43,7 +45,7 @@ Proof.
     simpl. reflexivity.
   - (* fxs = pure (cons fxs1 fxs2) *) 
     simpl. rewrite total_reverse_append_singleton. 
-    unfold Cons. do 2 apply f_equal. destruct fxs2 as [xs2 | s pf].
+    do 2 apply f_equal. destruct fxs2 as [xs2 | s pf].
     + (* fxs2 = pure xs2 *)    simpl. apply IHfxs1.
     + (* fxs2 = impure s pf *) destruct s.
   - (* fxs = pure xs *)

@@ -6,6 +6,10 @@
 --   are listed as exported. All other entries are "hidden". Hidden entries are
 --   included such that module interfaces are self contained and type synonyms
 --   can be expanded properly.
+--   Additionally, all Coq identifiers of exported entries are qualified with
+--   their original module name in the module interface.
+--   This prevents name conflicts when several modules that use the same
+--   identifier are imported.
 --
 --   = Examples
 --
@@ -19,7 +23,7 @@
 --
 --   contains 'interfaceEntries' for all entries from the implicitly imported
 --   @Prelude@ module and an entry for the type @A.Foo@ and constructor @A.Bar@.
---   However, only @A.Foo@ and @A.Bar@ are are exported by the module and
+--   However, only @A.Foo@ and @A.Bar@ are exported by the module and
 --   therefore listed in 'interfaceExports'.
 --
 --   == Example 2
@@ -38,7 +42,8 @@
 --   for the top-level function @B.foo@. Entries for local variables such as
 --   @x@ are not part of @B@'s interface. Since 'interfaceEntries' is a set,
 --   the @Prelude@ entries which are both implicitly imported by @B@ and part
---   of the imported interface from @A@ are not listed twice in @B@'s interface.
+--   of the imported interface from @A@ are not listed twice in @B@'s
+--   interface.
 --
 --   = Specification
 --
@@ -55,25 +60,24 @@
 --   == Postcondition
 --
 --   The environment contains a module interface for the translated module.
-module FreeC.Pass.ExportPass
-  ( exportPass
-  )
-where
+module FreeC.Pass.ExportPass ( exportPass ) where
 
-import qualified Data.Map.Strict               as Map
-import qualified Data.Set                      as Set
+import qualified Data.Map.Strict                   as Map
+import qualified Data.Set                          as Set
 
-import qualified FreeC.Backend.Coq.Base        as Coq.Base
+import qualified FreeC.Backend.Agda.Base           as Agda.Base
+import qualified FreeC.Backend.Coq.Base            as Coq.Base
+import qualified FreeC.Backend.Coq.Syntax          as Coq
 import           FreeC.Environment
-import           FreeC.Environment.ModuleInterface
 import           FreeC.Environment.Entry
-import qualified FreeC.IR.Syntax               as IR
+import           FreeC.Environment.ModuleInterface
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 
 -- | A compiler pass that constructs a module interface from the current
 --   environment for the given module and inserts it into the environment.
-exportPass :: Pass IR.Module
+exportPass :: Pass IR.Module IR.Module
 exportPass ast = do
   iface <- exportInterface (IR.modName ast)
   modifyEnv $ makeModuleAvailable iface
@@ -86,20 +90,42 @@ exportInterface :: IR.ModName -> Converter ModuleInterface
 exportInterface modName = do
   entries <- inEnv $ Map.elems . envEntries
   let exports = map entryScopedName $ filter isExported entries
-  return ModuleInterface { interfaceModName = modName
-                         , interfaceLibName = Coq.Base.generatedLibName
-                         , interfaceExports = Set.fromList exports
-                         , interfaceEntries = Set.fromList entries
-                         }
+  let qualEntries = map qualifyExportedIdent entries
+  return (ModuleInterface { interfaceModName     = modName
+                          , interfaceLibName     = Coq.Base.generatedLibName
+                          , interfaceAgdaLibName = Agda.Base.generatedLibName
+                          , interfaceExports     = Set.fromList exports
+                          , interfaceEntries     = Set.fromList qualEntries
+                          })
  where
-   -- Tests whether to export the given entry.
-   --
-   -- Only top-level entries that are declared in the module are exported.
-   -- Since the original names of entries are qualified with the name of the
-   -- module they are declared in, we can tell whether an entry is declared
-   -- in the exported module by comparing the prefix of its original name
-   -- with the module name.
+  -- | Tests whether to export the given entry.
+  --
+  --   Only top-level entries that are declared in the module are exported.
+  --   Since the original names of entries are qualified with the name of the
+  --   module they are declared in, we can tell whether an entry is declared
+  --   in the exported module by comparing the prefix of its original name
+  --   with the module name.
   isExported :: EnvEntry -> Bool
   isExported entry = case entryName entry of
     IR.Qual modName' _ -> modName' == modName
     IR.UnQual _        -> False
+
+  -- | Qualifies the Coq identifier in the module interface with the module
+  --   name when an entry of the module is exported.
+  --   This ensures that any module that imports the entry uses its qualified
+  --   name, which prevents name conflicts between imported modules.
+  qualifyExportedIdent :: EnvEntry -> EnvEntry
+  qualifyExportedIdent entry
+    | isExported entry = if isConEntry entry
+      then entry { entryIdent      = qualifyIdent (entryIdent entry)
+                 , entrySmartIdent = qualifyIdent (entrySmartIdent entry)
+                 }
+      else entry { entryIdent = qualifyIdent (entryIdent entry) }
+    | otherwise = entry
+
+  -- | Qualifies an unqualified Coq identifier with the module name.
+  --   A qualified Coq identifer is not modified.
+  qualifyIdent :: Coq.Qualid -> Coq.Qualid
+  qualifyIdent (Coq.Bare coqName)           = Coq.Qualified (Coq.ident modName)
+    coqName
+  qualifyIdent qualName@(Coq.Qualified _ _) = qualName

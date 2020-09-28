@@ -1,6 +1,5 @@
 -- This example contains definitions for commonly used functions from
 -- the @Data.Function@ module.
-
 module Data.Function where
 
 -- | Identity function.

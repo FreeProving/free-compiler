@@ -190,12 +190,16 @@ function version() {
 }
 
 # Utility function to tests whether the given version of a program is installed.
+#
+# Returns `0` if the right version is installed.
+# Returns `1` if an unsupported version is installed or the software
+# is missing. In the latter case the `program_not_found_counter` variable is
+# incremented.
 function check_version() {
   local program_name=$1
   local program=$2
   local supported_versions=()
   IFS='|' read -r -a supported_versions <<< "$3"
-  local installation_command=$4
 
   local supported_versions_text=""
   for i in "${!supported_versions[@]}"; do
@@ -212,17 +216,12 @@ function check_version() {
 
   # Check whether the program is installed.
   if ! which $program >/dev/null; then
-    update_status "$red" "$gray" "$cross_mark" "Missing required software"
-    print_message "$red" "Oops, something went wrong! $(fail_emoji)" "\
-      Expected $(bold "$program_name") in version $supported_versions_text
-      to be installed, but the command $(bold "$program") could not be found.
-
-      Try to install it by running the following command
-
-      $(bold "$installation_command" | indent "    ")
-
-      Also make sure that your PATH variable is set correctly."
-    exit 1
+    echo \
+      "• Expected $(bold "$program_name") in version $supported_versions_text" \
+      "to be installed, but the command $(bold "$program") could not be"     \
+      "found."
+    program_not_found_counter=$(expr $program_not_found_counter + 1)
+    return 1
   fi
 
   # Check whether a supported version is installed.
@@ -245,33 +244,27 @@ function check_version() {
 function check_required_software() {
   status "$default" "$default" "*" "Checking required software..."
   local temp_log=$(mktemp)
-  check_version "GHC" ghc '8.6.5' '
-      sudo add-apt-repository ppa:hvr/ghc
-      sudo apt update
-      sudo apt install ghc-8.6.5' >> "$temp_log"
-  check_version "Cabal" cabal '2.4.1.*|3.*' '
-      sudo add-apt-repository ppa:hvr/ghc
-      sudo apt update
-      sudo apt install cabal-install-2.4' >> "$temp_log"
-  check_version "Coq" coqc '8.8.*|8.9.*|8.10.*|8.11.*' '
-      sudo apt install opam
-      opam init
-      eval `opam config env`
-      opam repo add coq-released https://coq.inria.fr/opam/released
-      opam update
-      opam install coq.8.11.0' >> "$temp_log"
-  check_version "HLint" hlint '3.1.*' '
-      cabal new-install hlint' >> "$temp_log"
-  check_version "Brittany" brittany '0.12.*' '
-      cabal new-install brittany' >> "$temp_log"
+  local program_not_found_counter=0
+  check_version "GHC" ghc '8.6.5' >> "$temp_log"
+  check_version "Cabal" cabal '3.*' >> "$temp_log"
+  check_version "Coq" coqc '8.10.*|8.11.*|8.12.*' >> "$temp_log"
+  check_version "HLint" hlint '3.1.*' >> "$temp_log"
+  check_version "Floskell" floskell '0.10.4' >> "$temp_log"
+  check_version "Agda" agda '2.6.1' >> "$temp_log"
 
   # Print reported messages.
   local log_text=$(cat "$temp_log")
   rm "$temp_log"
   if [ -z "$log_text" ]; then
     update_status "$green" "$gray" "$check_mark" "Found required software"
+  elif [ "$program_not_found_counter" -gt 0 ]; then
+    update_status "$red" "$gray" "$cross_mark" "Missing required software"
+    print_message "$yellow" "Oops, something went wrong!" "$log_text"
+    echo
+    exit 1
   else
-    update_status "$yellow" "$gray" "$question_mark" "Unsupported software versions"
+    update_status "$yellow" "$gray" "$question_mark" \
+      "Unsupported software versions"
     print_message "$yellow" "Something may go wrong!" "$log_text"
     echo
   fi
@@ -425,12 +418,19 @@ step "Building the command line interface"        \
      "Canceled command line interface build"      \
      "cabal new-build freec"
 
-# Build the base library.
-step "Building the base library"        \
-     "Built base library successfully"  \
-     "Failed to build the base library" \
-     "Canceled base library build"      \
-     "./tool/compile-coq.sh --recompile base"
+# Build the Coq base library.
+step "Building the Coq base library"        \
+     "Built Coq base library successfully"  \
+     "Failed to build the Coq base library" \
+     "Canceled Coq base library build"      \
+     "./tool/compile-coq.sh --recompile base/coq"
+
+# Build the Agda base library.
+step "Building the Agda base library"        \
+     "Built Agda base library successfully"  \
+     "Failed to build the Agda base library" \
+     "Canceled Agda base library build"      \
+     "./tool/check-agda.sh base/agda"
 
 # Generate Haddock documentation.
 step "Generating Haddock documentation"              \
@@ -453,7 +453,7 @@ step "Compiling examples"               \
      "cabal new-run freec --                           \\
         --transform-pattern-matching                   \\
         --dump-transformed-modules example/transformed \\
-        -b ./base                                      \\
+        -b ./base/                                     \\
         -o ./example/generated                         \\
         \$(find ./example -path ./example/transformed -prune -o -name \"*.hs\" -print)"
 
@@ -470,10 +470,10 @@ step "Checking code with HLint"          \
      "Canceled checking code with HLint" \
      "hlint src"
 
-step "Checking code style with Brittany"            \
+step "Checking code style with Floskell"            \
      "All Haskell files have been formatted"        \
      "There are Haskell files that need formatting" \
-     "Canceled checking code style with Brittany"   \
+     "Canceled checking code style with Floskell"   \
      "./tool/check-formatting.sh"
 
 # Test whether the user canceled any of the steps above using CTRL + C.

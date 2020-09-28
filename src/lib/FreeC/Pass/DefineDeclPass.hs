@@ -3,8 +3,8 @@
 --   environment.
 --
 --   Subsequent passes can still modify entries added by this pass.
---   For example, whether functions are partial or not is determined after
---   this pass (See "FreeC.Pass.PartialityAnalysisPass").
+--   For example, which effects are used by which functions is determined
+--   after this pass (see "FreeC.Pass.EffectAnalysisPass").
 --
 --   = Specification
 --
@@ -24,19 +24,14 @@
 --   = Error cases
 --
 --   * The user is informed if a different name is assigned to an entry.
+module FreeC.Pass.DefineDeclPass ( defineTypeDeclsPass, defineFuncDeclsPass ) where
 
-module FreeC.Pass.DefineDeclPass
-  ( defineTypeDeclsPass
-  , defineFuncDeclsPass
-  )
-where
-
-import           Data.Maybe                     ( fromJust )
+import           Data.Maybe                        ( fromJust )
 
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Renamer
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax               as IR
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass.DependencyAnalysisPass
 
@@ -58,20 +53,20 @@ defineFuncDeclsPass component = do
   return component
 
 -------------------------------------------------------------------------------
--- Type declarations                                                         --
+-- Type Declarations                                                         --
 -------------------------------------------------------------------------------
-
 -- | Inserts the given data type (including its constructors) or type synonym
 --   declaration into the current environment.
 defineTypeDecl :: IR.TypeDecl -> Converter ()
 defineTypeDecl (IR.TypeSynDecl srcSpan declIdent typeArgs typeExpr) = do
   _ <- renameAndAddEntry TypeSynEntry
-    { entrySrcSpan  = srcSpan
-    , entryArity    = length typeArgs
-    , entryTypeArgs = map IR.typeVarDeclIdent typeArgs
-    , entryTypeSyn  = typeExpr
-    , entryName     = IR.declIdentName declIdent
-    , entryIdent    = undefined -- filled by renamer
+    { entrySrcSpan   = srcSpan
+    , entryArity     = length typeArgs
+    , entryTypeArgs  = map IR.typeVarDeclIdent typeArgs
+    , entryTypeSyn   = typeExpr
+    , entryName      = IR.declIdentName declIdent
+    , entryIdent     = undefined -- filled by renamer
+    , entryAgdaIdent = undefined -- filled by renamer
     }
   return ()
 defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
@@ -79,50 +74,54 @@ defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
     { entrySrcSpan   = srcSpan
     , entryArity     = length typeArgs
     , entryName      = IR.declIdentName declIdent
-    , entryIdent     = undefined -- filled by renamer
     , entryConsNames = map IR.conDeclQName conDecls
+    , entryIdent     = undefined -- filled by renamer
+    , entryAgdaIdent = undefined -- filled by renamer
     }
   mapM_ defineConDecl conDecls
  where
   -- | The type produced by all constructors of the data type.
   returnType :: IR.Type
-  returnType = IR.typeConApp srcSpan
-                             (IR.declIdentName declIdent)
-                             (map IR.typeVarDeclToType typeArgs)
+  returnType = IR.typeConApp srcSpan (IR.declIdentName declIdent)
+    (map IR.typeVarDeclToType typeArgs)
 
   -- | Inserts the given data constructor declaration and its smart constructor
   --   into the current environment.
   defineConDecl :: IR.ConDecl -> Converter ()
   defineConDecl (IR.ConDecl conSrcSpan conDeclIdent argTypes) = do
     _ <- renameAndAddEntry ConEntry
-      { entrySrcSpan    = conSrcSpan
-      , entryArity      = length argTypes
-      , entryTypeArgs   = map IR.typeVarDeclIdent typeArgs
-      , entryArgTypes   = argTypes
-      , entryReturnType = returnType
-      , entryName       = IR.declIdentName conDeclIdent
-      , entryIdent      = undefined -- filled by renamer
-      , entrySmartIdent = undefined -- filled by renamer
+      { entrySrcSpan        = conSrcSpan
+      , entryArity          = length argTypes
+      , entryTypeArgs       = map IR.typeVarDeclIdent typeArgs
+      , entryArgTypes       = argTypes
+      , entryReturnType     = returnType
+      , entryName           = IR.declIdentName conDeclIdent
+      , entryIdent          = undefined -- filled by renamer
+      , entryAgdaIdent      = undefined -- filled by renamer
+      , entrySmartIdent     = undefined -- filled by renamer
+      , entryAgdaSmartIdent = undefined -- filled by renamer
       }
     return ()
 
 -------------------------------------------------------------------------------
--- Function declarations                                                     --
+-- Function Declarations                                                     --
 -------------------------------------------------------------------------------
-
 -- | Inserts the given function declaration into the current environment.
 defineFuncDecl :: IR.FuncDecl -> Converter ()
 defineFuncDecl funcDecl = do
   _ <- renameAndAddEntry FuncEntry
     { entrySrcSpan       = IR.funcDeclSrcSpan funcDecl
     , entryArity         = length (IR.funcDeclArgs funcDecl)
-    , entryTypeArgs = map IR.typeVarDeclIdent (IR.funcDeclTypeArgs funcDecl)
-    , entryArgTypes = map (fromJust . IR.varPatType) (IR.funcDeclArgs funcDecl)
+    , entryTypeArgs      = map IR.typeVarDeclIdent
+        (IR.funcDeclTypeArgs funcDecl)
+    , entryArgTypes      = map (fromJust . IR.varPatType)
+        (IR.funcDeclArgs funcDecl)
     , entryStrictArgs    = map IR.varPatIsStrict (IR.funcDeclArgs funcDecl)
     , entryReturnType    = fromJust (IR.funcDeclReturnType funcDecl)
     , entryNeedsFreeArgs = True
-    , entryIsPartial     = False -- may be updated by partiality analysis pass
+    , entryEffects       = [] -- may be updated by effect analysis pass
     , entryName          = IR.funcDeclQName funcDecl
     , entryIdent         = undefined -- filled by renamer
+    , entryAgdaIdent     = undefined -- filled by renamer
     }
   return ()

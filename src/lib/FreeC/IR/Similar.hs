@@ -23,27 +23,21 @@
 --   @Γ ⊢ n ≈ m@. Whether two nodes are equal or not can be determined
 --   from the inference system described in the comments for the 'Similar'
 --   instances below.
-module FreeC.IR.Similar
-  ( Similar
-  , similar
-  , notSimilar
-  )
-where
+module FreeC.IR.Similar ( Similar, similar, notSimilar ) where
 
-import           Control.Monad.Extra            ( andM )
-import           Data.Composition               ( (.:) )
-import           Data.Map.Strict                ( Map )
-import qualified Data.Map.Strict               as Map
-import           Data.Set                       ( Set )
-import qualified Data.Set                      as Set
+import           Control.Monad.Extra  ( andM )
+import           Data.Composition     ( (.:) )
+import           Data.Map.Strict      ( Map )
+import qualified Data.Map.Strict      as Map
+import           Data.Set             ( Set )
+import qualified Data.Set             as Set
 
-import qualified FreeC.IR.Syntax               as IR
-import           FreeC.Util.Predicate           ( (.&&.) )
+import qualified FreeC.IR.Syntax      as IR
+import           FreeC.Util.Predicate ( (.&&.) )
 
 -------------------------------------------------------------------------------
 -- Renaming                                                                  --
 -------------------------------------------------------------------------------
-
 -- | A mapping from names of bound variable names in one AST to the
 --   corresponding names in the second AST.
 --
@@ -88,6 +82,7 @@ similarVars scope x y renaming
  where
   x', y' :: IR.ScopedName
   x' = (scope, x)
+
   y' = (scope, y)
 
 -- | Extends a renaming by the corresponding pairs of variable names from the
@@ -100,12 +95,12 @@ extendRenaming scope xs ys renaming = Renaming
  where
   xs', ys' :: [IR.ScopedName]
   xs' = map ((,) scope) xs
+
   ys' = map ((,) scope) ys
 
 -------------------------------------------------------------------------------
--- Similarity test                                                           --
+-- Similarity Test                                                           --
 -------------------------------------------------------------------------------
-
 -- | A type class for AST nodes that can be tested for similarity.
 class Similar node where
   -- | Like 'similar' but the first argument is the 'Renaming' of bound
@@ -122,9 +117,8 @@ notSimilar :: Similar node => node -> node -> Bool
 notSimilar = not .: similar
 
 -------------------------------------------------------------------------------
--- Utility instances                                                         --
+-- Utility Instances                                                         --
 -------------------------------------------------------------------------------
-
 -- | Two optional nodes are similar when they are either both not present
 --   or both are present and similar.
 --
@@ -132,9 +126,9 @@ notSimilar = not .: similar
 --   > ———————————————————————  —————————————————————
 --   >  Γ ⊢ Nothing ≈ Nothing    Γ ⊢ Just x ≈ Just y
 instance Similar node => Similar (Maybe node) where
-  similar' Nothing  Nothing  = const True
+  similar' Nothing Nothing   = const True
   similar' (Just n) (Just m) = similar' n m
-  similar' _        _        = const False
+  similar' _ _               = const False
 
 -- | Two lists of nodes are similar if the corresponding elements are similar
 --   and each element has a corresponding element (i.e., the lists are of the
@@ -145,26 +139,24 @@ instance Similar node => Similar (Maybe node) where
 --   >  Γ ⊢ [x₁, …, xₙ] ≈ [y₁, …, yₙ]
 instance Similar node => Similar [node] where
   similar' ms ns | length ms == length ns = andM (zipWith similar' ms ns)
-                 | otherwise              = const False
-
+                 | otherwise = const False
 
 -------------------------------------------------------------------------------
--- Similarity test for modules                                               --
+-- Similarity Test for Modules                                               --
 -------------------------------------------------------------------------------
 instance Similar IR.Module where
-  similar' moduleA moduleB =
-    const (IR.modName moduleA == IR.modName moduleB)
-      .&&.
-  --  similar' (IR.modImports moduleA) (IR.modImports moduleB) .&&.
-           similar' (IR.modTypeDecls moduleA) (IR.modTypeDecls moduleB)
-      .&&.
-  --  similar' (IR.modTypeSigs moduleA) (IR.modTypeSigs moduleB) .&&.
-  --  similar' (IR.modPragmas moduleA) (IR.modPragmas moduleB) .&&.
-           similar' (IR.modFuncDecls moduleA) (IR.modFuncDecls moduleB)
--------------------------------------------------------------------------------
--- Similarity test for types                                                 --
--------------------------------------------------------------------------------
+  similar' moduleA moduleB = const (IR.modName moduleA == IR.modName moduleB)
+    .&&.
+    --  similar' (IR.modImports moduleA) (IR.modImports moduleB) .&&.
+    similar' (IR.modTypeDecls moduleA) (IR.modTypeDecls moduleB)
+    .&&.
+    --  similar' (IR.modTypeSigs moduleA) (IR.modTypeSigs moduleB) .&&.
+    --  similar' (IR.modPragmas moduleA) (IR.modPragmas moduleB) .&&.
+    similar' (IR.modFuncDecls moduleA) (IR.modFuncDecls moduleB)
 
+-------------------------------------------------------------------------------
+-- Similarity Test for Types                                                 --
+-------------------------------------------------------------------------------
 -- | The similarity relation of type expressions is governed by the
 --   the following inference rules.
 --
@@ -201,36 +193,34 @@ instance Similar IR.Module where
 --        >   Γ ⊢ τ₁ -> τ₂ ≈ τ'₁ -> τ'₂
 instance Similar IR.Type where
   similar' (IR.TypeCon _ c1) (IR.TypeCon _ c2) = const (c1 == c2)
-  similar' (IR.TypeVar _ v1) (IR.TypeVar _ v2) =
-    similarVars IR.TypeScope (IR.UnQual (IR.Ident v1)) (IR.UnQual (IR.Ident v2))
-  similar' (IR.TypeApp _ s1 s2) (IR.TypeApp _ t1 t2) =
-    similar' s1 t1 .&&. similar' s2 t2
-  similar' (IR.FuncType _ s1 s2) (IR.FuncType _ t1 t2) =
-    similar' s1 t1 .&&. similar' s2 t2
-
+  similar' (IR.TypeVar _ v1) (IR.TypeVar _ v2) = similarVars IR.TypeScope
+    (IR.UnQual (IR.Ident v1)) (IR.UnQual (IR.Ident v2))
+  similar' (IR.TypeApp _ s1 s2) (IR.TypeApp _ t1 t2)
+    = similar' s1 t1 .&&. similar' s2 t2
+  similar' (IR.FuncType _ s1 s2) (IR.FuncType _ t1 t2)
+    = similar' s1 t1 .&&. similar' s2 t2
   -- Combinations of different constructors are not similar.
-  similar' (IR.TypeCon _ _   ) _ = const False
-  similar' (IR.TypeVar _ _   ) _ = const False
-  similar' (IR.TypeApp  _ _ _) _ = const False
+  similar' (IR.TypeCon _ _) _ = const False
+  similar' (IR.TypeVar _ _) _ = const False
+  similar' (IR.TypeApp _ _ _) _ = const False
   similar' (IR.FuncType _ _ _) _ = const False
 
--- | Two type schemas are similar if their abstracted types are similar
+-- | Two type schemes are similar if their abstracted types are similar
 --   under an extend 'Renaming' that maps the corresponding type arguments
 --   to each other.
 --
 --   >     Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ τ ≈ τ'
 --   > ————————————————————————————————————————————
 --   >  Γ ⊢ forall α₁ … αₙ. τ ≈ forall β₁ … βₙ. τ'
-instance Similar IR.TypeSchema where
-  similar' (IR.TypeSchema _ as t1) (IR.TypeSchema _ bs t2) =
-    let ns = map IR.typeVarDeclQName as
-        ms = map IR.typeVarDeclQName bs
-    in  similar' t1 t2 . extendRenaming IR.TypeScope ns ms
+instance Similar IR.TypeScheme where
+  similar' (IR.TypeScheme _ as t1) (IR.TypeScheme _ bs t2)
+    = let ns = map IR.typeVarDeclQName as
+          ms = map IR.typeVarDeclQName bs
+      in similar' t1 t2 . extendRenaming IR.TypeScope ns ms
 
 -------------------------------------------------------------------------------
--- Similarity test for expressions                                           --
+-- Similarity Test for Expressions                                           --
 -------------------------------------------------------------------------------
-
 -- | The similarity relation of expressions is governed by the the following
 --   inference rules
 --
@@ -296,6 +286,19 @@ instance Similar IR.TypeSchema where
 --        > ———————————————————————————————————————————————————
 --        >  Γ ⊢ if e₁ then e₂ else e₃ ≈ if f₁ then f₂ else f₃
 --
+--    * Two @let@ expressions are similar if their bindings and the expression
+--      are similar under an extended 'Renaming' @Γ'@ that maps the variables
+--      bound by the first @let@ expression to the variables bound by the
+--      second @let@ expression.
+--
+--        >  Γ' ⊢ e ≈ f,    Γ' ⊢ b₁ ≈ d₁,    …,    Γ' ⊢ bₙ ≈ dₙ
+--        > ——————————————————————————————————————————————————————
+--        >  Γ ⊢ let { b₁; …; bₙ } in e ≈ let { d₁; …; dₙ } in f
+--
+--        where @Γ' = Γ ∪ { x₁ ↦ y₁, …, xₙ ↦ yₙ }@ and @x₁, …, xₙ@
+--        and @y₁, …, yₙ@ denote the names of variables bound by
+--        @b₁, …, bₙ@ and @d₁, …, dₙ@, respectively.
+--
 --    * All AST nodes which do not contain any variables are similar to
 --      themselves under every 'Renaming' @Γ@.
 --
@@ -306,47 +309,49 @@ instance Similar IR.TypeSchema where
 --        arbitrary error message.
 instance Similar IR.Expr where
   similar' e1 e2 = similarExpr e1 e2
-    .&&. similar' (IR.exprTypeSchema e1) (IR.exprTypeSchema e2)
+    .&&. similar' (IR.exprTypeScheme e1) (IR.exprTypeScheme e2)
 
 -- | Like 'similar'' for expressions but ignores optional type annotations.
 similarExpr :: IR.Expr -> IR.Expr -> Renaming -> Bool
+
 -- Compare variables.
 similarExpr (IR.Var _ v1 _) (IR.Var _ v2 _) = similarVars IR.ValueScope v1 v2
-
 -- Bind variables in lambda abstractions.
-similarExpr (IR.Lambda _ xs e _) (IR.Lambda _ ys f _) =
-  let ns = map IR.varPatQName xs
-      ms = map IR.varPatQName ys
-  in  similar' e f . extendRenaming IR.ValueScope ns ms .&&. similar' xs ys
-
+similarExpr (IR.Lambda _ xs e _) (IR.Lambda _ ys f _)
+  = let ns = map IR.varPatQName xs
+        ms = map IR.varPatQName ys
+    in similar' e f . extendRenaming IR.ValueScope ns ms .&&. similar' xs ys
 -- Recursively compare, applications, visible type applications and @case@ and
 -- @if@ expressions.
-similarExpr (IR.App _ e1 e2 _) (IR.App _ f1 f2 _) =
-  similar' e1 f1 .&&. similar' e2 f2
-similarExpr (IR.TypeAppExpr _ e s _) (IR.TypeAppExpr _ f t _) =
-  similar' e f .&&. similar' s t
-similarExpr (IR.Case _ e as _) (IR.Case _ f bs _) =
-  similar' e f .&&. similar' as bs
-similarExpr (IR.If _ e1 e2 e3 _) (IR.If _ f1 f2 f3 _) =
-  similar' e1 f1 .&&. similar' e2 f2 .&&. similar' e3 f3
-
+similarExpr (IR.App _ e1 e2 _) (IR.App _ f1 f2 _)
+  = similar' e1 f1 .&&. similar' e2 f2
+similarExpr (IR.TypeAppExpr _ e s _) (IR.TypeAppExpr _ f t _)
+  = similar' e f .&&. similar' s t
+similarExpr (IR.Case _ e as _) (IR.Case _ f bs _)
+  = similar' e f .&&. similar' as bs
+similarExpr (IR.If _ e1 e2 e3 _) (IR.If _ f1 f2 f3 _)
+  = similar' e1 f1 .&&. similar' e2 f2 .&&. similar' e3 f3
+similarExpr (IR.Let _ bs e _) (IR.Let _ cs f _)
+  = let ns = map (IR.varPatQName . IR.bindVarPat) bs
+        ms = map (IR.varPatQName . IR.bindVarPat) cs
+    in (similar' e f .&&. similar' bs cs) . extendRenaming IR.ValueScope ns ms
 -- Expressions without variables are only similar to themselves.
-similarExpr (IR.Con _ n1 _         ) (IR.Con _ n2 _       ) = const (n1 == n2)
-similarExpr (IR.Undefined _ _      ) (IR.Undefined _ _    ) = const True
-similarExpr (IR.ErrorExpr  _ m1 _  ) (IR.ErrorExpr  _ m2 _) = const (m1 == m2)
-similarExpr (IR.IntLiteral _ i1 _  ) (IR.IntLiteral _ i2 _) = const (i1 == i2)
-
+similarExpr (IR.Con _ n1 _) (IR.Con _ n2 _) = const (n1 == n2)
+similarExpr (IR.Undefined _ _) (IR.Undefined _ _) = const True
+similarExpr (IR.ErrorExpr _ m1 _) (IR.ErrorExpr _ m2 _) = const (m1 == m2)
+similarExpr (IR.IntLiteral _ i1 _) (IR.IntLiteral _ i2 _) = const (i1 == i2)
 -- Combinations of different constructors are not similar.
-similarExpr (IR.Var        _ _  _  ) _                      = const False
-similarExpr (IR.Lambda      _ _ _ _) _                      = const False
-similarExpr (IR.App         _ _ _ _) _                      = const False
-similarExpr (IR.TypeAppExpr _ _ _ _) _                      = const False
-similarExpr (IR.Case        _ _ _ _) _                      = const False
-similarExpr (IR.If _ _ _ _ _       ) _                      = const False
-similarExpr (IR.Con _ _ _          ) _                      = const False
-similarExpr (IR.Undefined _ _      ) _                      = const False
-similarExpr (IR.ErrorExpr  _ _ _   ) _                      = const False
-similarExpr (IR.IntLiteral _ _ _   ) _                      = const False
+similarExpr (IR.Var _ _ _) _ = const False
+similarExpr (IR.Lambda _ _ _ _) _ = const False
+similarExpr (IR.App _ _ _ _) _ = const False
+similarExpr (IR.TypeAppExpr _ _ _ _) _ = const False
+similarExpr (IR.Case _ _ _ _) _ = const False
+similarExpr (IR.If _ _ _ _ _) _ = const False
+similarExpr (IR.Con _ _ _) _ = const False
+similarExpr (IR.Undefined _ _) _ = const False
+similarExpr (IR.ErrorExpr _ _ _) _ = const False
+similarExpr (IR.IntLiteral _ _ _) _ = const False
+similarExpr (IR.Let _ _ _ _) _ = const False
 
 -- | Two alternatives that match the same constructor @C@ are similar
 --   if their right-hand sides are similar under an extended 'Renaming'
@@ -363,12 +368,11 @@ similarExpr (IR.IntLiteral _ _ _   ) _                      = const False
 --   patterns @pᵢ@ and @qᵢ@ respectively.
 instance Similar IR.Alt where
   similar' (IR.Alt _ c xs e) (IR.Alt _ d ys f)
-    | c == d
-    = let ns = map IR.varPatQName xs
-          ms = map IR.varPatQName ys
-      in  similar' e f . extendRenaming IR.ValueScope ns ms .&&. similar' xs ys
-    | otherwise
-    = const False
+    | c == d = let ns = map IR.varPatQName xs
+                   ms = map IR.varPatQName ys
+               in similar' e f . extendRenaming IR.ValueScope ns ms
+                  .&&. similar' xs ys
+    | otherwise = const False
 
 -- | Two variable patterns are similar if they either both don't have a type
 --   annotation or are annotated with similar types.
@@ -383,13 +387,12 @@ instance Similar IR.Alt where
 --   > —————————————  ————————————————————————————
 --   >  Γ ⊢ !x ≈ !y    Γ ⊢ !(x :: τ) ≈ !(y :: τ')
 instance Similar IR.VarPat where
-  similar' (IR.VarPat _ _ t1 s1) (IR.VarPat _ _ t2 s2) =
-    const (s1 == s2) .&&. similar' t1 t2
+  similar' (IR.VarPat _ _ t1 s1) (IR.VarPat _ _ t2 s2) = const (s1 == s2)
+    .&&. similar' t1 t2
 
 -------------------------------------------------------------------------------
--- Similarity test for declarations                                          --
+-- Similarity Test for Declarations                                          --
 -------------------------------------------------------------------------------
-
 -- | Two function declarations are similar if their right-hand sides are
 --   similar under an extended 'Renaming' that maps the corresponding type
 --   arguments and arguments to each other. If the arguments are annotated,
@@ -417,18 +420,15 @@ instance Similar IR.VarPat where
 instance Similar IR.FuncDecl where
   similar' (IR.FuncDecl _ g as xs s e) (IR.FuncDecl _ h bs ys t f)
     | IR.declIdentName g == IR.declIdentName h && length as == length bs
-    = let as' = map IR.typeVarDeclQName as
-          bs' = map IR.typeVarDeclQName bs
-          xs' = map IR.varPatQName xs
-          ys' = map IR.varPatQName ys
-      in  (    similar' e f
-          .    extendRenaming IR.ValueScope xs' ys'
-          .&&. similar' xs ys
-          .&&. similar' s  t
-          )
-            . extendRenaming IR.TypeScope as' bs'
-    | otherwise
-    = const False
+      = let as' = map IR.typeVarDeclQName as
+            bs' = map IR.typeVarDeclQName bs
+            xs' = map IR.varPatQName xs
+            ys' = map IR.varPatQName ys
+        in (similar' e f . extendRenaming IR.ValueScope xs' ys'
+            .&&. similar' xs ys
+            .&&. similar' s t)
+           . extendRenaming IR.TypeScope as' bs'
+    | otherwise = const False
 
 -- | Two type synonym declarations are similar if their right-hand sides are
 --   similar under an extended 'Renaming' that maps the corresponding type
@@ -445,28 +445,25 @@ instance Similar IR.FuncDecl where
 --
 --   >  Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ con₁ ≈ con'₁, …,
 --   >  Γ ∪ { α₁ ↦ β₁, …, αₙ ↦ βₙ } ⊢ conₘ ≈ con'ₘ
---   > ———————————————————————————————————————————————————————————————————————————
---   >  Γ ⊢ data D α₁ … αₙ = con₁ | … | conₘ ≈ data D β₁ … βₙ = con'₁ | … | con'ₘ
+--   > ————————————————————————————————————————————————————————————————————————
+--   >  Γ ⊢ data D α₁ … αₙ = con₁ | … | conₘ
+--   >    ≈ data D β₁ … βₙ = con'₁ | … | con'ₘ
 instance Similar IR.TypeDecl where
   similar' (IR.TypeSynDecl _ d1 as t1) (IR.TypeSynDecl _ d2 bs t2)
     | IR.declIdentName d1 == IR.declIdentName d2 && length as == length bs
-    = let as' = map IR.typeVarDeclQName as
-          bs' = map IR.typeVarDeclQName bs
-      in  similar' t1 t2 . extendRenaming IR.TypeScope as' bs'
-    | otherwise
-    = const False
-
+      = let as' = map IR.typeVarDeclQName as
+            bs' = map IR.typeVarDeclQName bs
+        in similar' t1 t2 . extendRenaming IR.TypeScope as' bs'
+    | otherwise = const False
   similar' (IR.DataDecl _ d1 as cs1) (IR.DataDecl _ d2 bs cs2)
     | IR.declIdentName d1 == IR.declIdentName d2 && length as == length bs
-    = let as' = map IR.typeVarDeclQName as
-          bs' = map IR.typeVarDeclQName bs
-      in  similar' cs1 cs2 . extendRenaming IR.TypeScope as' bs'
-    | otherwise
-    = const False
-
+      = let as' = map IR.typeVarDeclQName as
+            bs' = map IR.typeVarDeclQName bs
+        in similar' cs1 cs2 . extendRenaming IR.TypeScope as' bs'
+    | otherwise = const False
   -- Combinations of different constructors are not similar.
   similar' (IR.TypeSynDecl _ _ _ _) _ = const False
-  similar' (IR.DataDecl    _ _ _ _) _ = const False
+  similar' (IR.DataDecl _ _ _ _) _ = const False
 
 -- | Two constructor declarations are similar if their field types are similar.
 --
@@ -477,3 +474,12 @@ instance Similar IR.ConDecl where
   similar' (IR.ConDecl _ c1 ts1) (IR.ConDecl _ c2 ts2)
     | IR.declIdentName c1 == IR.declIdentName c2 = similar' ts1 ts2
     | otherwise = const False
+
+-- | Two @let@ bindings are similar if their variable pattern and expression are
+--   are similar.
+--
+--   >  Γ' ⊢ p ≈ q  , Γ' ⊢ e ≈ f
+--   > ——————————————————————————
+--   >     Γ ⊢ p = e ≈ q = f
+instance Similar IR.Bind where
+  similar' (IR.Bind _ p e) (IR.Bind _ q f) = similar' p q .&&. similar' e f

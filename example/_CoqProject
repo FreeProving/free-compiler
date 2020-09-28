@@ -1,4 +1,3 @@
 -R ./CaseStudyHuttonsRazor Razor
 -R ./generated Generated
--R ./Proofs Proofs
--R ../base Base
+-R ../base/coq Base

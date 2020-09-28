@@ -1,7 +1,7 @@
 # Module Interface File Format
 
 In order to tell the compiler which functions and data types are defined in a module, every module has a configuration file that contains all information about the module's interface.
-The module interface file for the `Prelude` module can be found in `/base/Prelude.toml`.
+The module interface file for the `Prelude` module can be found in `/base/coq/Prelude.toml`.
 Since the module interface for predefined functions and data types needs to be maintained manually, we are using [TOML][] as a configuration file format.
 If a Haskell module is translated by the compiler, a module interface file is saved alongside the `.v` file.
 Since generated module interfaces are not intended to be read by humans, they use the JSON file format instead.
@@ -123,7 +123,7 @@ The tables in the `functions` array must contain the following key/value pairs:
  - `haskell-name` (`String`) the qualified Haskell name of the function in the module it has been defined in.
  - `coq-name` (`String`) the identifier of the corresponding Coq function.
  - `arity` (`Integer`) the number of arguments expected by the function.
- - `partial` (`Boolean`) whether the function is partial (i.e., requires an instance of the `Partial` type class).
+ - `effects` (`Array` of `String`) the effects contained in the function, i.e. which type classes need to be passed.
  - `needs-free-args` (`Boolean`) whether the arguments of the `Free` monad need to be passed to the function.
 
 For example, the following entry defines the total function `(++)` ("append") and the partial function `head`.

@@ -8,7 +8,7 @@ about: Suggest an idea for this project
 <!--
   Have you read our Code of Conduct?
   By filing an issue, you are expected to comply with it, including treating everyone with respect:
-  https://github.com/FreeProving/guidelines/blob/master/CODE_OF_CONDUCT.md
+  https://github.com/FreeProving/guidelines/blob/main/CODE_OF_CONDUCT.md
 -->
 
 ## Description
