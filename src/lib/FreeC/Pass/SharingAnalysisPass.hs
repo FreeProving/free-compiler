@@ -120,7 +120,7 @@ analyseLocalSharing (IR.Case srcSpan expr alts typeScheme) = do
 analyseLocalSharing (IR.Lambda srcSpan exprArgs rhs typeScheme) = do
   let varNames = map IR.varPatQName exprArgs
   rhs' <- analyseLocalSharing rhs >>= analyseSharingExpr varNames
-  return (IR.Lambda srcSpan exprArgs rhs'' typeScheme)
+  return (IR.Lambda srcSpan exprArgs rhs' typeScheme)
 analyseLocalSharing expr@IR.Con {} = return expr
 analyseLocalSharing expr@IR.Undefined {} = return expr
 analyseLocalSharing expr@IR.ErrorExpr {} = return expr

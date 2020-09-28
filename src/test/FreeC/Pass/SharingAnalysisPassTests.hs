@@ -40,9 +40,24 @@ testAnalyseSharingExpr = context "analyseSharingExpr" $ do
 
 testAnalyseLocalSharing :: Spec
 testAnalyseLocalSharing = context "analyseLocalSharing" $ do
-  it "introduces 'let'-expression for locally shared variables"
+  it "introduces 'let'-expression for locally shared variables from 'case'-expr"
     $ shouldSucceedWith
     $ do
       input <- parseTestExpr "case e of {Nothing -> 0; Just x  -> x + x}"
       expectedOutput <- parseTestExpr "case e of {Nothing -> 0; Just x  -> let y = x in y + y}"
       output  <- analyseLocalSharing input
+      return $ output `shouldBeSimilarTo` expectedOutput
+  it "introduces 'let'-expression for shared variables from 'lambda'-expr"
+    $ shouldSucceedWith
+    $ do
+      input <- parseTestExpr "\\x -> x + x"
+      expectedOutput <- parseTestExpr "\\x -> let {y = x} in y + y"
+      output  <- analyseLocalSharing input
+      return $ output `shouldBeSimilarTo` expectedOutput
+  it "introduces 'let'-expressions for nested expressions" $ do
+    $ shouldSucceedWith
+    $ do
+      input <- parseTestExpr "\\y -> \\x -> x + x"
+      expectedOutput <- parseTestExpr "\\y -> \\x -> let {z = x} in z + z"
+      output  <- analyseLocalSharing input
+      return $ output `shouldBeSimilarTo` expectedOutput

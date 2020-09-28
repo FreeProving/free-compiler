@@ -20,7 +20,7 @@ bold=$(tput bold)
 reset=$(tput sgr0)
 
 # Check whether floskell is installed.
-if ! which floskell >/dev/null 2>&1; then
+if ! where floskell >/dev/null 2>&1; then
   echo "${red}${bold}Error:${reset}" \
        "${bold}Could not find Floskell.${reset}"
   echo " |"
