@@ -27,10 +27,10 @@
 --   Should be transformed into
 --
 --   > twiceMaybe :: Maybe Integer -> Maybe Integer
---   > twiceMaybe (mx :: Maybe Integer) = case (mx :: Maybe Integer) of {
---   >     Nothing -> Nothing;
---   >     Just x  -> let y = x in Just (y + y)
---   >   }
+  --   > twiceMaybe (mx :: Maybe Integer) = case (mx :: Maybe Integer) of {
+  --   >     Nothing -> Nothing;
+  --   >     Just x  -> let y = x in Just (y + y)
+  --   >   }
 --   where @y@ is a fresh variable.
 --
 --   == Example 3
@@ -94,8 +94,9 @@ sharingAnaylsisPass ast = do
 --   @let@-expressions and applies the transformation on the right-hand side.
 analyseSharingDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 analyseSharingDecl funcDecl = do
-  rhs'
-    <- (analyseLocalSharing >=> analyseSharingExpr (IR.funcDeclArgs funcDecl))
+  rhs' <- (analyseLocalSharing
+           >=> analyseSharingExpr (map (IR.UnQual . IR.Ident . IR.varPatIdent)
+                                   (IR.funcDeclArgs funcDecl)))
     (IR.funcDeclRhs funcDecl)
   return funcDecl { IR.funcDeclRhs = rhs' }
 
@@ -114,20 +115,12 @@ analyseLocalSharing (IR.Case srcSpan expr alts typeScheme) = do
   analyseSharingAlt :: IR.Alt -> Converter IR.Alt
   analyseSharingAlt (IR.Alt altSrcSpan altConPat altVarPats altRhs) = do
     let varNames = map IR.varPatQName altVarPats
-        varList  = (map fst
-                    . filter ((> 1) . snd)
-                    . Map.toList
-                    . countVarNamesOnly varNames) altRhs
-    altRhs' <- buildLet altRhs varList
+    altRhs' <- analyseLocalSharing altRhs >>= analyseSharingExpr varNames
     return (IR.Alt altSrcSpan altConPat altVarPats altRhs')
 analyseLocalSharing (IR.Lambda srcSpan exprArgs rhs typeScheme) = do
   let varNames = map IR.varPatQName exprArgs
-      varList  = (map fst
-                  . filter ((> 1) . snd)
-                  . Map.toList
-                  . countVarNamesOnly varNames) rhs
-  rhs' <- buildLet rhs varList
-  return (IR.Lambda srcSpan exprArgs rhs' typeScheme)
+  rhs' <- analyseLocalSharing rhs >>= analyseSharingExpr varNames
+  return (IR.Lambda srcSpan exprArgs rhs'' typeScheme)
 analyseLocalSharing expr@IR.Con {} = return expr
 analyseLocalSharing expr@IR.Undefined {} = return expr
 analyseLocalSharing expr@IR.ErrorExpr {} = return expr
@@ -160,13 +153,12 @@ analyseLocalSharing (IR.App srcSpan lhs rhs typeScheme) = do
 --   If that is the case, a @let@-expression is introduced that binds the
 --   variables to fresh ones and replaces the occurrences with the newly
 --   introduced variable.
-analyseSharingExpr :: [IR.VarPat] -> IR.Expr -> Converter IR.Expr
-analyseSharingExpr varPats expr = do
-  let varPatNames = map (IR.UnQual . IR.Ident . IR.varPatIdent) varPats
-      varList     = (map fst
-                     . filter ((> 1) . snd)
-                     . Map.toList
-                     . countVarNamesOnly varPatNames) expr
+analyseSharingExpr :: [IR.VarName] -> IR.Expr -> Converter IR.Expr
+analyseSharingExpr varPatNames expr = do
+  let varList = (map fst
+                 . filter ((> 1) . snd)
+                 . Map.toList
+                 . countVarNamesOnly varPatNames) expr
   buildLet expr varList
 
 -- | Builds a @let@-expression from the given expression and variable names.
