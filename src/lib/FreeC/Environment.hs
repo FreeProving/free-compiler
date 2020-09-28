@@ -159,7 +159,6 @@ addEffectsToEntry name effects env = case lookupEntry IR.ValueScope name env of
 -------------------------------------------------------------------------------
 -- Looking up Entries from the Environment                                   --
 -------------------------------------------------------------------------------
-
 -- | Tests whether the function with the given name encapsulates effects.
 --
 --   Returns @False@ if there is no such function.

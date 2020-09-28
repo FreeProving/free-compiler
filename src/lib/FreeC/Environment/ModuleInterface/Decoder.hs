@@ -279,18 +279,18 @@ instance Aeson.FromJSON ModuleInterface where
       let (argTypes, returnType) = IR.splitFuncType haskellType arity
           typeArgs               = freeTypeVars haskellType
       return FuncEntry
-        { entrySrcSpan       = NoSrcSpan
-        , entryArity         = arity
-        , entryTypeArgs      = typeArgs
-        , entryArgTypes      = argTypes
-        , entryStrictArgs    = replicate arity False
-        , entryReturnType    = returnType
-        , entryNeedsFreeArgs = freeArgsNeeded
+        { entrySrcSpan             = NoSrcSpan
+        , entryArity               = arity
+        , entryTypeArgs            = typeArgs
+        , entryArgTypes            = argTypes
+        , entryStrictArgs          = replicate arity False
+        , entryReturnType          = returnType
+        , entryNeedsFreeArgs       = freeArgsNeeded
         , entryEncapsulatesEffects = effectsEncapsulated
-        , entryEffects       = effects
-        , entryIdent         = coqName
-        , entryAgdaIdent     = agdaName
-        , entryName          = haskellName
+        , entryEffects             = effects
+        , entryIdent               = coqName
+        , entryAgdaIdent           = agdaName
+        , entryName                = haskellName
         }
 
 -- | Loads a module interface file from a @.toml@ or @.json@ file.

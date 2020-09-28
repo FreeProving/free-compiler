@@ -110,19 +110,20 @@ defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
 defineFuncDecl :: IR.FuncDecl -> Converter ()
 defineFuncDecl funcDecl = do
   _ <- renameAndAddEntry FuncEntry
-    { entrySrcSpan       = IR.funcDeclSrcSpan funcDecl
-    , entryArity         = length (IR.funcDeclArgs funcDecl)
-    , entryTypeArgs      = map IR.typeVarDeclIdent
+    { entrySrcSpan             = IR.funcDeclSrcSpan funcDecl
+    , entryArity               = length (IR.funcDeclArgs funcDecl)
+    , entryTypeArgs            = map IR.typeVarDeclIdent
         (IR.funcDeclTypeArgs funcDecl)
-    , entryArgTypes      = map (fromJust . IR.varPatType)
+    , entryArgTypes            = map (fromJust . IR.varPatType)
         (IR.funcDeclArgs funcDecl)
-    , entryStrictArgs    = map IR.varPatIsStrict (IR.funcDeclArgs funcDecl)
-    , entryReturnType    = fromJust (IR.funcDeclReturnType funcDecl)
-    , entryNeedsFreeArgs = True
+    , entryStrictArgs          = map IR.varPatIsStrict
+        (IR.funcDeclArgs funcDecl)
+    , entryReturnType          = fromJust (IR.funcDeclReturnType funcDecl)
+    , entryNeedsFreeArgs       = True
     , entryEncapsulatesEffects = False
-    , entryEffects       = [] -- may be updated by effect analysis pass
-    , entryName          = IR.funcDeclQName funcDecl
-    , entryIdent         = undefined -- filled by renamer
-    , entryAgdaIdent     = undefined -- filled by renamer
+    , entryEffects             = [] -- may be updated by effect analysis pass
+    , entryName                = IR.funcDeclQName funcDecl
+    , entryIdent               = undefined -- filled by renamer
+    , entryAgdaIdent           = undefined -- filled by renamer
     }
   return ()

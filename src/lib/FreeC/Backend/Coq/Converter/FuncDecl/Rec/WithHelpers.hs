@@ -169,18 +169,18 @@ transformRecFuncDecl
     effects <- inEnv $ lookupEffects name
     _entry <- renameAndAddEntry
       $ FuncEntry
-      { entrySrcSpan       = NoSrcSpan
-      , entryArity         = length helperArgTypes
-      , entryTypeArgs      = map IR.typeVarDeclIdent helperTypeArgs
-      , entryArgTypes      = map fromJust helperArgTypes
-      , entryStrictArgs    = map IR.varPatIsStrict helperArgs
-      , entryReturnType    = fromJust helperReturnType
-      , entryNeedsFreeArgs = freeArgsNeeded
+      { entrySrcSpan             = NoSrcSpan
+      , entryArity               = length helperArgTypes
+      , entryTypeArgs            = map IR.typeVarDeclIdent helperTypeArgs
+      , entryArgTypes            = map fromJust helperArgTypes
+      , entryStrictArgs          = map IR.varPatIsStrict helperArgs
+      , entryReturnType          = fromJust helperReturnType
+      , entryNeedsFreeArgs       = freeArgsNeeded
       , entryEncapsulatesEffects = encEffects
-      , entryEffects       = effects
-      , entryName          = helperName
-      , entryIdent         = undefined -- filled by renamer
-      , entryAgdaIdent     = undefined -- filled by renamer
+      , entryEffects             = effects
+      , entryName                = helperName
+      , entryIdent               = undefined -- filled by renamer
+      , entryAgdaIdent           = undefined -- filled by renamer
       }
     -- Determine the index of the decreasing argument.
     let decArgIndex' = fromJust $ elemIndex decArg helperArgNames
