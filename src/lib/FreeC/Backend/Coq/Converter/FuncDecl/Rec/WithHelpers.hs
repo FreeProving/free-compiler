@@ -29,6 +29,7 @@ import           FreeC.Environment.Renamer
 import           FreeC.IR.Inlining
 import           FreeC.IR.Reference                             ( freeVarSet )
 import           FreeC.IR.SrcSpan
+import           FreeC.IR.Subst
 import           FreeC.IR.Subterm
 import qualified FreeC.IR.Syntax                                as IR
 import           FreeC.Monad.Converter
@@ -53,6 +54,7 @@ convertRecFuncDeclsWithHelpers' decls = do
   decArgs <- identifyDecArgs decls
   (helperDecls, mainDecls) <- mapAndUnzipM (uncurry transformRecFuncDecl)
     (zip decls decArgs)
+  -- error (showPretty (map (map fst) helperDecls))
   -- Convert helper and main functions.
   -- The right-hand sides of the main functions are inlined into the helper
   -- functions. Because inlining can produce fresh identifiers, we need to
@@ -132,13 +134,20 @@ transformRecFuncDecl
     let helperDeclIdent = declIdent { IR.declIdentName = helperName }
     -- Pass all type arguments to the helper function.
     let helperTypeArgs = typeArgs
+    -- Replace aliases of decreasing argument with decreasing argument.
+    let mkDecArgVar aliasSrcSpan = IR.Var aliasSrcSpan decArg Nothing
+        aliasSubst               = composeSubsts
+          [singleSubst' alias mkDecArgVar
+          | alias <- Set.toList (decArgAliasesAt caseExprPos)
+          ]
+        caseExpr                 = selectSubterm' expr caseExprPos
+        caseExpr'                = applySubst aliasSubst caseExpr
     -- Pass used variables as additional arguments to the helper function
     -- but don't pass shadowed arguments to helper functions.
     let boundVarTypeMap = boundVarsWithTypeAt expr caseExprPos
         boundVars
           = Map.keysSet boundVarTypeMap `Set.union` Set.fromList argNames
-        caseExpr        = selectSubterm' expr caseExprPos
-        usedVars        = freeVarSet caseExpr
+        usedVars        = freeVarSet caseExpr'
         helperArgNames  = Set.toList (usedVars `Set.intersection` boundVars)
     -- Determine the types of helper function's arguments and its return type.
     -- Additionally, the decreasing argument is marked as strict.
@@ -155,7 +164,7 @@ transformRecFuncDecl
         helperArgs       = zipWith3
           (IR.VarPat NoSrcSpan . fromJust . IR.identFromQName) helperArgNames
           helperArgTypes helperArgStrict
-        helperReturnType = IR.exprType caseExpr
+        helperReturnType = IR.exprType caseExpr'
         helperType       = IR.funcType NoSrcSpan <$> sequence helperArgTypes
           <*> helperReturnType
     -- Register the helper function to the environment.
@@ -186,7 +195,7 @@ transformRecFuncDecl
     let helperTypeArgs' = map IR.typeVarDeclToType helperTypeArgs
         helperAppType   = IR.TypeScheme NoSrcSpan [] <$> helperType
         helperDecl      = IR.FuncDecl srcSpan helperDeclIdent helperTypeArgs
-          helperArgs helperReturnType caseExpr
+          helperArgs helperReturnType caseExpr'
         helperApp       = IR.app NoSrcSpan
           (IR.visibleTypeApp NoSrcSpan
            (IR.Var NoSrcSpan helperName helperAppType) helperTypeArgs')
