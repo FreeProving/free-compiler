@@ -75,7 +75,7 @@ convertTypeComponent (Recursive decls)   = do
 --   type synonyms from the same strongly connected component. Therefore we
 --   have to sort the declarations in reverse topological order.
 sortTypeSynDecls :: [IR.TypeDecl] -> Converter [IR.TypeDecl]
-sortTypeSynDecls = mapM fromNonRecursive . groupTypeDecls
+sortTypeSynDecls = mapM fromNonRecursive . typeDependencyComponents
 
 -- | Extracts the single type synonym declaration from a strongly connected
 --   component of the type dependency graph.

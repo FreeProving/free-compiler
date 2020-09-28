@@ -47,6 +47,10 @@ data FuncDecl = FuncDecl
   }
  deriving ( Eq, Show )
 
+-- | Instance to get the name of a function declaration.
+instance HasDeclIdent FuncDecl where
+  declIdent = funcDeclIdent
+
 -- | Gets the qualified name of the given function declaration.
 funcDeclQName :: FuncDecl -> QName
 funcDeclQName = declIdentName . funcDeclIdent
@@ -74,7 +78,7 @@ funcDeclTypeScheme funcDecl = TypeScheme NoSrcSpan (funcDeclTypeArgs funcDecl)
 
 -- | Pretty instance for function declarations.
 instance Pretty FuncDecl where
-  pretty (FuncDecl _ declIdent typeArgs args maybeReturnType rhs)
+  pretty (FuncDecl _ declIdent' typeArgs args maybeReturnType rhs)
     = case maybeReturnType of
       Nothing         -> prettyFuncHead <+> equals <+> pretty rhs
       Just returnType -> prettyFuncHead
@@ -85,6 +89,6 @@ instance Pretty FuncDecl where
    where
     -- | The left-hand side of the function declaration.
     prettyFuncHead :: Doc
-    prettyFuncHead = pretty declIdent
+    prettyFuncHead = pretty declIdent'
       <+> hsep (map ((char '@' <>) . pretty) typeArgs)
       <+> hsep (map pretty args)

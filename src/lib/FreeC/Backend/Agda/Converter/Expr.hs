@@ -37,6 +37,8 @@ convertLiftedExpr (LIR.Undefined _)           = return undefinedExpr
 convertLiftedExpr (LIR.ErrorExpr _)           = return errorExpr
 convertLiftedExpr (LIR.Share _ expr _)
   = generatePure <$> convertLiftedExpr expr
+convertLiftedExpr (LIR.Call _ expr _)
+  = generatePure <$> convertLiftedExpr expr
 
 -- | Converts a single pattern from a LIR case expression to an Agda
 --   expression.

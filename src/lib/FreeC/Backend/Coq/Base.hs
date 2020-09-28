@@ -41,6 +41,7 @@ module FreeC.Backend.Coq.Base
   , implicitArg
   , share
   , cbneed
+  , call
     -- * Effect Selection
   , selectExplicitArgs
   , selectImplicitArgs
@@ -218,6 +219,10 @@ implicitArg = Coq.Underscore
 share :: Coq.Qualid
 share = Coq.bare "share"
 
+-- | The Coq identifier for the @call@ operator.
+call :: Coq.Qualid
+call = Coq.bare "call"
+
 -- | The Coq identifier for the @cbneed@ operator.
 cbneed :: Coq.Qualid
 cbneed = Coq.bare "cbneed"
@@ -326,6 +331,7 @@ reservedIdents
     , nf'
     , nf
     , share
+    , call
     , cbneed
     ]
   ++ map fst freeArgs

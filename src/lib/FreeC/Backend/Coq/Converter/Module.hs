@@ -42,7 +42,7 @@ convertDecls typeDecls funcDecls = do
 -- | Converts the given data type or type synonym declarations.
 convertTypeDecls :: [IR.TypeDecl] -> Converter [Coq.Sentence]
 convertTypeDecls typeDecls = do
-  let components = groupTypeDecls typeDecls
+  let components = typeDependencyComponents typeDecls
   (sentences, qualSmartCons)
     <- concatUnzip <$> mapM convertTypeComponent components
   let 
