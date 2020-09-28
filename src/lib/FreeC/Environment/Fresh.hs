@@ -48,11 +48,11 @@ freshArgPrefix = "x"
 
 -- | The prefix to use for variables artificially introduced by normalization.
 freshNormalformArgPrefix :: String
-freshSharingArgPrefix = "nx"
+freshNormalformArgPrefix = "nx"
 
 -- | The prefix to use for variables artificially introduced by sharing.
 freshSharingArgPrefix :: String
-freshNormalformArgPrefix = "sx"
+freshSharingArgPrefix = "sx"
 
 -- | The prefix to use for artificially introduced variables of type @a -> b@.
 freshFuncPrefix :: String

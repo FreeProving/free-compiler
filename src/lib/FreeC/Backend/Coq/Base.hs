@@ -9,6 +9,8 @@ module FreeC.Backend.Coq.Base
   , free
   , shape
   , pos
+  , idShape
+  , idPos
   , freePureCon
   , freeImpureCon
   , freeBind
@@ -35,6 +37,7 @@ module FreeC.Backend.Coq.Base
   , normalformBinder
   , nf'
   , nf
+  , nType
   , implicitArg
   , share
   , cbneed
@@ -93,6 +96,14 @@ pos = Coq.Bare posIdent
 -- | Like 'pos' but not wrapped in a 'Coq.Bare' constructor.
 posIdent :: Coq.Ident
 posIdent = Coq.ident "Pos"
+
+-- | The Coq identifier for the @Identity@ shape.
+idShape :: Coq.Qualid
+idShape = Coq.Qualified (Coq.ident "Identity") shapeIdent
+
+-- | The Coq identifier for the @Identity@ position function.
+idPos :: Coq.Qualid
+idPos = Coq.Qualified (Coq.ident "Identity") posIdent
 
 -- | The Coq identifier for the @pure@ constructor of the @Free@ monad.
 freePureCon :: Coq.Qualid
@@ -220,10 +231,10 @@ normalform = Coq.bare "Normalform"
 
 -- | The Coq binder for the @Normalform@ type class with the source and target
 --   type variable with the given names.
-normalformBinder :: Coq.Qualid -> Coq.Qualid -> Coq.Binder
-normalformBinder sourceType targetType = Coq.Generalized Coq.Implicit
+normalformBinder :: Coq.Qualid -> Coq.Binder
+normalformBinder sourceType = Coq.Generalized Coq.Implicit
   $ Coq.app (Coq.Qualid normalform)
-  $ map Coq.Qualid [shape, pos, sourceType, targetType]
+  $ map Coq.Qualid [shape, pos, sourceType]
 
 -- | The Coq identifier of the @Normalform@ class function.
 nf' :: Coq.Qualid
@@ -232,6 +243,10 @@ nf' = Coq.bare "nf'"
 -- | The Coq identifier of the function @nf@.
 nf :: Coq.Qualid
 nf = Coq.bare "nf"
+
+-- | The Coq identifier for a normalized type.
+nType :: Coq.Qualid
+nType = Coq.bare "nType"
 
 -------------------------------------------------------------------------------
 -- Effect selection                                                          --

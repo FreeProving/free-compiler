@@ -108,6 +108,7 @@ import           Data.List                        ( nub )
 import qualified Data.List.NonEmpty               as NonEmpty
 import qualified Data.Map.Strict                  as Map
 import           Data.Maybe                       ( fromJust )
+import           Language.Coq.Subst
 
 import qualified FreeC.Backend.Coq.Base           as Coq.Base
 import           FreeC.Backend.Coq.Converter.Free
@@ -115,7 +116,6 @@ import qualified FreeC.Backend.Coq.Syntax         as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
 import           FreeC.Environment.Fresh
-  ( freshArgPrefix, freshNormalformArgPrefix, freshSharingArgPrefix, freshTypeVarPrefix, freshCoqQualid, freshHaskellIdent )
 import           FreeC.Environment.LookupOrFail
 import           FreeC.IR.SrcSpan                 ( SrcSpan(NoSrcSpan) )
 import           FreeC.IR.Subst
@@ -129,8 +129,10 @@ import           FreeC.Pretty
 -- Instance Generation                                                       --
 -------------------------------------------------------------------------------
 -- | Data type for a type with certain components replaced by underscores.
-data StrippedType = StrippedType | StrippedTypeCon IR.TypeConName [StrippedType]
-  deriving (Eq, Ord, Show)
+data StrippedType
+  = StrippedType
+  | StrippedTypeCon IR.TypeConName [StrippedType]
+ deriving ( Eq, Ord, Show )
 
 isStripped :: StrippedType -> Bool
 isStripped StrippedType = True
@@ -138,6 +140,7 @@ isStripped _            = False
 
 -- | Type synonym for a map mapping types to function names.
 type TypeMap' = Map.Map IR.Type Coq.Qualid
+
 type TypeMap = Map.Map StrippedType Coq.Qualid
 
 -- | Builds instances for all supported typeclasses.
@@ -198,7 +201,10 @@ generateTypeclassInstances dataDecls = do
         -> Coq.Qualid
         -> Converter ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term))
     -- ^ A function to get class-specific binders and return types.
-    -> (TypeMap -> Coq.Qualid -> [(StrippedType, Coq.Qualid)] -> Converter Coq.Term)
+    -> (TypeMap
+        -> Coq.Qualid
+        -> [(StrippedType, Coq.Qualid)]
+        -> Converter Coq.Term)
     -- ^ A function to compute a class-specific value given a data constructor
     --   with arguments.
     -> Converter [Coq.Sentence]
@@ -323,16 +329,19 @@ generateTypeclassInstances dataDecls = do
                               Nothing (Just retType) letBody))) inBody
 
     -- | Matches on the constructors of a type.
-    matchConstructors :: TypeMap -> Coq.Qualid -> StrippedType -> Converter Coq.Term
-    matchConstructors m varName t@(StrippedTypeCon conName _)  = do
+    matchConstructors
+      :: TypeMap -> Coq.Qualid -> StrippedType -> Converter Coq.Term
+    matchConstructors m varName t@(StrippedTypeCon conName _) = do
       entry <- lookupEntryOrFail NoSrcSpan IR.TypeScope conName
       equations <- mapM (buildEquation m t) (entryConsNames entry)
       return $ Coq.match (Coq.Qualid varName) equations
-    matchConstructors _ _ StrippedType = error "generateTypeclassInstances: unexpected type placeholder."
+    matchConstructors _ _ StrippedType
+      = error "generateTypeclassInstances: unexpected type placeholder."
 
     -- | Creates a match equation on a given data constructor with a
     --   class-specific right-hand side.
-    buildEquation :: TypeMap -> StrippedType -> IR.ConName -> Converter Coq.Equation
+    buildEquation
+      :: TypeMap -> StrippedType -> IR.ConName -> Converter Coq.Equation
     buildEquation m t conName = do
       conEntry <- lookupEntryOrFail NoSrcSpan IR.ValueScope conName
       retType <- expandAllTypeSynonyms (entryReturnType conEntry)
@@ -342,14 +351,14 @@ generateTypeclassInstances dataDecls = do
       conArgIdents <- freshQualids (entryArity conEntry) freshArgPrefix
       -- Replace all underscores with fresh variables before unification.
       tFreshVars <- insertFreshVariables t
-      subst <- unifyOrFail NoSrcSpan tFreshVars retType
+      sub <- unifyOrFail NoSrcSpan tFreshVars retType
       -- Find out the type of each constructor argument by unifying its return
       -- type with the given type expression and applying the resulting
       -- substitution to each constructor argument's type.
       -- Then convert all irrelevant components to underscores again so the
       -- type can be looked up in the type map.
       expandedArgTypes <- mapM expandAllTypeSynonyms (entryArgTypes conEntry)
-      let modArgTypes = map (stripType . applySubst subst) expandedArgTypes
+      let modArgTypes = map (stripType . applySubst sub) expandedArgTypes
       let lhs = Coq.ArgsPat conIdent (map Coq.QualidPat conArgIdents)
       -- Build the right-hand side of the equation by applying the
       -- class-specific function @buildValue@.
@@ -371,27 +380,32 @@ generateTypeclassInstances dataDecls = do
     , Coq.Term -- Return type of the @Normalform@ instance.
     )
   nfBindersAndReturnType t varName = do
-    -- For each type variable in the type, generate two type variables.
-    -- One represents the type's variable itself, the other the result
-    -- type of the normalization.
-    -- The type is transformed to a Coq type twice, once with @Shape@ and
-    -- @Pos@ as arguments for the original type, once with @Identity.Shape@
-    -- and @Identity.Pos@ as arguments for the normalized result type.
-    (sourceType, sourceVars) <- toCoqType freshTypeVarPrefix shapeAndPos t
-    (targetType, targetVars) <- toCoqType freshTypeVarPrefix idShapeAndPos t
-    -- For each type variable @ai@, build a constraint
-    -- @`{Normalform Shape Pos ai bi}@.
-    let constraints = zipWith Coq.Base.normalformBinder sourceVars targetVars
-    let varBinder
-          = [typeVarBinder (sourceVars ++ targetVars) | not (null sourceVars)]
-    let binders = varBinder ++ constraints
-    -- Create an explicit argument binder for the value to be normalized.
-    let topLevelVarBinder
+    (sourceType, sourceVars) <- toCoqType t
+    -- The return types of the type variables' @Normalform@ instances.
+    let nTypes            = map
+          (\v -> Coq.explicitApp Coq.Base.nType
+           (shapeAndPos ++ Coq.Qualid v : [Coq.Underscore])) sourceVars
+        -- Build a substitution to create the normalized type from the source
+        -- type.
+        targetTypeMap     = buildNFSubst (zip sourceVars nTypes)
+        targetType        = subst targetTypeMap sourceType
+        -- For each type variable @aᵢ@, build a constraint
+        -- @`{Normalform Shape Pos aᵢ}@.
+        constraints       = map Coq.Base.normalformBinder sourceVars
+        varBinder         = [typeVarBinder sourceVars | not (null sourceVars)]
+        binders           = varBinder ++ constraints
+        -- Create an explicit argument binder for the value to be normalized.
+        topLevelVarBinder
           = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit varName sourceType
-    let instanceRetType = Coq.app (Coq.Qualid Coq.Base.normalform)
-          (shapeAndPos ++ [sourceType, targetType])
-    let funcRetType = applyFree targetType
+        instanceRetType   = Coq.app (Coq.Qualid Coq.Base.normalform)
+          (shapeAndPos ++ [sourceType])
+        funcRetType       = applyFree targetType
     return (binders, topLevelVarBinder, funcRetType, instanceRetType)
+   where
+    buildNFSubst :: [(Coq.Qualid, Coq.Term)] -> Map.Map Coq.Qualid Coq.Term
+    buildNFSubst kvs = Map.insert Coq.Base.shape (Coq.Qualid Coq.Base.idShape)
+      (Map.insert Coq.Base.pos (Coq.Qualid Coq.Base.idPos)
+       (foldr (uncurry Map.insert) Map.empty kvs))
 
   -- | Builds a normalized @Free@ value for the given constructor
   --   and constructor arguments.
@@ -436,7 +450,7 @@ generateTypeclassInstances dataDecls = do
         -- already exists. Therefore, we apply @nf@ to the component to receive
         -- a normalized value.
         Nothing       -> do
-          nx <- freshCoqQualid ("n" ++ freshArgPrefix)
+          nx <- freshCoqQualid freshNormalformArgPrefix
           rhs <- buildNormalformValue' (nx : boundVars) consVars
           let c = Coq.fun [nx] [Nothing] rhs
           return
@@ -458,7 +472,7 @@ generateTypeclassInstances dataDecls = do
     , Coq.Term -- Return type of the @ShareableArgs@ instance.
     )
   shareArgsBindersAndReturnType t varName = do
-    (coqType, vars) <- toCoqType "a" shapeAndPos t
+    (coqType, vars) <- toCoqType t
     let constraints
           = Coq.Base.injectableBinder : map Coq.Base.shareableArgsBinder vars
     let varBinder = [typeVarBinder vars | not (null vars)]
@@ -508,11 +522,13 @@ generateTypeclassInstances dataDecls = do
   -------------------------------------------------------------------------------
   -- | Creates an entry with a unique name for each of the given types and
   --   inserts them into the given map.
-  nameFunctionsAndInsert :: String -> TypeMap -> [StrippedType] -> Converter TypeMap
+  nameFunctionsAndInsert
+    :: String -> TypeMap -> [StrippedType] -> Converter TypeMap
   nameFunctionsAndInsert prefix = foldM (nameFunctionAndInsert prefix)
 
   -- | Like 'nameFunctionsAndInsert', but for a single type.
-  nameFunctionAndInsert :: String -> TypeMap -> StrippedType -> Converter TypeMap
+  nameFunctionAndInsert
+    :: String -> TypeMap -> StrippedType -> Converter TypeMap
   nameFunctionAndInsert prefix m t = do
     name <- nameFunction prefix t
     return (Map.insert t name m)
@@ -575,36 +591,37 @@ generateTypeclassInstances dataDecls = do
       -- If not, check if a relevant type occurs in its left-hand side,
       -- otherwise replace the whole expression with an underscore.
       StrippedType -> case stripType' flag l of
-        StrippedType -> StrippedType
-        StrippedTypeCon con args  -> StrippedTypeCon con (args ++ [StrippedType])
+        StrippedType             -> StrippedType
+        StrippedTypeCon con args -> StrippedTypeCon con (args ++ [StrippedType])
       -- If a relevant type does occur in the right-hand side,
       -- the type application must be preserved, so only its arguments are
       -- stripped.
-      r'  -> let StrippedTypeCon con args = stripType' True l in StrippedTypeCon con (args ++ [r'])
+      r'           -> let StrippedTypeCon con args = stripType' True l
+                      in StrippedTypeCon con (args ++ [r'])
     -- Type variables and function types are not relevant and are replaced by @_@.
     stripType' _ _ = StrippedType
 
   showPrettyType :: StrippedType -> Converter String
+
   -- For a placeholder, show "_".
-  showPrettyType StrippedType = return "_"
+  showPrettyType StrippedType               = return "_"
   -- For a type constructor and its arguments, return the constructor's
   -- Coq identifier as a string with the conversions of the arguments appended.
   showPrettyType (StrippedTypeCon con args) = do
-      prettyCon <- fromJust . (>>= Coq.unpackQualid)
-         <$> inEnv (lookupIdent IR.TypeScope con)
-      prettyArgs <- concatMapM showPrettyType args
-      return (prettyCon ++ prettyArgs)
-
+    prettyCon <- fromJust . (>>= Coq.unpackQualid)
+      <$> inEnv (lookupIdent IR.TypeScope con)
+    prettyArgs <- concatMapM showPrettyType args
+    return (prettyCon ++ prettyArgs)
 
   -- | Converts a @StrippedType@ to an @IR.Type@, replacing all
   --   placeholders with fresh variables.
   insertFreshVariables :: StrippedType -> Converter IR.Type
-  insertFreshVariables StrippedType = do
-      freshVar <- freshHaskellIdent freshArgPrefix
-      return (IR.TypeVar NoSrcSpan freshVar)
+  insertFreshVariables StrippedType               = do
+    freshVar <- freshHaskellIdent freshArgPrefix
+    return (IR.TypeVar NoSrcSpan freshVar)
   insertFreshVariables (StrippedTypeCon con args) = do
-      args' <- mapM insertFreshVariables args
-      return (foldl (IR.TypeApp NoSrcSpan) (IR.TypeCon NoSrcSpan con) args')
+    args' <- mapM insertFreshVariables args
+    return (foldl (IR.TypeApp NoSrcSpan) (IR.TypeCon NoSrcSpan con) args')
 
   -- | Binders for (implicit) Shape and Pos arguments.
   --
@@ -631,49 +648,23 @@ generateTypeclassInstances dataDecls = do
   shapeAndPos :: [Coq.Term]
   shapeAndPos = [Coq.Qualid Coq.Base.shape, Coq.Qualid Coq.Base.pos]
 
-  -- | The shape and position function arguments for the identity monad
-  --   as a Coq term.
-  idShapeAndPos :: [Coq.Term]
-  idShapeAndPos = map Coq.Qualid
-    [ Coq.Qualified (Coq.ident "Identity") Coq.Base.shapeIdent
-    , Coq.Qualified (Coq.ident "Identity") Coq.Base.posIdent
-    ]
-
-  -- | Converts a type into a Coq type (a term) with the specified
-  --   additional arguments (for example @Shape@ and @Pos@) and fresh Coq
+  -- | Converts a type into a Coq type (a term) with fresh Coq
   --   identifiers for all underscores.
   --   Returns a pair of the result term and a list of the fresh variables.
-  toCoqType
-    :: String -- ^ The prefix of the fresh variables.
-    -> [Coq.Term] -- ^ A list of additional arguments, e.g. Shape and Pos.
-    -> StrippedType -- ^ The type to convert.
-    -> Converter (Coq.Term, [Coq.Qualid])
+  toCoqType :: StrippedType -- ^ The type to convert.
+            -> Converter (Coq.Term, [Coq.Qualid])
 
   -- A type variable is translated into a fresh type variable.
-  toCoqType varPrefix _ StrippedType           = do
-    x <- freshCoqQualid varPrefix
+  toCoqType StrippedType               = do
+    x <- freshCoqQualid freshTypeVarPrefix
     return (Coq.Qualid x, [x])
-  toCoqType varPrefix extraArgs (StrippedTypeCon con args) = do
-      entry <- lookupEntryOrFail NoSrcSpan IR.TypeScope con
-      (coqArgs,freshVars) <- mapAndUnzipM (toCoqType varPrefix extraArgs) args
-      return (Coq.app (Coq.Qualid (entryIdent entry)) (extraArgs ++ coqArgs), concat freshVars )
+  toCoqType (StrippedTypeCon con args) = do
+    entry <- lookupEntryOrFail NoSrcSpan IR.TypeScope con
+    (coqArgs, freshVars) <- mapAndUnzipM toCoqType args
+    return ( Coq.app (Coq.Qualid (entryIdent entry)) (shapeAndPos ++ coqArgs)
+           , concat freshVars
+           )
 
-
-    {-
-  -- A type constructor is applied to the given arguments.
-  toCoqType _ extraArgs (IR.TypeCon _ conName)     = do
-    entry <- lookupEntryOrFail NoSrcSpan IR.TypeScope conName
-    return (Coq.app (Coq.Qualid (entryIdent entry)) extraArgs, [])
-  -- For a type application, both arguments are translated recursively
-  -- and the collected variables are combined.
-  toCoqType varPrefix extraArgs (IR.TypeApp _ l r) = do
-    (l', varsl) <- toCoqType varPrefix extraArgs l
-    (r', varsr) <- toCoqType varPrefix extraArgs r
-    return (Coq.app l' [r'], varsl ++ varsr)
-  -- Function types were removed by 'stripType'.
-  toCoqType _ _ (IR.FuncType _ _ _)
-    = error "Function types should have been eliminated."
-    -}
   -- | Produces @n@ new Coq identifiers (Qualids) with the same prefix.
   freshQualids :: Int -> String -> Converter [Coq.Qualid]
   freshQualids n prefix = replicateM n (freshCoqQualid prefix)
