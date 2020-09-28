@@ -24,11 +24,13 @@ convertModule ast = Agda.moduleDecl (convertModName (IR.modName ast))
  where
   importDecls' = Ap $ convertImportDecls (IR.modImports ast)
 
-  typeDecls'
-    = Ap $ concatMapM convertTypeDecls $ typeDependencyComponents (IR.modTypeDecls ast)
+  typeDecls'   = Ap
+    $ concatMapM convertTypeDecls
+    $ typeDependencyComponents (IR.modTypeDecls ast)
 
-  funcDecls'
-    = Ap $ concatMapM convertFuncDecls $ valueDependencyComponents (IR.modFuncDecls ast)
+  funcDecls'   = Ap
+    $ concatMapM convertFuncDecls
+    $ valueDependencyComponents (IR.modFuncDecls ast)
 
 -- | Converts an IR module name to an Agda module name.
 convertModName :: IR.ModName -> Agda.QName
