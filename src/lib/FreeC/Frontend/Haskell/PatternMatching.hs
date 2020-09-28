@@ -259,8 +259,8 @@ convertMsgSrcSpan (Just msgSrcSpan) = do
     , srcSpanStartColumn = HST.msgSrcSpanStartColumn msgSrcSpan
     , srcSpanEndLine     = HST.msgSrcSpanEndLine msgSrcSpan
     , srcSpanEndColumn   = HST.msgSrcSpanEndColumn msgSrcSpan
-    , srcSpanCodeLines   = take (HST.msgSrcSpanEndLine msgSrcSpan)
-        (drop (HST.msgSrcSpanStartLine msgSrcSpan) (lines contents))
+    , srcSpanCodeLines   = take (HST.msgSrcSpanEndLine msgSrcSpan - 1)
+        (drop (HST.msgSrcSpanStartLine msgSrcSpan - 1) (lines contents))
     }
 
 -- | Converts the severity of a message that has been reported by the pattern
