@@ -184,7 +184,7 @@ analyseSharingExpr varPats expr = do
 --   substitutions and applies the substitution on the expression.
 buildLet :: IR.Expr -> [IR.VarName] -> Converter IR.Expr
 buildLet expr []   = return expr
-buildLet expr vars = localEnv $ do
+buildLet expr vars = do
   let srcSpan = IR.exprSrcSpan expr
   (binds, substs) <- buildBinds srcSpan vars
   return (IR.Let srcSpan binds (applySubst (composeSubsts substs) expr)
