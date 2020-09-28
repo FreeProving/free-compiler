@@ -1,42 +1,30 @@
--- | This module contains a compiler pass that analyses the right-hand sides of
---   function declaration and introduces @let@-expression with new variables
---   for each variable that occurs more than once on the right-hand sides.
+-- | This module contains a compiler pass that transforms all expressions from
+--   function declarations into a "flattened form" meaning that all contained
+--   functions are only applied on constants or variables.
 --
 --   = Examples
 --
 --   == Example 1
 --
---   > twice :: Integer -> Integer
---   > twice (x :: Integer) = x + x
 --
---   Should be transformed into
+--   The following function does contain functions, which are applied on other
+--   function calls.
 --
---   > twice :: Integer -> Maybe Integer
---   > twice (x :: Integer) = let (y :: Integer) = x in y + y
+--   > dot :: (b -> c) -> (a -> b) -> a -> c
+--   > dot (f :: b -> c) (g :: a -> b) (x :: a) = f (g x)
+--
+--   The pass transforms the example the following way.
+--
+--   > dot :: (b -> c) -> (a -> b) -> a -> c
+--   > dot (f :: b -> c) (g :: a -> b) (x :: a) = let {y = g x} in f y
 --
 --   where @y@ is a fresh variable.
+--
 --
 --   == Example 2
 --
---   > twiceMaybe :: Maybe Integer -> Maybe Integer
---   > twiceMaybe (mx :: Maybe Integer) = case (mx :: Maybe Integer) of {
---   >     Nothing -> Nothing;
---   >     Just x  -> Just (x + x)
---   >   }
---
---   Should be transformed into
---
---   > twiceMaybe :: Maybe Integer -> Maybe Integer
---   > twiceMaybe (mx :: Maybe Integer) = case (mx :: Maybe Integer) of {
---   >     Nothing -> Nothing;
---   >     Just x  -> let y = x in Just (y + y)
---   >   }
---   where @y@ is a fresh variable.
---
---   == Example 3
---
---   > two :: Integer
---   > two = let x = 1 in x + x
+--   > dollar :: (a -> b) -> a -> b
+--   > dollar (f :: a -> b) (x :: a) = f x
 --
 --   Should not be changed by the transformation.
 --
@@ -48,20 +36,9 @@
 --
 --   == Translation
 --
---   First all subexpressions of each function declaration are checked for variables
---   occurring multiple times on the right hand sides of lambda abstractions or
---   @case@-expression alternatives. If found the variables are replaced by a
---   fresh variable and a @let@-binding is introduced binding the fresh variable
---   to the old one.
---
---   After all subexpressions are checked the right hand side of the function
---   declaration is checked as well.
---   Variables already bound by @let@-bindings are not counted.
---
 --   == Postconditions
 --
---   All shared variables on right-hand sides of function declarations are made
---   explicit by introducing @let@-expressions.
+--
 module FreeC.Pass.FlattenExprPass
   ( flattenExprPass
     -- * Testing Interface

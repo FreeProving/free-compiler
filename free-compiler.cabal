@@ -183,6 +183,7 @@ library freec-internal
                       , FreeC.Pass.TypeSignaturePass
                       , FreeC.Pass.QualifierPass
                       , FreeC.Pass.ResolverPass
+                      , FreeC.Pass.SharingAnalysisPass
                       , FreeC.Pipeline
                       , FreeC.Pretty
                       , FreeC.Util.Config
