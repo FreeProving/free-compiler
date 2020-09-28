@@ -79,8 +79,8 @@ flatExpr (IR.App srcSpan lhs rhs typeScheme) typeArgs args = do
     encEffects <- shouldEncapsulateEffects lhs
     if encEffects
        then do
-            lhs' <- flatExpr lhs typeArgs args
-            rhs' <- flatExpr rhs typeArgs args
+            lhs' <- flatExpr lhs [] []
+            rhs' <- flatExpr rhs [] []
             return $ IR.App srcSpan lhs' rhs' typeScheme
        else flatExpr lhs typeArgs (rhs : args)
 flatExpr (IR.TypeAppExpr _ expr typeArg _) typeArgs args = flatExpr expr
