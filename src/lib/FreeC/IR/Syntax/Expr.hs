@@ -176,6 +176,14 @@ conApp srcSpan = app srcSpan . untypedCon srcSpan
 visibleTypeApp :: SrcSpan -> Expr -> [Type] -> Expr
 visibleTypeApp = foldl . untypedTypeAppExpr
 
+-- | Returns the function or constructor name of an application.
+getFuncName :: Expr -> VarName
+getFuncName (Var _ varName _) = varName
+getFuncName (App _ lhs _ _)   = getFuncName lhs
+getFuncName _
+  = error "getFuncName: unexpected expression"
+
+
 -- | Pretty instance for expressions.
 --
 --   If the expression contains type annotations, the output quickly becomes

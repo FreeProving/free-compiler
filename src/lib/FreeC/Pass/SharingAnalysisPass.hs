@@ -73,8 +73,7 @@ import           Data.Map.Strict         ( Map )
 import qualified Data.Map.Strict         as Map
 import           Data.Set                as Set ( fromList )
 
-import           FreeC.Environment       ( lookupEntry )
-import           FreeC.Environment.Entry
+import           FreeC.Environment       ( encapsulatesEffects )
 import           FreeC.Environment.Fresh ( freshHaskellName )
 import           FreeC.IR.SrcSpan
 import           FreeC.IR.Subst
@@ -152,22 +151,10 @@ analyseLocalSharing varPats expr@(IR.App srcSpan lhs rhs typeScheme) = do
     rhs' <- analyseLocalSharing varPats rhs
     return (IR.App srcSpan lhs' rhs' typeScheme)
 
--- | Returns the function or constructor name of an application.
-getLeftmostSymbol :: IR.Expr -> IR.VarName
-getLeftmostSymbol (IR.Var _ varName _) = varName
-getLeftmostSymbol (IR.App _ lhs _ _)   = getLeftmostSymbol lhs
-getLeftmostSymbol _
-  = error "getLeftmostSymbol: unexpected expression"
-
 -- | Whether an expression is an application of a function that encapsulates
 --   effects.
 shouldEncapsulateSharing :: IR.Expr -> Converter Bool
-shouldEncapsulateSharing expr = do
-  let funcName = getLeftmostSymbol expr
-  Just entry <- inEnv $ lookupEntry IR.ValueScope funcName
-  if isFuncEntry entry
-    then return $ entryEncapsulatesEffects entry
-    else return False
+shouldEncapsulateSharing expr = inEnv $ encapsulatesEffects (IR.getFuncName expr)
 
 -- | Builds let expressions for variables with more than one occurrence
 --   for each argument of a function that encapsulates effects.

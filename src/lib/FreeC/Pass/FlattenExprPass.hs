@@ -48,6 +48,7 @@ module FreeC.Pass.FlattenExprPass
 import           Control.Monad           ( (>=>), mapAndUnzipM )
 import           Data.Maybe              ( catMaybes )
 
+import           FreeC.Environment       ( encapsulatesEffects )
 import           FreeC.Environment.Fresh ( freshArgPrefix, freshHaskellIdent )
 import qualified FreeC.IR.Syntax         as IR
 import           FreeC.Monad.Converter
@@ -74,7 +75,14 @@ flatExpr (IR.Con srcSpan conName typeScheme) typeArgs args = buildLet
   (IR.Con srcSpan conName typeScheme) typeArgs args
 flatExpr (IR.Var srcSpan varName typeScheme) typeArgs args = buildLet
   (IR.Var srcSpan varName typeScheme) typeArgs args
-flatExpr (IR.App _ lhs rhs _) typeArgs args = flatExpr lhs typeArgs (rhs : args)
+flatExpr (IR.App srcSpan lhs rhs typeScheme) typeArgs args = do
+    encEffects <- shouldEncapsulateEffects lhs
+    if encEffects
+       then do
+            lhs' <- flatExpr lhs typeArgs args
+            rhs' <- flatExpr rhs typeArgs args
+            return $ IR.App srcSpan lhs' rhs' typeScheme
+       else flatExpr lhs typeArgs (rhs : args)
 flatExpr (IR.TypeAppExpr _ expr typeArg _) typeArgs args = flatExpr expr
   (typeArg : typeArgs) args
 flatExpr (IR.If srcSpan e1 e2 e3 typeScheme) typeArgs args = do
@@ -131,3 +139,9 @@ buildLet e' typeArgs args = do
         varName = (IR.UnQual $ IR.Ident varIdent)
         var     = IR.Var srcSpan varName (IR.exprTypeScheme expr)
     return (Just bind, var)
+
+-- | Whether an expression is an application of a function that encapsulates
+--   effects.
+shouldEncapsulateEffects :: IR.Expr -> Converter Bool
+shouldEncapsulateEffects expr = inEnv $ encapsulatesEffects (IR.getFuncName expr)
+
