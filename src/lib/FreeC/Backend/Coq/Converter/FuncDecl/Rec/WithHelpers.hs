@@ -204,7 +204,7 @@ transformRecFuncDecl
     -- The decreasing argument must be instantiated with the scrutinee of the
     -- @case@-expression the helper function has been created for (prior to
     -- renaming of aliases).
-    let scrutinee = IR.caseExprScrutinee caseExpr
+    let scrutinee  = IR.caseExprScrutinee caseExpr
         helperApp' = applySubst (singleSubst decArg scrutinee) helperApp
     return ((helperDecl, decArgIndex'), helperApp')
 
@@ -224,9 +224,11 @@ transformRecFuncDecl
 --   and @call@ to be generated within helper functions for subterms of the
 --   decreasing since they interfere with Coq's termination checker.
 eliminateAliases :: IR.FuncDecl -> DecArgIndex -> IR.FuncDecl
-eliminateAliases helperDecl decArgIndex =
-  let decArg = IR.varPatQName (IR.funcDeclArgs helperDecl !! decArgIndex)
-  in helperDecl { IR.funcDeclRhs = eliminateAliases' (initDepthMap decArg) (IR.funcDeclRhs helperDecl) }
+eliminateAliases helperDecl decArgIndex
+  = let decArg = IR.varPatQName (IR.funcDeclArgs helperDecl !! decArgIndex)
+    in helperDecl { IR.funcDeclRhs = eliminateAliases' (initDepthMap decArg)
+                      (IR.funcDeclRhs helperDecl)
+                  }
 
 -- | Replaces aliases in the given expression and keeps track of which
 --   variables are structurally smaller or equal with the given 'DepthMap'.
