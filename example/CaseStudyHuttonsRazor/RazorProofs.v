@@ -4,6 +4,7 @@ From Base Require Import Free Free.Instance.Maybe Free.Instance.Error Prelude Te
 From Razor.Extra Require Import Tactic Pureness.
 From Generated Require Import Razor.
 From Proofs Require Import AppendAssocProofs.
+Import AppendAssoc.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
@@ -15,20 +16,24 @@ Definition UndefinedIsImpure {Shape : Type} {Pos : Shape -> Type} (Partial : Par
   @undefined Shape Pos Partial A = impure s pf.
 
 (* The property holds for the [Maybe] monad and the [Error] monad. *)
-Example undefinedIsImpureMaybe : UndefinedIsImpure Maybe.Partial.
+Example undefinedIsImpureMaybe :
+    forall (Shape' : Type) (Pos' : Shape' -> Type)
+           `{Inj : Injectable Maybe.Shape Maybe.Pos Shape' Pos'},
+  @UndefinedIsImpure Shape' Pos' (@Maybe.Partial Shape' Pos' Inj).
 Proof.
-  intro A.
-  simpl. unfold Nothing. exists tt.
-  exists (fun p : Maybe.Pos tt => match p return (Free unit Maybe.Pos A) with end).
-  reflexivity.
+  intros Shape' Pos' Inj A.
+  simpl. unfold Nothing.
+  eauto.
 Qed.
 
-Example undefinedIsImpureError : UndefinedIsImpure Error.Partial.
+Example undefinedIsImpureError :
+    forall (Shape' : Type) (Pos' : Shape' -> Type)
+           `{Inj : Injectable (Error.Shape string) Error.Pos Shape' Pos'},
+  @UndefinedIsImpure Shape' Pos' (@Error.Partial Shape' Pos' Inj).
 Proof.
-  intro A.
-  simpl. unfold ThrowError. exists "undefined"%string.
-  exists (fun p : Error.Pos "undefined"%string => match p return (Free string Error.Pos A) with end).
-  reflexivity.
+  intros Shape' Pos' Inj A.
+  simpl. unfold ThrowError.
+  eauto.
 Qed.
 
 (* This is a tactic, which discriminates assumptions where [impure] is equal to some [pure] value. *)
@@ -117,11 +122,11 @@ Section Proofs.
         * (* fcode1 = pure (pure (PUSH fn) : pure code1') *)
           (* In this case we can apply the induction hypothesis. *)
           destruct fstack as [ [ | fv fstack1 ] | sStack pfStack ].
-          { autoIH. apply IH. apply H. }
-          { autoIH. apply IH. apply H. }
-          { specialize exec_strict_on_stack_arg_cons as L.
-            unfold Cons in L. rewrite L in H.
-            destruct H as [stack' H]. discriminate H. }
+          -- autoIH. apply IH. apply H.
+          -- autoIH. apply IH. apply H.
+          -- specialize exec_strict_on_stack_arg_cons as L.
+             rewrite L in H.
+             destruct H as [stack' H]. discriminate H.
         * (* fcode1 = pure (pure (PUSH fn) : impure sCode1' pfCode1' *)
           (* In this case we have impure code and therefore [H] can't hold. *)
           destruct H as [ stack' Hstack' ].
@@ -245,11 +250,11 @@ Section Proofs.
         reflexivity.
         (* Prove subgoals, that were introduced by the [replace] tactic, by induction. *)
         * inductFree fx as [ x | s pf IHpf ].
-          { apply IH. }
-          { f_equal. extensionality p. dependent destruction IHfx. specialize (IHpf p (H p)) as IH. apply IH. }
+          -- apply IH.
+          -- f_equal. extensionality p. dependent destruction IHfx. specialize (IHpf p (H p)) as IH. apply IH.
         * inductFree fy as [ y | s pf IHpf ].
-          { apply IH. }
-          { f_equal. extensionality p. dependent destruction IHfy. specialize (IHpf p (H p)) as IH. apply IH. }
+          -- apply IH.
+          -- f_equal. extensionality p. dependent destruction IHfy. specialize (IHpf p (H p)) as IH. apply IH.
     - (* In the impure case, we apply the induction hypothesis.*)
       intro fcode. f_equal. extensionality p. apply IHpf.
   Qed.

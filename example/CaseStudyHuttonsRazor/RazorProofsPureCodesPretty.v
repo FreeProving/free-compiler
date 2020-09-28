@@ -2,9 +2,10 @@
    tactics of [Extra/FreeDB]. *)
 
 From Base Require Import Free Free.Instance.Maybe Free.Instance.Error Prelude Test.QuickCheck.
-From Razor.Extra Require Import FreeDB Tactic Pureness.
 From Generated Require Import Razor.
+From Razor.Extra Require Import FreeDB Tactic Pureness.
 From Proofs Require Import AppendAssocProofs.
+Import AppendAssoc.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
@@ -16,7 +17,7 @@ Definition UndefinedIsImpure {Shape : Type} {Pos : Shape -> Type} (Part : Partia
       undefined = impure s pf.
 
 (* The property holds for the [Maybe] monad and the [Error] monad. *)
-Example undefinedIsImpureMaybe : UndefinedIsImpure Maybe.Partial.
+Example undefinedIsImpureMaybe : UndefinedIsImpure (Maybe.Partial Maybe.Shape Maybe.Pos).
 Proof.
   intro A.
   simpl. unfold Nothing. exists tt.
@@ -24,7 +25,7 @@ Proof.
   reflexivity.
 Qed.
 
-Example undefinedIsImpureError : UndefinedIsImpure Error.Partial.
+Example undefinedIsImpureError : UndefinedIsImpure (Error.Partial (Error.Shape string) Error.Pos).
 Proof.
   intro A.
   simpl. unfold ThrowError. exists "undefined"%string.
@@ -43,16 +44,16 @@ Definition UndefinedHasNoPositions {Shape : Type} {Pos : Shape -> Type} (Partial
 
 Section Proofs_PureCodes.
 
-  Variable Shape   : Type.
-  Variable Pos     : Shape -> Type.
-  Variable Part : Partial Shape Pos.
+  Variable Shape : Type.
+  Variable Pos   : Shape -> Type.
+  Variable Part  : Partial Shape Pos.
 
   (* If the code is pure and the first operation is pure if there is any, an
      [exec] call on an undefined stack will result in an undefined stack. *)
   Lemma exec_strict_on_stack_arg_Nil :
     UndefinedIsImpure Part ->
     UndefinedHasNoPositions Part ->
-        exec Part Nil undefined
+        exec Part Nil_ undefined
         = undefined.
   Proof.
     intros HUndefined1 HUndefined2.
@@ -71,7 +72,7 @@ Section Proofs_PureCodes.
     UndefinedHasNoPositions Part ->
     forall (op : Op Shape Pos)
            (fcode : Free Shape Pos (Code Shape Pos)),
-        exec Part (Cons (pure op) fcode) undefined
+        exec Part (Cons_ (pure op) fcode) undefined
         = undefined.
   Proof.
     intros HUndefined1 HUndefined2 op fcode.
@@ -100,14 +101,14 @@ Section Proofs_PureCodes.
     forall (fstack : Free Shape Pos (Stack Shape Pos)),
         exec Part (append fcode1 fcode2) fstack
         = exec Part fcode2 (exec Part fcode1 fstack).
-  Proof with pretty; try reflexivity.
+  Proof with pretty; unfold Code; unfold Stack; try reflexivity.
     intros HUndefined1 HUndefined2 fcode1 HPure1 fcode2 HPure2.
     (* As we now that both pieces of code are recursively pure we, we can
        immediately destruct the monadic layer.*)
     destruct fcode1 as [ code1 | ]; try eliminate_pureness_property_impure.
     destruct fcode2 as [ code2 | ]; try eliminate_pureness_property_impure.
     induction code1 as [ | [ [ fn | ] | ] fcode1' IHfcode1' ] using List_Ind;
-      try eliminate_pureness_property_impure; pretty.
+      try eliminate_pureness_property_impure...
     - (* code1 = [] *)
       (* This case is trivial. *)
       intro fstack.
@@ -137,15 +138,15 @@ Section Proofs_PureCodes.
         (* On both sides an [undefined] is returned. *)
         autodef.
         destruct code2 as [ | [ op | ] fcode2' ]; try eliminate_pureness_property_impure...
-        { rewrite (exec_strict_on_stack_arg_Nil HUndefined1 HUndefined2)... }
-        { rewrite (exec_strict_on_stack_arg_Op HUndefined1 HUndefined2)... }
+        -- symmetry; apply (exec_strict_on_stack_arg_Nil HUndefined1 HUndefined2)...
+        -- rewrite (exec_strict_on_stack_arg_Op HUndefined1 HUndefined2)...
       + induction fstack1 as [ [ | fv2 fstack2 ] | sStack1 pfStack1 IHpfStack1 ] using Free_Ind...
         * (* fstack = (fv1 : fstack1) *)
           (* On both sides an [undefined] is returned. *)
           autodef.
           destruct code2 as [ | [ op | ] fcode2' ]; try eliminate_pureness_property_impure...
-          { rewrite (exec_strict_on_stack_arg_Nil HUndefined1 HUndefined2)... }
-          { rewrite (exec_strict_on_stack_arg_Op HUndefined1 HUndefined2)... }
+          -- symmetry; apply (exec_strict_on_stack_arg_Nil HUndefined1 HUndefined2)...
+          -- rewrite (exec_strict_on_stack_arg_Op HUndefined1 HUndefined2)...
         * (* fstack = (fv1 : fv2 : fstack2) *)
           (* The function definition can be applied and we can use the induction hypothesis. *)
           autodef.

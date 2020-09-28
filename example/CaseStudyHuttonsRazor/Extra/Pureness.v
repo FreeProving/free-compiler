@@ -5,6 +5,7 @@
 From Base Require Import Free Prelude.
 From Razor.Extra Require Import Tactic.
 From Generated Require Import Razor.
+Import Proofs.AppendAssoc.
 
 Require Import Coq.Program.Equality.
 

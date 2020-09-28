@@ -7,6 +7,7 @@ From Base Require Import Free Free.Instance.Maybe Free.Instance.Error Prelude Te
 From Razor.Extra Require Import Tactic Pureness.
 From Generated Require Import Razor.
 From Proofs Require Import AppendAssocProofs.
+Import AppendAssoc.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
@@ -18,7 +19,7 @@ Definition UndefinedIsImpure {Shape : Type} {Pos : Shape -> Type} (Partial : Par
       undefined = impure s pf.
 
 (* The property holds for the [Maybe] monad and the [Error] monad. *)
-Example undefinedIsImpureMaybe : UndefinedIsImpure Maybe.Partial.
+Example undefinedIsImpureMaybe : UndefinedIsImpure (Maybe.Partial Maybe.Shape Maybe.Pos).
 Proof.
   intro A.
   simpl. unfold Nothing. exists tt.
@@ -26,7 +27,7 @@ Proof.
   reflexivity.
 Qed.
 
-Example undefinedIsImpureError : UndefinedIsImpure Error.Partial.
+Example undefinedIsImpureError : UndefinedIsImpure (Error.Partial (Error.Shape string) (Error.Pos)).
 Proof.
   intro A.
   simpl. unfold ThrowError. exists "undefined"%string.
@@ -139,7 +140,7 @@ Section Proofs_PureCodes.
       intro fstack.
       destruct fstack as [ [ | fv1 fstack1 ] | sStack pfStack ]; try reflexivity.
       simpl. f_equal. f_equal. extensionality p.
-      setoid_rewrite match_stack. rewrite bind_pure.
+      rewrite match_stack. rewrite bind_pure.
       reflexivity.
     - (* code1 = (PUSH fn : fcode1') *)
       (* This case is easy for a pure stack but the impure case needs some extra work. *)
@@ -147,28 +148,28 @@ Section Proofs_PureCodes.
       dependent destruction HPure1.
       destruct fcode1' as [ code1' | ]. 2: dependent destruction HPure1.
       autoIH. specialize (IH HPure1).
-      setoid_rewrite match_stack with (f := fun s => append1 _ _ _ _ _ >>= (fun c => exec0 _ _ _ c (Cons _ _ _ (pure s)))).
-      setoid_rewrite match_stack with (f := fun s => exec0 _ _ _ _ (Cons _ _ _ (pure s))).
+      rewrite match_stack with (f := fun s => append1 _ _ _ _ _ >>= (fun c => exec0 _ _ _ c (Cons _ _ _ (pure s)))).
+      rewrite match_stack with (f := fun s => exec0 _ _ _ _ (Cons _ _ _ (pure s))).
       (* If the stack is pure, we can apply the induction hypothesis, otherwise
          we need to destruct the second piece of code. *)
       destruct fstack as [ [ | fv1 fstack1 ] | sStack pfStack ]; try apply IH.
       destruct code2 as [ | [ [ fn2 | ] | ] fcode2' ]. 4: dependent destruction HPure2.
       + (* code2 = [] *)
         simpl. f_equal. extensionality p.
-        setoid_rewrite match_stack.
+        rewrite match_stack.
         rewrite bind_pure.
         f_equal. extensionality s.
         setoid_rewrite IH. simpl.
-        setoid_rewrite match_stack.
+        rewrite match_stack.
         rewrite bind_pure.
         reflexivity.
       + (* code2 = (PUSH fn2 : fcode2') *)
         simpl. f_equal. extensionality p.
-        setoid_rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ c (Cons _ _ _ (pure s))).
+        rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ c (Cons _ _ _ (pure s))).
         rewrite bind_assoc.
         f_equal. extensionality s.
         setoid_rewrite IH. simpl.
-        setoid_rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ c (Cons _ _ _ (pure s))).
+        rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ c (Cons _ _ _ (pure s))).
         reflexivity.
       + (* code2 = (ADD : fcode2') *)
         simpl. f_equal. extensionality p.
@@ -228,25 +229,25 @@ Section Proofs_PureCodes.
           simpl. f_equal. extensionality p. 
           rewrite bind_assoc.
           f_equal. extensionality s.
-          setoid_rewrite match_stack.
+          rewrite match_stack.
           rewrite bind_pure.
           destruct s as [ | fv2 fstack2 ]; try reflexivity.
           setoid_rewrite IH. simpl.
-          setoid_rewrite match_stack.
+          rewrite match_stack.
           rewrite bind_pure.
           reflexivity.
         * (* code2 = (PUSH fn2 : fcode2') *)
           simpl. f_equal. extensionality p. 
           rewrite bind_assoc.
           f_equal. extensionality s.
-          setoid_rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ c (Cons _ _ _ (pure s))).
+          rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ c (Cons _ _ _ (pure s))).
           destruct s as [ | fv2 fstack2 ].
           { rewrite HUndefined1. 
             simpl. f_equal. extensionality p2.
             specialize (HUndefined2 p2).
             destruct HUndefined2. }
           setoid_rewrite IH. simpl.
-          setoid_rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ c (Cons _ _ _ (pure s))).
+          rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ c (Cons _ _ _ (pure s))).
           reflexivity.
         * (* code2 = (ADD : fcode2')*)
           simpl. f_equal. extensionality p. 
@@ -265,19 +266,19 @@ Section Proofs_PureCodes.
         simpl. destruct code2 as [ | [ [ fn2 | ] | ] fcode2' ]. 4: dependent destruction HPure2.
         * (* code2 = [] *)
           simpl. f_equal. extensionality p. 
-          setoid_rewrite match_stack.
+          rewrite match_stack.
           rewrite bind_pure.
           f_equal. extensionality s.
           destruct s as [  | fv1 fstack1 ]; try reflexivity.
           f_equal. extensionality s1.
           destruct s1 as [  | fv2 fstack2 ]; try reflexivity.
           setoid_rewrite IH. simpl.
-          setoid_rewrite match_stack.
+          rewrite match_stack.
           rewrite bind_pure.
           reflexivity.
         * (* code2 = (PUSH fn2 : fcode2') *)
           simpl. f_equal. extensionality p.
-          setoid_rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ c (Cons _ _ _ (pure s))).
+          rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ c (Cons _ _ _ (pure s))).
           rewrite bind_assoc.
           f_equal. extensionality s.
           destruct s as [ | fv1 fstack1 ].
@@ -293,7 +294,7 @@ Section Proofs_PureCodes.
             specialize (HUndefined2 p2).
             destruct HUndefined2. }
           setoid_rewrite IH. simpl.
-          setoid_rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ c (Cons _ _ _ (pure s))).
+          rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ c (Cons _ _ _ (pure s))).
           reflexivity.
         * (* code2 = (ADD : fcode2') *)
           simpl. f_equal. extensionality p. 

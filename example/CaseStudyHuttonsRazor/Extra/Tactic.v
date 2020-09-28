@@ -6,9 +6,9 @@ Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
 
 Ltac simplifyInductionHypothesis ident1 ident2 :=
-  match goal with
-  | [ ident1 : ForFree ?Shape ?Pos ?A ?P (pure _) |- _ ] => inversion ident1 as [ Heq ident2 |]; clear ident1; subst Heq; simpl
-  | [ ident1 : ForFree ?Shape ?Pos ?A ?P (impure ?s ?pf) |- _ ] =>
+  match type of ident1 with
+  | ForFree ?Shape ?Pos ?A ?P (pure _) => inversion ident1 as [ Heq ident2 |]; clear ident1; subst Heq; simpl
+  | ForFree ?Shape ?Pos ?A ?P (impure ?s ?pf) =>
     dependent destruction ident1;
     match goal with
     | [ H1 : forall p : ?T, ForFree ?Shape ?Pos ?A ?P (?pf p), H0 : forall p, ForFree ?Shape ?Pos ?A ?Py (?pf p) -> _ = _,

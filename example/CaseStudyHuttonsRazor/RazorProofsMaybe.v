@@ -7,6 +7,7 @@ From Base Require Import Free Free.Instance.Maybe Prelude QuickCheck.
 From Razor.Extra Require Import Tactic Pureness.
 From Generated Require Import Razor.
 From Proofs Require Import AppendAssocProofs.
+Import AppendAssoc.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
@@ -16,12 +17,14 @@ Section Proofs_Maybe.
   (* In the following proofs we use the [Maybe] monad. *)
   Definition Shape   := Maybe.Shape.
   Definition Pos     := Maybe.Pos.
-  Definition Partial := Maybe.Partial.
+  Definition Partial := Maybe.Partial Shape Pos.
 
   (* In the [Maybe] monad exists only one impure value. *)
   Lemma impure_Nothing :
-    forall (A : Type) (s : Shape) (pf : Pos s -> Free Shape Pos A),
-      impure s pf = Nothing.
+    forall (A : Type)
+           (s : Maybe.Shape)
+           (pf : Maybe.Pos s -> Free Maybe.Shape Maybe.Pos A),
+        impure s pf = Nothing _ _.
   Proof.
     intros A s pf.
     unfold Nothing. destruct s.
@@ -32,7 +35,7 @@ Section Proofs_Maybe.
   (* If the stack is impure the result of any [exec] call on that stack will be impure. *)
   Lemma exec_strict_on_stack_arg :
     forall (fcode  : Free Shape Pos (Code Shape Pos)),
-      exec Shape Pos Partial fcode Nothing = Nothing.
+      exec Shape Pos Partial fcode (Nothing _ _) = Nothing _ _.
   Proof.
     intro fcode.
     destruct fcode as [ [ | [ [ fn | ] | sOp pfOp ] fcode1 ] | sCode pfCode ];
@@ -68,9 +71,9 @@ Section Proofs_Maybe.
           (* In this case we can apply the induction hypothesis if we have a pure stack.
              Otherwise the result is undefined on both sides. *)
           destruct fstack as [ [ | fv fstack1 ] | sStack pfStack ].
-          { autoIH. apply IH. }
-          { autoIH. apply IH. }
-          { simpl. do 2 rewrite impure_Nothing. symmetry. apply exec_strict_on_stack_arg. }
+          -- autoIH. apply IH.
+          -- autoIH. apply IH.
+          -- simpl. do 2 rewrite impure_Nothing. symmetry. apply exec_strict_on_stack_arg.
         * (* fcode1 = pure (pure (PUSH fn) : impure sCode1' pfCode1' *)
           (* In this case the result is undefined on both sides. *)
           destruct fstack as [ [ | fv fstack1 ] | sStack pfStack ];
