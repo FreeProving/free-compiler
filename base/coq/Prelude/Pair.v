@@ -65,9 +65,8 @@ Instance ShareableArgsPair {Shape : Type} {Pos : Shape -> Type} (A B : Type)
                     end
    }.
 
-(* ForPair *)
-Inductive ForPair (Shape : Type) (Pos : Shape -> Type) (a b : Type) (P0
-    : a -> Prop) (P1 : b -> Prop)
+(* [ForPair] property to generate induction hypotheses over pairs. *)
+Inductive ForPair (Shape : Type) (Pos : Shape -> Type) (a b : Type) (P0 : a -> Prop) (P1 : b -> Prop)
    : Pair Shape Pos a b -> Prop
   := ForPair_pair_
    : forall (x : Free Shape Pos a) (x0 : Free Shape Pos b),
@@ -88,6 +87,7 @@ with InPair_2 (Shape : Type) (Pos : Shape -> Type) (a b : Type)
      InFree Shape Pos b x1 x0 ->
      InPair_2 Shape Pos a b x1 (@pair_ Shape Pos a b x x0).
 
+(* 'Forall' lemma to rewrite [ForPair] properties. *)
 Lemma ForPair_forall : forall (Shape : Type)
   (Pos : Shape -> Type)
   (a b : Type)
@@ -104,7 +104,7 @@ Proof.
   prove_forall Pair_ind.
 Defined.
 
-(* Add hints for proof generation *)
+(* Add hints for proof generation. *)
 Hint Extern 0 (ForPair _ _ _ _ _ _ ?x) =>
   prove_ind_prove_ForType x ForPair_forall Pair_ind : prove_ind_db.
 Hint Extern 0 =>

@@ -11,7 +11,7 @@ Require Import Coq.Program.Equality.
 (* The hint database that contains instances of [prove_ind_prove_for_type]. *)
 Create HintDb prove_ind_db.
 
-(* Trivial property *)
+(* Trivial property. *)
 Definition NoProperty {A : Type} : A -> Prop := fun _ => True.
 Hint Extern 0 (NoProperty _) => unfold NoProperty; constructor : prove_ind_db.
 
@@ -54,7 +54,7 @@ Ltac prove_ind_prove_ForFree :=
     end
   end.
 
-(* This tactic tries to finish the proof with an hypothesis with fulfilled
+(* This tactic tries to finish the proof with a given hypothesis with fulfilled
   preconditions. *)
 Ltac prove_ind_apply_hypothesis H :=
  match type of H with
@@ -89,7 +89,10 @@ Ltac prove_ind_prove_ForFree_InFree :=
       ]
  end.
 
-(* This tactic is instantiated for specific types and should be added to [prove_ind_db]. *)
+(* Tries to prove a 'ForT' property for [x] by using the given 'forall' lemma
+   and induction scheme.
+   This tactic should be instantiated for types with type variables and added
+   to [prove_ind_db]. *)
 Ltac prove_ind_prove_ForType x forType_forall type_ind :=
   apply forType_forall;
   repeat split;
@@ -100,13 +103,9 @@ Ltac prove_ind_prove_ForType x forType_forall type_ind :=
   prove_ind_prove_ForFree_InFree;
   auto with prove_ind_db.
 
-(* This tactic is instantiated for specific types and should be added to [prove_ind_db]. *)
-(*Ltac prove_ind_prove_ForType x type_induction :=
-  induction x using type_induction;
-  constructor;
-  prove_ind_prove_ForFree.*)
-
-(* This tactic proves an induction scheme. *)
+(* This tactic proves the induction scheme for a type.
+   It requires the database [prove_ind_db] to contain instances of
+   [prove_ind_prove_ForType] for all dependent types. *)
 Ltac prove_ind :=
   match goal with
   | [ FP : forall y, ?P y |- ?P ?x ] =>

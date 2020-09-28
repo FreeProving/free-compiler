@@ -177,9 +177,8 @@ Section SecFreeListInd.
 
 End SecFreeListInd.
 
-(* ForList *)
-Inductive ForList (Shape : Type) (Pos : Shape -> Type) (a : Type) (P0
-    : a -> Prop)
+(* [ForList] property to generate induction hypotheses over lists. *)
+Inductive ForList (Shape : Type) (Pos : Shape -> Type) (a : Type) (P0 : a -> Prop)
    : List Shape Pos a -> Prop
   := ForList_nil : ForList Shape Pos a P0 (@nil Shape Pos a)
   |  ForList_cons
@@ -204,6 +203,8 @@ Inductive InList (Shape : Type) (Pos : Shape -> Type) (a : Type)
      InFree Shape Pos (List Shape Pos a) x2 x0 ->
      InList Shape Pos a x1 (@cons Shape Pos a x x0).
 
+
+(* 'Forall' lemma to rewrite [ForList] properties. *)
 Lemma ForList_forall : forall (Shape : Type)
   (Pos : Shape -> Type)
   (a : Type)
@@ -218,7 +219,7 @@ Proof.
   prove_forall List_ind.
 Defined.
 
-(* Add hints for proof generation *)
+(* Add hints for proof generation. *)
 Hint Extern 0 (ForList _ _ _ _ ?x) =>
   prove_ind_prove_ForType x ForList_forall List_ind : prove_ind_db.
 Hint Extern 0 =>
