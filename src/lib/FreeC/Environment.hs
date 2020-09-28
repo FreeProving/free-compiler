@@ -18,6 +18,7 @@ module FreeC.Environment
   , addEffectsToEntry
     -- * Looking up Entries from the Environment
   , lookupEntry
+  , encapsulatesEffects
   , isFunction
   , isVariable
   , isPureVar
@@ -158,6 +159,14 @@ addEffectsToEntry name effects env = case lookupEntry IR.ValueScope name env of
 -------------------------------------------------------------------------------
 -- Looking up Entries from the Environment                                   --
 -------------------------------------------------------------------------------
+
+-- | Tests whether the function with the given name encapsulates effects.
+--
+--   Returns @False@ if there is no such function.
+encapsulatesEffects :: IR.QName -> Environment -> Bool
+encapsulatesEffects = maybe False (isFuncEntry .&&. entryEncapsulatesEffects)
+  .: lookupEntry IR.ValueScope
+
 -- | Looks up the entry with the given original name in the given scope of
 --   the given environment.
 lookupEntry :: IR.Scope -> IR.QName -> Environment -> Maybe EnvEntry

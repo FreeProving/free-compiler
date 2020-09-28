@@ -102,6 +102,8 @@ data EnvEntry
       , entryNeedsFreeArgs :: Bool
         -- ^ Whether the arguments of the @Free@ monad need to be
         --   passed to the function.
+      , entryEncapsulatesEffects :: Bool
+        -- ^ Whether the function should encapsulate effects.
       , entryEffects       :: [Effect]
         -- ^ The effects of the function, i.e. which type classes are needed
         --   during the translation.

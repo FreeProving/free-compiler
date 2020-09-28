@@ -119,6 +119,7 @@ defineFuncDecl funcDecl = do
     , entryStrictArgs    = map IR.varPatIsStrict (IR.funcDeclArgs funcDecl)
     , entryReturnType    = fromJust (IR.funcDeclReturnType funcDecl)
     , entryNeedsFreeArgs = True
+    , entryEncapsulatesEffects = False
     , entryEffects       = [] -- may be updated by effect analysis pass
     , entryName          = IR.funcDeclQName funcDecl
     , entryIdent         = undefined -- filled by renamer

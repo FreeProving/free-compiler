@@ -8,6 +8,7 @@ import           FreeC.Pass.CompletePatternPassTests
 import           FreeC.Pass.EffectAnalysisPassTests
 import           FreeC.Pass.EtaConversionPassTests
 import           FreeC.Pass.ExportPassTests
+import           FreeC.Pass.FlattenExprPassTests
 import           FreeC.Pass.KindCheckPassTests
 import           FreeC.Pass.LetSortPassTests
 import           FreeC.Pass.ResolverPassTests
@@ -20,6 +21,7 @@ testPipeline = do
   testEffectAnalysisPass
   testEtaConversionPass
   testExportPass
+  testFlattenExprPass
   testKindCheckPass
   testLetSortPass
   testResolverPass

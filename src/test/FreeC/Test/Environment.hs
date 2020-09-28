@@ -176,6 +176,7 @@ defineTestFunc' partial areStrict nameStr arity typeStr = do
     , entryStrictArgs    = areStrict
     , entryReturnType    = returnType
     , entryNeedsFreeArgs = True
+    , entryEncapsulatesEffects = False
     , entryEffects       = [Partiality | partial]
     , entryName          = name
     , entryIdent         = undefined -- filled by renamer

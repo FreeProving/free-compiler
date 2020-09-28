@@ -162,9 +162,10 @@ transformRecFuncDecl
     -- Even though we know the type of the original and additional arguments
     -- the return type is unknown, since the right-hand side of @case@
     -- expressions is not annotated.
-    -- The helper function uses all effects that are used by the original 
+    -- The helper function uses all effects that are used by the original
     -- function.
     freeArgsNeeded <- inEnv $ needsFreeArgs name
+    encEffects <- inEnv $ encapsulatesEffects name
     effects <- inEnv $ lookupEffects name
     _entry <- renameAndAddEntry
       $ FuncEntry
@@ -175,6 +176,7 @@ transformRecFuncDecl
       , entryStrictArgs    = map IR.varPatIsStrict helperArgs
       , entryReturnType    = fromJust helperReturnType
       , entryNeedsFreeArgs = freeArgsNeeded
+      , entryEncapsulatesEffects = encEffects
       , entryEffects       = effects
       , entryName          = helperName
       , entryIdent         = undefined -- filled by renamer
