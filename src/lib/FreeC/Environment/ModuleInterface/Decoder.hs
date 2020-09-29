@@ -217,6 +217,7 @@ instance Aeson.FromJSON ModuleInterface where
       consNames <- obj .: "cons-names"
       coqForPropertyName <- obj .:? "coq-for-property-name"
       coqInPropertyNames <- obj .:? "coq-in-property-names"
+      coqForallName <- obj .:? "coq-forall-lemma-name"
       return DataEntry { entrySrcSpan          = NoSrcSpan
                        , entryArity            = arity
                        , entryIdent            = coqName
@@ -225,6 +226,7 @@ instance Aeson.FromJSON ModuleInterface where
                        , entryConsNames        = consNames
                        , entryForPropertyIdent = coqForPropertyName
                        , entryInPropertyIdents = coqInPropertyNames
+                       , entryForallIdent      = coqForallName
                        }
 
     parseConfigTypeSyn :: Aeson.Value -> Aeson.Parser EnvEntry

@@ -218,6 +218,7 @@ exported-values = [
     ]
   coq-for-property-name = 'ForList'
   coq-in-property-names = ['InList']
+  coq-forall-lemma-name = 'ForList_forall'
 
 [[constructors]]
   haskell-type    = 'Prelude.([]) a'
@@ -252,6 +253,7 @@ exported-values = [
       'InPair_1',
       'InPair_2'
     ]
+  coq-forall-lemma-name = 'ForPair_forall'
 
 [[constructors]]
   haskell-type    = 'a -> b -> Prelude.(,) a b'

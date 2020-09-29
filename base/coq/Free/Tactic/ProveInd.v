@@ -29,7 +29,7 @@ Ltac prove_ind_select_case FP :=
 (* This tactic eliminates the monadic layer of an induction hypothesis. *)
 Ltac prove_ind_prove_ForFree :=
   match goal with
-  | [ fx : Free ?Shape ?Pos ?T1 |- _ ] =>
+  | [ fx : Free ?Shape ?Pos _ |- _ ] =>
     match goal with
     | [ |- ForFree Shape Pos ?T ?P fx ] =>
       apply ForFree_forall;
@@ -57,37 +57,60 @@ Ltac prove_ind_prove_ForFree :=
 (* This tactic tries to finish the proof with a given hypothesis with fulfilled
   preconditions. *)
 Ltac prove_ind_apply_hypothesis H :=
- match type of H with
- | ?PC -> _ =>
-   match goal with
-   | [ H2 : PC |- _ ] => specialize (H H2); prove_ind_apply_hypothesis H
-   end
- | _ => apply H
- end.
+  match type of H with
+  | ?PC -> _ =>
+    match goal with
+    | [ H2 : PC |- _ ] => specialize (H H2); prove_ind_apply_hypothesis H
+    end
+  | _ => apply H
+  end.
+
+Hint Extern 0 => prove_ind_apply_hypothesis : prove_ind_db.
+
+(* This tactic splits all hypotheses, which are conjunctions, into smaller
+   hypotheses. *)
+Ltac prove_ind_split_hypotheses :=
+  repeat (match goal with
+          | [H : _ /\ _ |- _] => destruct H
+          end).
+
+(* This tactic rewrites a 'ForT' hypothesis [HF] using a forall lemma
+   [forType_forall] and specializes it using a value [x] for which an 'InT'
+   hypothesis [IF] exists. *)
+Ltac prove_ind_ForType_InType HF HI x forType_forall :=
+  rewrite forType_forall in HF;
+  prove_ind_split_hypotheses;
+  match goal with
+  | [ HF1 : forall y, _ -> _ |- _ ] =>
+    specialize (HF1 x HI);
+    try (prove_ind_apply_hypothesis HF1)
+  end.
 
 (* This tactic eliminates intermediate monadic layers. *)
 Ltac prove_ind_prove_ForFree_InFree :=
- match goal with
- | [ HIF : InFree ?Shape ?Pos ?T _ ?fx
-   , IH  : ForFree ?Shape ?Pos ?T _ ?fx
-   |- _ ] =>
-   rewrite ForFree_forall in IH; prove_ind_apply_hypothesis IH
- | [ HIF : InFree ?Shape ?Pos ?T ?x ?fx
-   |- ?P ?x ] =>
-   let x1      := fresh "x"
-   in let s    := fresh "s"
-   in let pf   := fresh "pf"
-   in let IHpf := fresh "IHpf"
-   in induction fx as [ x1 | s pf IHpf ] using Free_Ind;
-      [ inversion HIF; subst; clear HIF
-      | dependent destruction HIF;
-        match goal with
-        | [H : exists p : Pos s, InFree Shape Pos T x (pf p) |- _ ] =>
-          let p := fresh "p"
-          in destruct H as [ p H ]; apply (IHpf p H)
-        end
-      ]
- end.
+  match goal with
+  | [ HIF : InFree ?Shape ?Pos ?T ?x ?fx
+    , IH  : ForFree ?Shape ?Pos ?T _ ?fx
+    |- _ ] =>
+    rewrite ForFree_forall in IH;
+    specialize (IH x HIF); clear HIF;
+    try (prove_ind_apply_hypothesis IH)
+  | [ HIF : InFree ?Shape ?Pos ?T ?x ?fx
+    |- ?P ?x ] =>
+    let x1      := fresh "x"
+    in let s    := fresh "s"
+    in let pf   := fresh "pf"
+    in let IHpf := fresh "IHpf"
+    in induction fx as [ x1 | s pf IHpf ] using Free_Ind;
+       [ inversion HIF; subst; clear HIF
+       | dependent destruction HIF;
+         match goal with
+         | [H : exists p : Pos s, InFree Shape Pos T x (pf p) |- _ ] =>
+           let p := fresh "p"
+           in destruct H as [ p H ]; apply (IHpf p H); easy
+         end
+       ]
+  end.
 
 (* Tries to prove a 'ForT' property for [x] by using the given 'forall' lemma
    and induction scheme.
@@ -100,8 +123,7 @@ Ltac prove_ind_prove_ForType x forType_forall type_ind :=
   let y    := fresh "y"
   in let H := fresh "H"
   in intros y H; inversion H; subst; clear H;
-  prove_ind_prove_ForFree_InFree;
-  auto with prove_ind_db.
+  prove_ind_prove_ForFree_InFree.
 
 (* This tactic proves the induction scheme for a type.
    It requires the database [prove_ind_db] to contain instances of

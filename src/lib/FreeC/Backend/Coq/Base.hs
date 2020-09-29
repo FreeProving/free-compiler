@@ -45,6 +45,7 @@ module FreeC.Backend.Coq.Base
     -- * Tactics
   , proveInd
   , proveInd_proveForType
+  , proveInd_ForType_InType
   , proveForall
   , proveForall_ForType_InType
   , proveForall_proveForType
@@ -269,6 +270,8 @@ proveInd = Coq.ident "prove_ind"
 proveInd_proveForType :: Coq.Ident
 proveInd_proveForType = Coq.ident "prove_ind_prove_ForType"
 
+proveInd_ForType_InType :: Coq.Ident
+proveInd_ForType_InType = Coq.ident "prove_ind_ForType_InType"
 
 -- | The tactic that is needed to prove 'forall' lemmas.
 proveForall :: Coq.Ident

@@ -37,6 +37,7 @@ module FreeC.Environment
   , lookupArity
   , lookupForProperty
   , lookupInProperties
+  , lookupForallLemma
   , lookupTypeSynonym
   , needsFreeArgs
   , hasEffect
@@ -162,11 +163,11 @@ addEffectsToEntry name effects env = case lookupEntry IR.ValueScope name env of
 --   properties for the data entry with the given name.
 --
 --   If such a data entry does not exist, the environment is not changed.
-addPropertyNamesToEntry :: IR.QName -> Maybe Coq.Qualid -> Maybe [Coq.Qualid] -> Environment -> Environment
-addPropertyNamesToEntry name forIdent inIdents env = case lookupEntry IR.TypeScope name env of
+addPropertyNamesToEntry :: IR.QName -> Maybe Coq.Qualid -> Maybe [Coq.Qualid] -> Maybe Coq.Qualid -> Environment -> Environment
+addPropertyNamesToEntry name forIdent inIdents forallIdent env = case lookupEntry IR.TypeScope name env of
   Nothing -> env
   Just entry -> if isDataEntry entry
-    then addEntry (entry { entryForPropertyIdent = forIdent, entryInPropertyIdents = inIdents }) env 
+    then addEntry (entry { entryForPropertyIdent = forIdent, entryInPropertyIdents = inIdents, entryForallIdent = forallIdent }) env 
     else env
 
 -------------------------------------------------------------------------------
@@ -309,8 +310,8 @@ lookupArity :: IR.Scope -> IR.QName -> Environment -> Maybe Int
 lookupArity = fmap entryArity . find (not . (isVarEntry .||. isTypeVarEntry))
   .:. lookupEntry
 
--- | Looks up the Coq identifier for the 'For-' property of data entry with the
---   given name.
+-- | Looks up the Coq identifier for the 'For-' property of the data entry with
+--   the given name.
 --
 --   Returns @Nothing@ if there is no such data entry or if the data entry has
 --   no 'For-'  property.
@@ -322,13 +323,26 @@ lookupForProperty = concatMaybe . fmap entryForPropertyIdent . find isDataEntry
    concatMaybe (Just mb) = mb
    concatMaybe Nothing   = Nothing
 
--- | Looks up the Coq identifiers for the 'In-' properties of data entry with
---   the given name.
+-- | Looks up the Coq identifiers for the 'In-' properties of the data entry
+--   with the given name.
 --
 --   Returns @Nothing@ if there is no such data entry or if the data entry has
 --   no 'In-' properties.
 lookupInProperties :: IR.QName -> Environment -> Maybe [Coq.Qualid]
 lookupInProperties = concatMaybe . fmap entryInPropertyIdents . find isDataEntry
+  .: lookupEntry IR.TypeScope
+ where
+   concatMaybe :: Maybe (Maybe a) -> Maybe a
+   concatMaybe (Just mb) = mb
+   concatMaybe Nothing   = Nothing
+
+-- | Looks up the Coq identifier for the 'forall' lemma of the data entry with
+--   the given name.
+--
+--   Returns @Nothing@ if there is no such data entry or if the data entry has
+--   no 'forall' lemma.
+lookupForallLemma :: IR.QName -> Environment -> Maybe Coq.Qualid
+lookupForallLemma = concatMaybe . fmap entryForallIdent . find isDataEntry
   .: lookupEntry IR.TypeScope
  where
    concatMaybe :: Maybe (Maybe a) -> Maybe a

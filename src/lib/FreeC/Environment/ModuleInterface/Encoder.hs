@@ -100,6 +100,7 @@ encodeEntry entry
     ++ mapMaybe id
     [ ("coq-for-property-name" .=) <$> coqForPropertyName
     , ("coq-in-property-names" .=) <$> coqInPropertyNames
+    , ("coq-forall-lemma-name" .=) <$> coqForallName
     ]
   | isTypeSynEntry entry = return
     $ Aeson.object
@@ -140,10 +141,12 @@ encodeEntry entry
 
   coqSmartName = Aeson.toJSON (entrySmartIdent entry)
 
-  coqForPropertyName, coqInPropertyNames :: Maybe Aeson.Value
+  coqForPropertyName, coqInPropertyNames, coqForallName :: Maybe Aeson.Value
   coqForPropertyName = Aeson.toJSON <$> (entryForPropertyIdent entry)
 
   coqInPropertyNames = Aeson.toJSON <$> (entryInPropertyIdents entry)
+
+  coqForallName  = Aeson.toJSON <$> (entryForallIdent entry)
 
   -- @entryAgdaIdent entry@ is undefined because the agda renamer isn't
   -- implemented at the moment. To allow encoding a dummy value is needed.

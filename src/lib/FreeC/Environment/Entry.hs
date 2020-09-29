@@ -33,6 +33,9 @@ data EnvEntry
         -- ^ The name of the 'For-' property in Coq.
       , entryInPropertyIdents :: Maybe [Coq.Qualid]
         -- ^ The names of the 'In-' properties in Coq.
+      , entryForallIdent :: Maybe Coq.Qualid
+        -- ^ The names of the 'forall' lemma in Coq.
+
       }
     -- | Entry for a type synonym declaration.
   | TypeSynEntry
