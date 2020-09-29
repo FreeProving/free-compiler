@@ -27,10 +27,10 @@
 --   Should be transformed into
 --
 --   > twiceMaybe :: Maybe Integer -> Maybe Integer
---   > twiceMaybe (mx :: Maybe Integer) = case (mx :: Maybe Integer) of {
---   >     Nothing -> Nothing;
---   >     Just x  -> let y = x in Just (y + y)
---   >   }
+  --   > twiceMaybe (mx :: Maybe Integer) = case (mx :: Maybe Integer) of {
+  --   >     Nothing -> Nothing;
+  --   >     Just x  -> let y = x in Just (y + y)
+  --   >   }
 --   where @y@ is a fresh variable.
 --
 --   == Example 3
