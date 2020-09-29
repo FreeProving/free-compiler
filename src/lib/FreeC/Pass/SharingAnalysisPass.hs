@@ -96,7 +96,7 @@ sharingAnaylsisPass ast = do
 analyseSharingDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 analyseSharingDecl funcDecl = do
   let declArgs = IR.funcDeclArgs funcDecl
-  rhs' <- ((analyseLocalSharing declArgs) >=> analyseSharingExpr declArgs)
+  rhs' <- (analyseLocalSharing declArgs >=> analyseSharingExpr declArgs)
     (IR.funcDeclRhs funcDecl)
   return funcDecl { IR.funcDeclRhs = rhs' }
 
@@ -154,7 +154,8 @@ analyseLocalSharing varPats expr@(IR.App srcSpan lhs rhs typeScheme) = do
 -- | Whether an expression is an application of a function that encapsulates
 --   effects.
 shouldEncapsulateSharing :: IR.Expr -> Converter Bool
-shouldEncapsulateSharing expr = inEnv $ encapsulatesEffects (IR.getFuncName expr)
+shouldEncapsulateSharing expr = inEnv
+  $ encapsulatesEffects (IR.getFuncName expr)
 
 -- | Builds let expressions for variables with more than one occurrence
 --   for each argument of a function that encapsulates effects.

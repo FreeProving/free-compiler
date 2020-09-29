@@ -180,9 +180,7 @@ visibleTypeApp = foldl . untypedTypeAppExpr
 getFuncName :: Expr -> VarName
 getFuncName (Var _ varName _) = varName
 getFuncName (App _ lhs _ _)   = getFuncName lhs
-getFuncName _
-  = error "getFuncName: unexpected expression"
-
+getFuncName _                 = error "getFuncName: unexpected expression"
 
 -- | Pretty instance for expressions.
 --

@@ -76,13 +76,13 @@ flatExpr (IR.Con srcSpan conName typeScheme) typeArgs args = buildLet
 flatExpr (IR.Var srcSpan varName typeScheme) typeArgs args = buildLet
   (IR.Var srcSpan varName typeScheme) typeArgs args
 flatExpr (IR.App srcSpan lhs rhs typeScheme) typeArgs args = do
-    encEffects <- shouldEncapsulateEffects lhs
-    if encEffects
-       then do
-            lhs' <- flatExpr lhs [] []
-            rhs' <- flatExpr rhs [] []
-            return $ IR.App srcSpan lhs' rhs' typeScheme
-       else flatExpr lhs typeArgs (rhs : args)
+  encEffects <- shouldEncapsulateEffects lhs
+  if encEffects
+    then do
+      lhs' <- flatExpr lhs [] []
+      rhs' <- flatExpr rhs [] []
+      return $ IR.App srcSpan lhs' rhs' typeScheme
+    else flatExpr lhs typeArgs (rhs : args)
 flatExpr (IR.TypeAppExpr _ expr typeArg _) typeArgs args = flatExpr expr
   (typeArg : typeArgs) args
 flatExpr (IR.If srcSpan e1 e2 e3 typeScheme) typeArgs args = do
@@ -136,12 +136,13 @@ buildLet e' typeArgs args = do
     let srcSpan = IR.exprSrcSpan expr
         varPat  = IR.VarPat srcSpan varIdent Nothing False
         bind    = IR.Bind srcSpan varPat expr'
-        varName = (IR.UnQual $ IR.Ident varIdent)
+        varName = IR.UnQual $ IR.Ident varIdent
         var     = IR.Var srcSpan varName (IR.exprTypeScheme expr)
     return (Just bind, var)
 
 -- | Whether an expression is an application of a function that encapsulates
 --   effects.
 shouldEncapsulateEffects :: IR.Expr -> Converter Bool
-shouldEncapsulateEffects expr = inEnv $ encapsulatesEffects (IR.getFuncName expr)
+shouldEncapsulateEffects expr = inEnv
+  $ encapsulatesEffects (IR.getFuncName expr)
 
