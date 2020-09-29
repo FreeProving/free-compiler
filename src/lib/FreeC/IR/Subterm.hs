@@ -28,21 +28,27 @@ module FreeC.IR.Subterm
   , findSubtermPos
   , findSubterms
   , findFirstSubterm
+    -- * Replacing Subterms
+  , mapSubterms
+  , mapSubtermsM
     -- * Bound Variables
+  , boundVarsOf
+  , boundVarsWithTypeOf
   , boundVarsAt
   , boundVarsWithTypeAt
   ) where
 
-import           Control.Monad    ( foldM )
-import           Data.Composition ( (.:) )
-import           Data.List        ( intersperse, isPrefixOf )
-import           Data.Map.Strict  ( Map )
-import qualified Data.Map.Strict  as Map
-import           Data.Maybe       ( fromMaybe, listToMaybe )
-import           Data.Set         ( Set )
-import           Data.Tuple.Extra ( (&&&) )
+import           Control.Monad         ( foldM )
+import           Data.Composition      ( (.:) )
+import           Data.Functor.Identity ( runIdentity )
+import           Data.List             ( intersperse, isPrefixOf )
+import           Data.Map.Strict       ( Map )
+import qualified Data.Map.Strict       as Map
+import           Data.Maybe            ( fromMaybe, listToMaybe )
+import           Data.Set              ( Set )
+import           Data.Tuple.Extra      ( (&&&) )
 
-import qualified FreeC.IR.Syntax  as IR
+import qualified FreeC.IR.Syntax       as IR
 import           FreeC.Pretty
 
 -------------------------------------------------------------------------------
@@ -88,6 +94,20 @@ class Pretty a => Subterm a where
 
   -- | Replaces the child nodes of the given AST node.
   replaceChildTerms :: a -> [a] -> Maybe a
+
+-- | Like 'replaceChildTerms' but throws an error if the wrong number of child
+--   terms is provided.
+replaceChildTerms' :: Subterm a => a -> [a] -> a
+replaceChildTerms' term children' = fromMaybe argCountError
+  (replaceChildTerms term children')
+ where
+  -- | The error to throw when the wrong number of new child terms is provided.
+  argCountError = error
+    $ "replaceChildTerms: Wrong number of child terms. Got "
+    ++ show (length children')
+    ++ " but expected "
+    ++ show (length (childTerms term))
+    ++ "!"
 
 -- | Expressions have subterms.
 instance Subterm IR.Expr where
@@ -293,8 +313,69 @@ findFirstSubterm :: Subterm a => (a -> Bool) -> a -> Maybe a
 findFirstSubterm = listToMaybe .: findSubterms
 
 -------------------------------------------------------------------------------
+-- Replacing for Subterms                                                    --
+-------------------------------------------------------------------------------
+-- | Applies the given function to all subterms of the given node.
+--
+--   The subterms of the returned expression are replaced recursively.
+mapSubterms :: Subterm a => (a -> a) -> a -> a
+mapSubterms f = runIdentity . mapSubtermsM (return . f)
+
+-- Monadic version of 'mapSubterms'.
+mapSubtermsM :: (Subterm a, Monad m) => (a -> m a) -> a -> m a
+mapSubtermsM f term = do
+  term' <- f term
+  children' <- mapM (mapSubtermsM f) (childTerms term')
+  return (replaceChildTerms' term' children')
+
+-------------------------------------------------------------------------------
 -- Bound Variables                                                           --
 -------------------------------------------------------------------------------
+-- | Gets the names of variables that are bound by the given expression in its
+--   subterm at the given index.
+--
+--   For example, a @case@-expression
+--
+--   > case e { … ; Cᵢ x₁ … xₙ -> eᵢ ; … }
+--
+--   with subterms @[e, e₁, …, eₙ]@ binds the variables @x₁ … xₙ@ in it's
+--   @i+1@th subterm @eᵢ@ but no variables are bound in @e@ (i.e., if @i = 0@).
+--
+--   Returns an empty map if the expression does not have such a subterm.
+boundVarsOf :: IR.Expr -> Int -> Set IR.QName
+boundVarsOf = Map.keysSet .: boundVarsWithTypeOf
+
+-- | Like 'boundVarsOf' but also returns the annotated type of the
+--   variable pattern.
+--
+--   Returns an empty map if the expression does not have such a subterm.
+boundVarsWithTypeOf :: IR.Expr -> Int -> Map IR.QName (Maybe IR.Type)
+boundVarsWithTypeOf expr i = case expr of
+  -- A lambda abstraction binds the arguments in the right-hand side.
+  IR.Lambda _ args _ _   -> fromVarPats args
+  -- A @let@-expression binds local variables in the @in@-expression
+  -- as well as all binders.
+  IR.Let _ binds _ _     -> fromVarPats (map IR.bindVarPat binds)
+  -- Only alternatives of @case@-expressions bind variables.
+  -- The @case@-expression itself does not bind any variables.
+  IR.Case _ _ alts _     | i >= 1 && i <= length alts -> fromVarPats
+                           (IR.altVarPats (alts !! (i - 1)))
+                         | otherwise -> Map.empty
+  -- All other expressions don't bind variables.
+  IR.Con _ _ _           -> Map.empty
+  IR.Var _ _ _           -> Map.empty
+  IR.App _ _ _ _         -> Map.empty
+  IR.TypeAppExpr _ _ _ _ -> Map.empty
+  IR.If _ _ _ _ _        -> Map.empty
+  IR.Undefined _ _       -> Map.empty
+  IR.ErrorExpr _ _ _     -> Map.empty
+  IR.IntLiteral _ _ _    -> Map.empty
+ where
+  -- | Converts a list of variable patterns to a from of variable names bound
+  --   by these patterns to the types they have been annotated with.
+  fromVarPats :: [IR.VarPat] -> Map IR.QName (Maybe IR.Type)
+  fromVarPats = Map.fromList . map (IR.varPatQName &&& IR.varPatType)
+
 -- | Gets the names of variables that are bound by lambda abstractions or
 --   variable patterns in @case@-expressions at the given position of an
 --   expression.
@@ -317,21 +398,6 @@ boundVarsWithTypeAt = fromMaybe Map.empty .: boundVarsWithTypeAt'
   boundVarsWithTypeAt' _ (Pos [])          = return Map.empty
   boundVarsWithTypeAt' expr (Pos (p : ps)) = do
     child <- selectSubterm expr (Pos [p])
-    bvars <- boundVarsWithTypeAt' child (Pos ps)
-    case expr of
-      (IR.Case _ _ alts _)
-        | p > 1 -> do
-          let altVars = altBoundVarsWithType (alts !! (p - 2))
-          return (bvars `Map.union` altVars)
-      (IR.Lambda _ args _ _) -> return (bvars `Map.union` fromVarPats args)
-      _ -> return bvars
-
-  -- | Gets the names of variables bound by the variable patterns of the given
-  --   @case@-expression alternative.
-  altBoundVarsWithType :: IR.Alt -> Map IR.QName (Maybe IR.Type)
-  altBoundVarsWithType (IR.Alt _ _ varPats _) = fromVarPats varPats
-
-  -- | Converts a list of variable patterns to a set of variable names bound
-  --   by these patterns.
-  fromVarPats :: [IR.VarPat] -> Map IR.QName (Maybe IR.Type)
-  fromVarPats = Map.fromList . map (IR.varPatQName &&& IR.varPatType)
+    boundInChild <- boundVarsWithTypeAt' child (Pos ps)
+    let boundLocally = boundVarsWithTypeOf expr (p - 1)
+    return (boundInChild `Map.union` boundLocally)

@@ -65,7 +65,7 @@ data Expr
     -- | A lambda abstraction.
   | Lambda { exprSrcSpan    :: SrcSpan
            , lambdaExprArgs :: [VarPat]
-           , lambdaEprRhs   :: Expr
+           , lambdaExprRhs  :: Expr
            , exprTypeScheme :: Maybe TypeScheme
            }
     -- | A let expression.
@@ -310,6 +310,11 @@ data VarPat = VarPat { varPatSrcSpan  :: SrcSpan
                      }
  deriving ( Eq, Show )
 
+-- | Instance to get the name of a @let@-binding.
+instance HasDeclIdent VarPat where
+  declIdent varPat = DeclIdent (varPatSrcSpan varPat)
+    (UnQual (Ident (varPatIdent varPat)))
+
 -- | Gets the name of the given variable pattern.
 varPatName :: VarPat -> Name
 varPatName = Ident . varPatIdent
@@ -340,10 +345,14 @@ instance Pretty VarPat where
 -------------------------------------------------------------------------------
 -- @let@ Bindings                                                            --
 -------------------------------------------------------------------------------
--- | A binding of a variable to an expression inside of a let clause
+-- | A binding of a variable to an expression inside of a @let@-expression.
 data Bind
   = Bind { bindSrcSpan :: SrcSpan, bindVarPat :: VarPat, bindExpr :: Expr }
  deriving ( Eq, Show )
+
+-- | Instance to get the name of a @let@-binding.
+instance HasDeclIdent Bind where
+  declIdent = declIdent . bindVarPat
 
 -- | Pretty instance for @let@ expression binds.
 instance Pretty Bind where

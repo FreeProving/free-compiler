@@ -131,12 +131,11 @@ Definition singleton (Shape : Type)
 (* QuickCheck properties *)
 Theorem prop_isEmpty_theorem : forall (Shape : Type)
   (Pos : Shape -> Type)
-  {a : Type} `{Normalform Shape Pos a}
-  (total_a : Free Shape Pos a -> Prop)
+  {a : Type} `{NF : Normalform Shape Pos a} (total_a : Free Shape Pos a -> Prop)
   (qi : Free Shape Pos (QueueI Shape Pos a)),
-  total_queue Shape Pos total_a qi -> quickCheck (@prop_isEmpty Shape Pos a _ qi).
+  total_queue Shape Pos total_a qi -> quickCheck (@prop_isEmpty Shape Pos a NF qi).
 Proof.
-  intros Shape Pos a NF total_a fqi Htotal Hinv.
+  intros Shape Pos a total_a NF fqi Htotal Hinv.
   destruct fqi as [qi | ].
   - (* fqi = pure qi *)
     destruct qi as [fxs fys]. (* qi = (fxs, fys) *)
@@ -148,7 +147,7 @@ Proof.
         destruct Hinv as [Hnull | Hcontra].
         -- (* null Shape Pos fys *)
            apply null_rev in Hnull.
-           symmetry. unfold isEmpty. apply pure_bool_property in Hnull. apply Hnull.
+           symmetry. unfold isEmpty. apply pure_bool_toProperty in Hnull. apply Hnull.
         -- (* False_ Shape Pos *)
            discriminate Hcontra.
       * (* xs = Cons fx fxs' *)
@@ -174,7 +173,7 @@ Proof.
         destruct Hinv as [Hnull | Hcontra].
         -- (* null Shape Pos fys *)
            apply null_rev in Hnull.
-           symmetry. unfold isEmpty. apply pure_bool_property. apply Hnull.
+           symmetry. unfold isEmpty. apply pure_bool_toProperty in Hnull. apply Hnull.
         -- (* False_ Shape Pos *)
            discriminate Hcontra.
       * (* xs = Cons fx fxs' *)
@@ -187,8 +186,8 @@ Proof.
          apply null_rev in Hnull.
          destruct (reverse Shape Pos fys) as [[| y ys'] |].
          ++ (* reverse Shape Pos fys = Nil Shape Pos *)
-            specialize (append_nil Shape Pos a NF) as appNil. simpl in appNil. rewrite appNil.
-            unfold isEmpty. reflexivity.
+            specialize (append_nil Shape Pos a NF) as appNil. 
+            simpl in appNil. unfold isEmpty. rewrite appNil. reflexivity.
          ++ (* reverse Shape Pos fys = Cons Shape Pos y ys' *)
             simpl in Hnull. discriminate Hnull.
          ++ (* reverse Shape Pos fys = impure _ _*)
@@ -206,13 +205,15 @@ Proof.
   induction fqi as [ [f1 f2] | eq ] using Free_Ind; simpl.
   - destruct f1 as [l | s pf]; simpl.
     + destruct l as [ | fy fys]; simpl.
-      * apply (append_nil Shape Pos a NF).
-      * apply (append_assoc Shape Pos _ _ (pure (cons fy fys)) (reverse Shape Pos f2) (singleton Shape Pos fx)).
+      * specialize (append_nil Shape Pos a NF) as appNil. simpl in appNil.
+        rewrite appNil. reflexivity.
+      * apply (append_assoc Shape Pos _ NF (pure (cons fy fys)) (reverse Shape Pos f2) (singleton Shape Pos fx)).
     + repeat apply f_equal. extensionality p.
       induction (pf p) as [fys |] using Free_Ind; simpl.
       * destruct fys; simpl.
-        -- apply (append_nil Shape Pos a NF).
-        -- do 2 apply f_equal. apply (append_assoc Shape Pos _ _ f0 (reverse Shape Pos f2) (singleton Shape Pos fx)).
+        -- specialize (append_nil Shape Pos a NF) as appNil. simpl in appNil. rewrite appNil.
+           reflexivity.
+        -- do 2 apply f_equal. apply (append_assoc Shape Pos _ NF f0 (reverse Shape Pos f2) (singleton Shape Pos fx)).
       * repeat apply f_equal.
         extensionality p1.
         apply H.
@@ -222,10 +223,10 @@ Proof.
 Qed.
 
 (* We have to add a totality constraint to [prop_front]. *)
-Theorem prop_front_theorem : forall Shape Pos P a `{Normalform Shape Pos a} total_a qi,
-  total_queue Shape Pos total_a qi -> quickCheck (@prop_front Shape Pos P a _ qi).
+Theorem prop_front_theorem : forall Shape Pos P a NF total_a qi,
+  total_queue Shape Pos total_a qi -> quickCheck (@prop_front Shape Pos P a NF qi).
 Proof.
-  intros Shape Pos P a NF total_a fqi Htotal HinvNempty.
+  intros Shape Pos P a total_a NF fqi Htotal HinvNempty.
   apply is_pure_true_and in HinvNempty.
   destruct HinvNempty as [Hinv Hnempty].
   destruct Htotal as [ff fb Htotal1 Htotal2]. (* fqi = pure (ff, fb) *)

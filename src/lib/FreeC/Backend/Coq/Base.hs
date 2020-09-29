@@ -9,6 +9,8 @@ module FreeC.Backend.Coq.Base
   , free
   , shape
   , pos
+  , idShape
+  , idPos
   , freePureCon
   , freeImpureCon
   , freeBind
@@ -39,6 +41,7 @@ module FreeC.Backend.Coq.Base
   , implicitArg
   , share
   , cbneed
+  , call
     -- * Effect Selection
   , selectExplicitArgs
   , selectImplicitArgs
@@ -94,6 +97,14 @@ pos = Coq.Bare posIdent
 -- | Like 'pos' but not wrapped in a 'Coq.Bare' constructor.
 posIdent :: Coq.Ident
 posIdent = Coq.ident "Pos"
+
+-- | The Coq identifier for the @Identity@ shape.
+idShape :: Coq.Qualid
+idShape = Coq.Qualified (Coq.ident "Identity") shapeIdent
+
+-- | The Coq identifier for the @Identity@ position function.
+idPos :: Coq.Qualid
+idPos = Coq.Qualified (Coq.ident "Identity") posIdent
 
 -- | The Coq identifier for the @pure@ constructor of the @Free@ monad.
 freePureCon :: Coq.Qualid
@@ -214,6 +225,10 @@ implicitArg = Coq.Underscore
 share :: Coq.Qualid
 share = Coq.bare "share"
 
+-- | The Coq identifier for the @call@ operator.
+call :: Coq.Qualid
+call = Coq.bare "call"
+
 -- | The Coq identifier for the @cbneed@ operator.
 cbneed :: Coq.Qualid
 cbneed = Coq.bare "cbneed"
@@ -328,6 +343,7 @@ reservedIdents
     , nf
     , nType
     , share
+    , call
     , cbneed
     ]
   ++ map fst freeArgs

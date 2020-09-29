@@ -79,7 +79,7 @@ data SrcSpan
   | FileSpan  -- ^ Points to an unknown location in the given file.
       { srcSpanFilename :: String -- ^ The name of the file.
       }
- deriving ( Eq, Ord, Show )
+ deriving ( Eq, Show )
 
 -------------------------------------------------------------------------------
 -- Predicates                                                                --

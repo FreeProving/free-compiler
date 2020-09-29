@@ -179,6 +179,7 @@ library freec-internal
                       , FreeC.Pass.ImplicitPreludePass
                       , FreeC.Pass.ImportPass
                       , FreeC.Pass.KindCheckPass
+                      , FreeC.Pass.LetSortPass
                       , FreeC.Pass.PragmaPass
                       , FreeC.Pass.QualifierPass
                       , FreeC.Pass.ResolverPass
@@ -225,19 +226,19 @@ test-suite freec-unit-tests
                     , FreeC.Backend.Agda.Tests
                     , FreeC.Backend.Coq.Analysis.ConstantArgumentsTests
                     , FreeC.Backend.Coq.Analysis.DecreasingArgumentsTests
-                    , FreeC.Backend.Coq.ConverterTests
                     , FreeC.Backend.Coq.Converter.ExprTests
-                    , FreeC.Backend.Coq.Converter.FuncDeclTests
                     , FreeC.Backend.Coq.Converter.FuncDecl.NonRecTests
-                    , FreeC.Backend.Coq.Converter.FuncDecl.RecTests
                     , FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithHelpersTests
                     , FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSectionsTests
+                    , FreeC.Backend.Coq.Converter.FuncDecl.RecTests
+                    , FreeC.Backend.Coq.Converter.FuncDeclTests
                     , FreeC.Backend.Coq.Converter.TypeDeclTests
                     , FreeC.Backend.Coq.Converter.TypeTests
+                    , FreeC.Backend.Coq.ConverterTests
                     , FreeC.Backend.Coq.Tests
-                    , FreeC.EnvironmentTests
                     , FreeC.Environment.FreshTests
                     , FreeC.Environment.RenamerTests
+                    , FreeC.EnvironmentTests
                     , FreeC.Frontend.Haskell.SimplifierTests
                     , FreeC.Frontend.Haskell.Tests
                     , FreeC.Frontend.IR.ParserTests
@@ -248,8 +249,8 @@ test-suite freec-unit-tests
                     , FreeC.IR.SimilarTests
                     , FreeC.IR.SubstTests
                     , FreeC.IR.SubtermTests
-                    , FreeC.IR.SyntaxTests
                     , FreeC.IR.Syntax.ModuleTests
+                    , FreeC.IR.SyntaxTests
                     , FreeC.IR.Tests
                     , FreeC.IR.TypeSynExpansionTests
                     , FreeC.IR.UnificationTests
@@ -260,6 +261,7 @@ test-suite freec-unit-tests
                     , FreeC.Pass.EtaConversionPassTests
                     , FreeC.Pass.ExportPassTests
                     , FreeC.Pass.KindCheckPassTests
+                    , FreeC.Pass.LetSortPassTests
                     , FreeC.Pass.ResolverPassTests
                     , FreeC.Pass.TypeInferencePassTests
                     , FreeC.PipelineTests

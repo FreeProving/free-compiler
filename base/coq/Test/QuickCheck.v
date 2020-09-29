@@ -196,3 +196,18 @@ Proof.
     + (* fb = impure _ _ *) contradiction H.
   - (* <- *) rewrite H. reflexivity.
 Qed.
+
+(* Helper lemma to avoid the [match] expression introduced by [toProperty]. *)
+Lemma pure_bool_toProperty:
+  forall (Shape : Type)
+         (Pos : Shape -> Type)
+         (fb : Free Shape Pos (Bool Shape Pos))
+         handler,
+  toProperty fb handler <-> fb = True_ Shape Pos.
+Proof.
+  simpl. intros Shape Pos fb. split; intros H.
+  - (* -> *) destruct fb as [b |].
+    + (* fb = pure b *) rewrite H. reflexivity.
+    + (* fb = impure _ _ *) contradiction H.
+  - (* <- *) rewrite H. reflexivity.
+Qed.
