@@ -163,12 +163,22 @@ addEffectsToEntry name effects env = case lookupEntry IR.ValueScope name env of
 --   properties for the data entry with the given name.
 --
 --   If such a data entry does not exist, the environment is not changed.
-addPropertyNamesToEntry :: IR.QName -> Maybe Coq.Qualid -> Maybe [Coq.Qualid] -> Maybe Coq.Qualid -> Environment -> Environment
-addPropertyNamesToEntry name forIdent inIdents forallIdent env = case lookupEntry IR.TypeScope name env of
-  Nothing -> env
-  Just entry -> if isDataEntry entry
-    then addEntry (entry { entryForPropertyIdent = forIdent, entryInPropertyIdents = inIdents, entryForallIdent = forallIdent }) env 
-    else env
+addPropertyNamesToEntry
+  :: IR.QName
+  -> Maybe Coq.Qualid
+  -> Maybe [Coq.Qualid]
+  -> Maybe Coq.Qualid
+  -> Environment
+  -> Environment
+addPropertyNamesToEntry name forIdent inIdents forallIdent env
+  = case lookupEntry IR.TypeScope name env of
+    Nothing    -> env
+    Just entry -> if isDataEntry entry
+      then addEntry (entry { entryForPropertyIdent = forIdent
+                           , entryInPropertyIdents = inIdents
+                           , entryForallIdent      = forallIdent
+                           }) env
+      else env
 
 -------------------------------------------------------------------------------
 -- Looking up Entries from the Environment                                   --
@@ -319,9 +329,9 @@ lookupForProperty :: IR.QName -> Environment -> Maybe Coq.Qualid
 lookupForProperty = concatMaybe . fmap entryForPropertyIdent . find isDataEntry
   .: lookupEntry IR.TypeScope
  where
-   concatMaybe :: Maybe (Maybe a) -> Maybe a
-   concatMaybe (Just mb) = mb
-   concatMaybe Nothing   = Nothing
+  concatMaybe :: Maybe (Maybe a) -> Maybe a
+  concatMaybe (Just mb) = mb
+  concatMaybe Nothing   = Nothing
 
 -- | Looks up the Coq identifiers for the 'In-' properties of the data entry
 --   with the given name.
@@ -329,12 +339,13 @@ lookupForProperty = concatMaybe . fmap entryForPropertyIdent . find isDataEntry
 --   Returns @Nothing@ if there is no such data entry or if the data entry has
 --   no 'In-' properties.
 lookupInProperties :: IR.QName -> Environment -> Maybe [Coq.Qualid]
-lookupInProperties = concatMaybe . fmap entryInPropertyIdents . find isDataEntry
+lookupInProperties
+  = concatMaybe . fmap entryInPropertyIdents . find isDataEntry
   .: lookupEntry IR.TypeScope
  where
-   concatMaybe :: Maybe (Maybe a) -> Maybe a
-   concatMaybe (Just mb) = mb
-   concatMaybe Nothing   = Nothing
+  concatMaybe :: Maybe (Maybe a) -> Maybe a
+  concatMaybe (Just mb) = mb
+  concatMaybe Nothing   = Nothing
 
 -- | Looks up the Coq identifier for the 'forall' lemma of the data entry with
 --   the given name.
@@ -345,9 +356,9 @@ lookupForallLemma :: IR.QName -> Environment -> Maybe Coq.Qualid
 lookupForallLemma = concatMaybe . fmap entryForallIdent . find isDataEntry
   .: lookupEntry IR.TypeScope
  where
-   concatMaybe :: Maybe (Maybe a) -> Maybe a
-   concatMaybe (Just mb) = mb
-   concatMaybe Nothing   = Nothing
+  concatMaybe :: Maybe (Maybe a) -> Maybe a
+  concatMaybe (Just mb) = mb
+  concatMaybe Nothing   = Nothing
 
 -- | Looks up the type the type synonym with the given name is associated with.
 --

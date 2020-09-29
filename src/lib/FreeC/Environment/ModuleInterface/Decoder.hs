@@ -218,16 +218,17 @@ instance Aeson.FromJSON ModuleInterface where
       coqForPropertyName <- obj .:? "coq-for-property-name"
       coqInPropertyNames <- obj .:? "coq-in-property-names"
       coqForallName <- obj .:? "coq-forall-lemma-name"
-      return DataEntry { entrySrcSpan          = NoSrcSpan
-                       , entryArity            = arity
-                       , entryIdent            = coqName
-                       , entryAgdaIdent        = agdaName
-                       , entryName             = haskellName
-                       , entryConsNames        = consNames
-                       , entryForPropertyIdent = coqForPropertyName
-                       , entryInPropertyIdents = coqInPropertyNames
-                       , entryForallIdent      = coqForallName
-                       }
+      return DataEntry
+        { entrySrcSpan          = NoSrcSpan
+        , entryArity            = arity
+        , entryIdent            = coqName
+        , entryAgdaIdent        = agdaName
+        , entryName             = haskellName
+        , entryConsNames        = consNames
+        , entryForPropertyIdent = coqForPropertyName
+        , entryInPropertyIdents = coqInPropertyNames
+        , entryForallIdent      = coqForallName
+        }
 
     parseConfigTypeSyn :: Aeson.Value -> Aeson.Parser EnvEntry
     parseConfigTypeSyn = Aeson.withObject "Type synonym" $ \obj -> do

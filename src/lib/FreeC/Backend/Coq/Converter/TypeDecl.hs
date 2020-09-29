@@ -13,26 +13,32 @@ module FreeC.Backend.Coq.Converter.TypeDecl
   , convertDataDecl
   ) where
 
-import           Control.Monad                    ( mapAndUnzipM )
-import           Control.Monad.Extra              ( concatMapM )
-import           Data.List                        ( partition )
-import           Data.List.Extra                  ( concatUnzip )
-import qualified Data.List.NonEmpty               as NonEmpty
-import           Data.Maybe                       ( catMaybes, fromJust )
-import qualified Data.Set                         as Set
+import           Control.Monad
+  ( mapAndUnzipM )
+import           Control.Monad.Extra
+  ( concatMapM )
+import           Data.List
+  ( partition )
+import           Data.List.Extra
+  ( concatUnzip )
+import qualified Data.List.NonEmpty                                   as NonEmpty
+import           Data.Maybe
+  ( catMaybes, fromJust )
+import qualified Data.Set                                             as Set
 
-import qualified FreeC.Backend.Coq.Base           as Coq.Base
+import qualified FreeC.Backend.Coq.Base                               as Coq.Base
 import           FreeC.Backend.Coq.Converter.Arg
 import           FreeC.Backend.Coq.Converter.Free
 import           FreeC.Backend.Coq.Converter.Type
 import           FreeC.Backend.Coq.Converter.TypeDecl.InductionScheme
-import qualified FreeC.Backend.Coq.Syntax         as Coq
+import qualified FreeC.Backend.Coq.Syntax                             as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Fresh
   ( freshArgPrefix, freshCoqIdent )
-import           FreeC.Environment.Renamer        ( renameAndDefineTypeVar )
+import           FreeC.Environment.Renamer
+  ( renameAndDefineTypeVar )
 import           FreeC.IR.DependencyGraph
-import qualified FreeC.IR.Syntax                  as IR
+import qualified FreeC.IR.Syntax                                      as IR
 import           FreeC.IR.TypeSynExpansion
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -297,7 +303,6 @@ convertDataDecl (IR.DataDecl _ (IR.DeclIdent _ name) typeVarDecls conDecls) = do
         , Coq.sModLevel 10
         , Coq.sModIdentLevel (NonEmpty.fromList expArgIdents) (Just 9)
         ]
-
 -- Type synonyms are not allowed in this function.
 convertDataDecl (IR.TypeSynDecl _ _ _ _)
   = error "convertDataDecl: Type synonym not allowed."

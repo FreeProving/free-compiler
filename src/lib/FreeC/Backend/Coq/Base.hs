@@ -44,15 +44,15 @@ module FreeC.Backend.Coq.Base
   , stringScope
     -- * Tactics
   , proveInd
-  , proveInd_proveForType
-  , proveInd_ForType_InType
+  , proveIndProveForType
+  , proveIndForTypeInType
   , proveForall
-  , proveForall_ForType_InType
-  , proveForall_proveForType
-  , proveForall_finish
+  , proveForallForTypeInType
+  , proveForallProveForType
+  , proveForallFinish
     -- * Hint Databases
-  , proveInd_db
-  , proveForall_db
+  , proveIndDb
+  , proveForallDb
     -- * Reserved Identifiers
   , reservedIdents
   ) where
@@ -266,43 +266,42 @@ proveInd :: Coq.Ident
 proveInd = Coq.ident "prove_ind"
 
 -- | The tactic that has to be instantiated for data types and added to
---   'proveInd_db'.
-proveInd_proveForType :: Coq.Ident
-proveInd_proveForType = Coq.ident "prove_ind_prove_ForType"
+--   'proveIndDb'.
+proveIndProveForType :: Coq.Ident
+proveIndProveForType = Coq.ident "prove_ind_prove_ForType"
 
-proveInd_ForType_InType :: Coq.Ident
-proveInd_ForType_InType = Coq.ident "prove_ind_ForType_InType"
+proveIndForTypeInType :: Coq.Ident
+proveIndForTypeInType = Coq.ident "prove_ind_ForType_InType"
 
 -- | The tactic that is needed to prove 'forall' lemmas.
 proveForall :: Coq.Ident
 proveForall = Coq.ident "prove_forall"
 
 -- | One of the tactics that have to be instantiated for data types and added
---   to 'proveInd_db'.
-proveForall_ForType_InType :: Coq.Ident
-proveForall_ForType_InType = Coq.ident "prove_forall_ForType_InType"
+--   to 'proveIndDb'.
+proveForallForTypeInType :: Coq.Ident
+proveForallForTypeInType = Coq.ident "prove_forall_ForType_InType"
 
 -- | One of the tactics that have to be instantiated for data types and added
---   to 'proveInd_db'.
-proveForall_proveForType :: Coq.Ident
-proveForall_proveForType = Coq.ident "prove_forall_prove_ForType"
+--   to 'proveIndDb'.
+proveForallProveForType :: Coq.Ident
+proveForallProveForType = Coq.ident "prove_forall_prove_ForType"
 
 -- | This tactic has to be instantiated for data types and added locally to
---   'proveInd_db' in the proof of the corresponding 'forall' lemma.
-proveForall_finish :: Coq.Ident
-proveForall_finish = Coq.ident "prove_forall_finish_rtl"
+--   'proveIndDb' in the proof of the corresponding 'forall' lemma.
+proveForallFinish :: Coq.Ident
+proveForallFinish = Coq.ident "prove_forall_finish_rtl"
 
 -------------------------------------------------------------------------------
 -- Hint Databases                                                            --
 -------------------------------------------------------------------------------
 -- | The hint database that is used by 'proveInd'.
-proveInd_db :: Coq.Ident
-proveInd_db = Coq.ident "prove_ind_db"
-
+proveIndDb :: Coq.Ident
+proveIndDb = Coq.ident "prove_ind_db"
 
 -- | The hint database that is used by 'proveForall'.
-proveForall_db :: Coq.Ident
-proveForall_db = Coq.ident "prove_forall_db"
+proveForallDb :: Coq.Ident
+proveForallDb = Coq.ident "prove_forall_db"
 
 -------------------------------------------------------------------------------
 -- Reserved Identifiers                                                      --

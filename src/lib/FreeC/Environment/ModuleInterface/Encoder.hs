@@ -17,7 +17,7 @@ module FreeC.Environment.ModuleInterface.Encoder ( writeModuleInterface ) where
 import           Control.Monad.IO.Class            ( MonadIO )
 import           Data.Aeson                        ( (.=) )
 import qualified Data.Aeson                        as Aeson
-import           Data.Maybe                        ( mapMaybe )
+import           Data.Maybe                        ( catMaybes, mapMaybe )
 import qualified Data.Set                          as Set
 
 import           FreeC.Backend.Agda.Pretty
@@ -90,18 +90,17 @@ instance Aeson.ToJSON ModuleInterface where
 encodeEntry :: EnvEntry -> Maybe Aeson.Value
 encodeEntry entry
   | isDataEntry entry = return
-    $ Aeson.object $
-    [ "haskell-name" .= haskellName
-    , "coq-name" .= coqName
-    , "agda-name" .= agdaName
-    , "cons-names" .= consNames
-    , "arity" .= arity
-    ]
-    ++ mapMaybe id
-    [ ("coq-for-property-name" .=) <$> coqForPropertyName
-    , ("coq-in-property-names" .=) <$> coqInPropertyNames
-    , ("coq-forall-lemma-name" .=) <$> coqForallName
-    ]
+    $ Aeson.object
+    $ [ "haskell-name" .= haskellName
+      , "coq-name" .= coqName
+      , "agda-name" .= agdaName
+      , "cons-names" .= consNames
+      , "arity" .= arity
+      ]
+    ++ catMaybes [ ("coq-for-property-name" .=) <$> coqForPropertyName
+                 , ("coq-in-property-names" .=) <$> coqInPropertyNames
+                 , ("coq-forall-lemma-name" .=) <$> coqForallName
+                 ]
   | isTypeSynEntry entry = return
     $ Aeson.object
     [ "haskell-name" .= haskellName
@@ -142,11 +141,11 @@ encodeEntry entry
   coqSmartName = Aeson.toJSON (entrySmartIdent entry)
 
   coqForPropertyName, coqInPropertyNames, coqForallName :: Maybe Aeson.Value
-  coqForPropertyName = Aeson.toJSON <$> (entryForPropertyIdent entry)
+  coqForPropertyName = Aeson.toJSON <$> entryForPropertyIdent entry
 
-  coqInPropertyNames = Aeson.toJSON <$> (entryInPropertyIdents entry)
+  coqInPropertyNames = Aeson.toJSON <$> entryInPropertyIdents entry
 
-  coqForallName  = Aeson.toJSON <$> (entryForallIdent entry)
+  coqForallName = Aeson.toJSON <$> entryForallIdent entry
 
   -- @entryAgdaIdent entry@ is undefined because the agda renamer isn't
   -- implemented at the moment. To allow encoding a dummy value is needed.

@@ -278,13 +278,13 @@ forall bs t = Forall (NonEmpty.fromList bs) t
 -------------------------------------------------------------------------------
 -- | Smart constructor for a sentence which sets an option or flag.
 setOption :: Maybe Locality -> String -> Maybe (Either Num String) -> Sentence
-setOption mbLoc opt mbArg =
-  OptionSentence $ SetOption mbLoc (Text.pack opt) mbArg'
+setOption mbLoc opt mbArg = OptionSentence
+  $ SetOption mbLoc (Text.pack opt) mbArg'
  where
-   mbArg' = case mbArg of
-     Nothing -> Nothing
-     (Just (Left num)) -> Just (OVNum num)
-     (Just (Right str)) -> Just (OVText (Text.pack str))
+  mbArg' = case mbArg of
+    Nothing            -> Nothing
+    (Just (Left num))  -> Just (OVNum num)
+    (Just (Right str)) -> Just (OVText (Text.pack str))
 
 -- | Smart constructor for a sentence which unsets an option or flag.
 unsetOption :: Maybe Locality -> String -> Sentence
@@ -294,9 +294,10 @@ unsetOption mbLoc opt = OptionSentence $ UnsetOption mbLoc (Text.pack opt)
 -- Hints                                                                     --
 -------------------------------------------------------------------------------
 -- | Smart constructor for an extern hint.
-externHint :: Maybe Locality -> Num -> Maybe Pattern -> String -> [Ident] -> Sentence
-externHint mbLoc num mbPat tactic dbs =
-  HintSentence $ Hint mbLoc (HintExtern num mbPat $ Text.pack tactic) dbs
+externHint
+  :: Maybe Locality -> Num -> Maybe Pattern -> String -> [Ident] -> Sentence
+externHint mbLoc num mbPat tactic dbs = HintSentence
+  $ Hint mbLoc (HintExtern num mbPat $ Text.pack tactic) dbs
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

@@ -17,25 +17,24 @@ import           FreeC.Util.Predicate
 data EnvEntry
   = -- | Entry for a data type declaration.
     DataEntry
-      { entrySrcSpan   :: SrcSpan
+      { entrySrcSpan          :: SrcSpan
         -- ^ The source code location where the data type was declared.
-      , entryArity     :: Int
+      , entryArity            :: Int
         -- ^ The number of type arguments expected by the type constructor.
-      , entryIdent     :: Coq.Qualid
+      , entryIdent            :: Coq.Qualid
         -- ^ The name of the data type in Coq.
-      , entryAgdaIdent :: Agda.QName
+      , entryAgdaIdent        :: Agda.QName
         -- ^ The name of the data type in Agda.
-      , entryName      :: IR.QName
+      , entryName             :: IR.QName
         -- ^ The name of the data type in the module it has been defined in.
-      , entryConsNames :: [IR.ConName]
+      , entryConsNames        :: [IR.ConName]
         -- ^ The names of the constructors of the data type.
-      , entryForPropertyIdent  :: Maybe Coq.Qualid
+      , entryForPropertyIdent :: Maybe Coq.Qualid
         -- ^ The name of the 'For-' property in Coq.
       , entryInPropertyIdents :: Maybe [Coq.Qualid]
         -- ^ The names of the 'In-' properties in Coq.
-      , entryForallIdent :: Maybe Coq.Qualid
+      , entryForallIdent      :: Maybe Coq.Qualid
         -- ^ The names of the 'forall' lemma in Coq.
-
       }
     -- | Entry for a type synonym declaration.
   | TypeSynEntry
