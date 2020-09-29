@@ -2,10 +2,10 @@
 module Main where
 
 import           Control.Monad                             ( (>=>) )
-import           Control.Monad.Extra
-  ( findM, unlessM, whenM )
+import           Control.Monad.Extra                       ( unlessM, whenM )
 import           Control.Monad.IO.Class
 import           Data.List                                 ( intercalate )
+import           Data.List.Extra                           ( splitOn )
 import qualified Data.Map.Strict                           as Map
 import           System.Directory
   ( createDirectoryIfMissing, doesFileExist )
@@ -23,6 +23,7 @@ import           FreeC.Environment.ModuleInterface.Decoder
 import           FreeC.Environment.ModuleInterface.Encoder
 import           FreeC.Frontend
 import qualified FreeC.IR.Base.Prelude                     as IR.Prelude
+import qualified FreeC.IR.Base.Test.QuickCheck             as IR.Test.QuickCheck
 import           FreeC.IR.DependencyGraph
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax                           as IR
@@ -72,6 +73,7 @@ compiler = do
   backend <- selectBackend
   -- Initialize environment.
   loadPrelude
+  loadQuickCheck
   backendSpecialAction backend
   -- Process input files.
   modules <- inOpts optInputFiles
@@ -196,54 +198,53 @@ loadImport decl = do
     $ loadModule srcSpan modName
 
 -- | Loads the interface of the module with the given name from the
---   configured import path or base library.
+--   configured import path.
 --
 --   The given source span is used in error messages if the module could
---   not be found. Modules from the base library always take precedence.
---   Allowed file extensions for module interface files are @.json@ (for
---   generated module interfaces) and @.toml@ (for manually maintained
---   module interface files).
+--   not be found.
 loadModule :: SrcSpan -> IR.ModName -> Application ()
 loadModule srcSpan modName = do
-  baseLibDir <- inOpts optBaseLibDir
   importDirs <- inOpts optImportDirs
-  ifaceFile <- findIfaceFile (baseLibDir : importDirs)
+  ifaceFile <- findIfaceFile importDirs
   iface <- loadModuleInterface ifaceFile
   modifyEnv $ makeModuleAvailable iface
  where
   -- | The name of the module's interface file relative to the import
   --   directories.
   filename :: FilePath
-  filename = map (\c -> if c == '.' then '/' else c) modName
-
-  -- | The allowed file extensions of module interface files.
-  extensions :: [String]
-  extensions = ["json", "toml"]
+  filename = map (\c -> if c == '.' then '/' else c) modName <.> "json"
 
   -- | Looks for the module's interface file in the import directories.
   --
   --   Reports a fatal message if the file could not be found.
   findIfaceFile :: [FilePath] -> Application FilePath
-  findIfaceFile directories = do
-    let ifaceFiles = [directory </> filename <.> extension
-                     | directory <- directories
-                     , extension <- extensions
-                     ]
-    ifraceFile <- findM (liftIO . doesFileExist) ifaceFiles
-    maybe reportMissingModule return ifraceFile
-
-  -- | Reports a fatal error message that the module could not be found.
-  reportMissingModule :: Application a
-  reportMissingModule = reportFatal
+  findIfaceFile []       = reportFatal
     $ Message srcSpan Error
-    $ "Could not find imported module " ++ showPretty modName ++ "."
+    $ "Could not find imported module " ++ showPretty modName
+  findIfaceFile (d : ds) = do
+    let ifaceFile = d </> filename
+    exists <- liftIO $ doesFileExist ifaceFile
+    if exists then return ifaceFile else findIfaceFile ds
 
 -------------------------------------------------------------------------------
 -- Base Library                                                              --
 -------------------------------------------------------------------------------
 -- | Loads the @Prelude@ module from the base library.
---
---   This is the only module that we have to load explicitly, because the
---   import of @Prelude@ can be omitted.
 loadPrelude :: Application ()
-loadPrelude = loadModule NoSrcSpan IR.Prelude.modName
+loadPrelude = loadModuleFromBaseLib IR.Prelude.modName
+
+-- | Loads the @Test.QuickCheck@ module.
+loadQuickCheck :: Application ()
+loadQuickCheck = loadModuleFromBaseLib IR.Test.QuickCheck.modName
+
+-- | Loads the module with the given name from the base library.
+--
+--   If the `--base-library` option is omitted, this function looks for the
+--   base library in the `data-files` field of the `.cabal` file.
+loadModuleFromBaseLib :: IR.ModName -> Application ()
+loadModuleFromBaseLib modName = do
+  baseLibDir <- inOpts optBaseLibDir
+  let modPath   = joinPath $ splitOn "." modName
+      ifaceFile = baseLibDir </> modPath <.> "toml"
+  ifrace <- loadModuleInterface ifaceFile
+  modifyEnv $ makeModuleAvailable ifrace

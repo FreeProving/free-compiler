@@ -38,7 +38,11 @@
     as: IR
   - name: [ FreeC.IR.Base.Prelude ]
     as: IR.Prelude
-  - name: [ FreeC.LiftedIR.Syntax ]
+  - name: [ FreeC.IR.Base.Test.QuickCheck]
+    as: IR.Test.QuickCheck
+  - name: [ FreeC.LiftedIR.Effect]
+    as: Effect
+  - name: [ FreeC.LiftedIR.Syntax]
     as: LIR
   - name:
     - Data.Aeson

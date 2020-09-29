@@ -40,7 +40,6 @@ testConvertExpr = describe "FreeC.Backend.Coq.Converter.Expr.convertExpr" $ do
   testConvertInteger
   testConvertUndefined
   testConvertError
-  testConvertTrace
 
 -------------------------------------------------------------------------------
 -- Constructor Applications                                                  --
@@ -407,7 +406,7 @@ testConvertInteger = context "integer expressions" $ do
     $ shouldSucceedWith
     $ shouldConvertExprTo "-42" "pure (- 42)%Z"
 
--- | Test group for translation of @undefined@ expressions.
+-- | Test group for translation of undefined expressions.
 testConvertUndefined :: Spec
 testConvertUndefined = context "undefined expressions" $ do
   it "translates undefined expressions correctly" $ shouldSucceedWith $ do
@@ -427,7 +426,7 @@ testConvertUndefined = context "undefined expressions" $ do
         ++ " >>= (fun f => f x))"
         ++ " >>= (fun f => f y)"
 
--- | Test group for translation of @error@ expressions.
+-- | Test group for translation of undefined expressions.
 testConvertError :: Spec
 testConvertError = context "error expressions" $ do
   it "translates error expressions correctly" $ shouldSucceedWith $ do
@@ -448,12 +447,3 @@ testConvertError = context "error expressions" $ do
         ++ " \"message\"%string"
         ++ " >>= (fun f => f x))"
         ++ " >>= (fun f => f y)"
-
--- | Test group for translation of @trace@ expressions.
-testConvertTrace :: Spec
-testConvertTrace = context "traced expressions" $ do
-  it "translates traced expressions correctly" $ shouldSucceedWith $ do
-    "a" <- defineTestTypeVar "a"
-    "x" <- defineTestVar "x"
-    shouldConvertExprTo "trace @a \"message\" x"
-      "@trace Shape Pos T a \"message\"%string x"

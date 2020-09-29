@@ -8,7 +8,6 @@ import           FreeC.Environment.LookupOrFail
   ( lookupAgdaSmartIdentOrFail, lookupAgdaValIdentOrFail )
 import qualified FreeC.LiftedIR.Syntax             as LIR
 import           FreeC.Monad.Converter
-import           FreeC.Monad.Reporter
 
 -- | Converts an expression from lifted IR to an Agda expression.
 convertLiftedExpr :: LIR.Expr -> Converter Agda.Expr
@@ -36,9 +35,6 @@ convertLiftedExpr (LIR.Bind _ arg k)
   = bind <$> convertLiftedExpr arg <*> convertLiftedExpr k
 convertLiftedExpr (LIR.Undefined _)           = return undefinedExpr
 convertLiftedExpr (LIR.ErrorExpr _)           = return errorExpr
-convertLiftedExpr (LIR.Trace srcSpan)         = reportFatal
-  $ Message srcSpan Error
-  $ "The tracing effect is not supported by the Agda backend."
 convertLiftedExpr (LIR.Share _ expr _)
   = generatePure <$> convertLiftedExpr expr
 convertLiftedExpr (LIR.Call _ expr _)

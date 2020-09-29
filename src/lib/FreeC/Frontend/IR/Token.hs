@@ -215,7 +215,6 @@ data Keyword
   | MODULE    -- ^ @"module"@
   | OF        -- ^ @"of"@
   | THEN      -- ^ @"then"@
-  | TRACE     -- ^ @"trace"@
   | TYPE      -- ^ @"type"@
   | UNDEFINED -- ^ @"undefined"@
   | WHERE     -- ^ @"where"@
@@ -242,7 +241,6 @@ keywords = map (showPretty &&& id)
   , MODULE
   , OF
   , THEN
-  , TRACE
   , TYPE
   , UNDEFINED
   , WHERE
@@ -262,7 +260,6 @@ instance Pretty Keyword where
   pretty MODULE    = prettyString "module"
   pretty OF        = prettyString "of"
   pretty THEN      = prettyString "then"
-  pretty TRACE     = prettyString "trace"
   pretty TYPE      = prettyString "type"
   pretty UNDEFINED = prettyString "undefined"
   pretty WHERE     = prettyString "where"

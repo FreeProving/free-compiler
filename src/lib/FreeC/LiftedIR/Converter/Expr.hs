@@ -192,19 +192,6 @@ liftExpr' (IR.ErrorExpr srcSpan msg _) typeArgs args = do
   args' <- mapM liftExpr args
   generateApply (LIR.App srcSpan (LIR.ErrorExpr srcSpan) typeArgs' [Partiality]
                  [LIR.StringLiteral srcSpan msg] True) args'
-liftExpr' (IR.Trace srcSpan msg expr _) typeArgs args = do
-  when (length typeArgs /= 1)
-    $ reportFatal
-    $ Message srcSpan Internal
-    $ unlines
-    [ "Effect 'trace' is applied to the wrong number of type arguments."
-    , "Expected 1 type arguments, got " ++ show (length typeArgs) ++ "."
-    ]
-  typeArgs' <- mapM LIR.liftType' typeArgs
-  expr' <- liftExpr expr
-  args' <- mapM liftExpr args
-  generateApply (LIR.App srcSpan (LIR.Trace srcSpan) typeArgs' [Tracing]
-                 [LIR.StringLiteral srcSpan msg, expr'] True) args'
 liftExpr' (IR.Let _ binds expr _) [] [] = liftBinds binds expr
 -- Visible type application of an expression other than a function or
 -- constructor.
@@ -380,7 +367,6 @@ countVarInExpr varName = countVarInExpr'
     (map (\(IR.Alt _ _ varPats rhs) -> countVarInBinds varPats rhs) alts)
   countVarInExpr' IR.Undefined {}              = 0
   countVarInExpr' IR.ErrorExpr {}              = 0
-  countVarInExpr' IR.Trace {}                  = 0
   countVarInExpr' IR.IntLiteral {}             = 0
   countVarInExpr' (IR.Lambda _ varPats expr _) = countVarInBinds varPats expr
   countVarInExpr' (IR.Let _ binds expr _)

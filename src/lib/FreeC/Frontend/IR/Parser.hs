@@ -520,12 +520,10 @@ fExprParser = IR.app NoSrcSpan <$> vExprParser <*> Parsec.many aExprParser
 --
 --   > vexpr ::= uexpr { varg }                   (visible type application)
 --   >         | "error" [ varg ] <string>        (error term)
---   >         | "trace" [ varg ] <string> aexpr  (tracing effect)
 --   >         | wexpr                            (non-visibly applicable)
 --   > varg  ::= "@" atype                        (visible type argument)
 vExprParser :: Parser IR.Expr
-vExprParser
-  = visibleTypeAppParser <|> errorParser <|> traceParser <|> wExprParser
+vExprParser = visibleTypeAppParser <|> errorParser <|> wExprParser
  where
   -- @varg  ::= "@" atype@
   vArgParser :: Parser IR.Type
@@ -541,12 +539,6 @@ vExprParser
   errorParser = flip (IR.visibleTypeApp NoSrcSpan) <$ keyword ERROR
     <*> Parsec.option [] (return <$> vArgParser)
     <*> (IR.ErrorExpr NoSrcSpan <$> stringToken <*> return Nothing)
-
-  -- @vexpr ::= "trace" [ varg ] <string> aexpr | …@
-  traceParser :: Parser IR.Expr
-  traceParser = flip (IR.visibleTypeApp NoSrcSpan) <$ keyword TRACE
-    <*> Parsec.option [] (return <$> vArgParser)
-    <*> (IR.Trace NoSrcSpan <$> stringToken <*> aExprParser <*> return Nothing)
 
 -- | Parser for IR expressions that can be applied to their type arguments.
 --

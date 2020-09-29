@@ -194,8 +194,6 @@ instance HasRefs IR.TypeScheme where
 --
 --   The error terms @undefined@ and @error "<msg>"@ refer to the functions
 --   'IR.Prelude.undefinedFuncName' and 'IR.Prelude.errorFuncName' respectively.
---   The term @trace "<msg>" <expr>@ refers to the function
---   'IR.Prelude.traceFuncName'.
 instance HasRefs IR.Expr where
   refSet (IR.Var _ varName exprType)
     = varRef IR.ValueScope varName `insertBefore` refSet exprType
@@ -215,9 +213,6 @@ instance HasRefs IR.Expr where
   refSet (IR.ErrorExpr _ _ exprType)               = varRef IR.ValueScope
     IR.Prelude.errorFuncName
     `insertBefore` refSet exprType
-  refSet (IR.Trace _ _ expr exprType)              = varRef IR.ValueScope
-    IR.Prelude.traceFuncName
-    `insertBefore` (refSet expr `union` refSet exprType)
   refSet (IR.IntLiteral _ _ exprType)              = refSet exprType
   refSet (IR.Lambda _ args expr exprType)          = unions
     [refSet args, withoutArgs args (refSet expr), refSet exprType]

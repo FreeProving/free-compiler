@@ -45,8 +45,6 @@ data Expr
   | Undefined { exprSrcSpan :: SrcSpan }
     -- | Error term @error@.
   | ErrorExpr { exprSrcSpan :: SrcSpan }
-    -- | Effect @trace@.
-  | Trace { exprSrcSpan :: SrcSpan }
     -- | An integer literal.
   | IntLiteral { exprSrcSpan :: SrcSpan, intLiteralValue :: Integer }
     -- | A string literal.

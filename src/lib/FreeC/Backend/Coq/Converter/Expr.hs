@@ -50,7 +50,6 @@ convertLiftedExpr (LIR.Case _ expr alts) = do
 convertLiftedExpr (LIR.Undefined _)
   = return $ Coq.Qualid Coq.Base.partialUndefined
 convertLiftedExpr (LIR.ErrorExpr _) = return $ Coq.Qualid Coq.Base.partialError
-convertLiftedExpr (LIR.Trace _) = return $ Coq.Qualid Coq.Base.trace
 convertLiftedExpr (LIR.IntLiteral _ value) = do
   let natValue = Coq.Num $ fromInteger (abs value)
       value'   | value < 0 = Coq.app (Coq.Qualid (Coq.bare "-")) [natValue]

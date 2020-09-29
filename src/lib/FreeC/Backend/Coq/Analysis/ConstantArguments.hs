@@ -143,8 +143,6 @@ makeConstArgGraph decls = do
             | otherwise = checkExpr expr []
           -- Check visibly applied expression recursively.
           checkExpr (IR.TypeAppExpr _ expr _ _) args = checkExpr expr args
-          -- Check traced expressions recursively.
-          checkExpr (IR.Trace _ _ expr _) _          = checkExpr expr []
           -- Constructors, literals and error terms cannot contain further
           -- calls to @g@.
           checkExpr (IR.Con _ _ _) _                 = True

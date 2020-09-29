@@ -27,16 +27,17 @@ shouldInferType inputStrs expectedOutputStrs = do
 -- | Test group for 'typeInferencePass' tests.
 testTypeInferencePass :: Spec
 testTypeInferencePass = describe "FreeC.Analysis.TypeInference" $ do
-  context "effects" $ do
-    it "infers the type of 'undefined' correctly" $ shouldSucceedWith $ do
-      shouldInferType (NonRecursive "f = undefined")
-        ["f @a :: a = undefined @a"]
-    it "infers the type of 'error \"...\"' correctly" $ shouldSucceedWith $ do
-      shouldInferType (NonRecursive "f = error \"...\"")
-        ["f @a :: a = error @a \"...\""]
-    it "infers the type of 'trace \"...\"' correctly" $ shouldSucceedWith $ do
-      shouldInferType (NonRecursive "f x = trace \"...\" x")
-        ["f @a (x :: a) :: a = trace @a \"...\" x"]
+  context "error terms" $ do
+    it "infers the type of the error term 'undefined' correctly"
+      $ shouldSucceedWith
+      $ do
+        shouldInferType (NonRecursive "f = undefined")
+          ["f @a :: a = undefined @a"]
+    it "infers the type of the error term 'error \"...\"' correctly"
+      $ shouldSucceedWith
+      $ do
+        shouldInferType (NonRecursive "f = error \"...\"")
+          ["f @a :: a = error @a \"...\""]
   context "constructors and literals" $ do
     it "infers the type of constant constructors correctly"
       $ shouldSucceedWith

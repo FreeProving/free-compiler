@@ -77,7 +77,7 @@ negateOpName :: IR.VarName
 negateOpName = IR.Qual modName (IR.Ident "negate")
 
 -------------------------------------------------------------------------------
--- Names of Effects                                                          --
+-- Names of Error Terms                                                      --
 -------------------------------------------------------------------------------
 -- | The name of the @error@ function.
 errorFuncName :: IR.VarName
@@ -86,7 +86,3 @@ errorFuncName = IR.Qual modName (IR.Ident "error")
 -- | The name of the @undefined@ function.
 undefinedFuncName :: IR.VarName
 undefinedFuncName = IR.Qual modName (IR.Ident "undefined")
-
--- | The name of the @trace@ function.
-traceFuncName :: IR.VarName
-traceFuncName = IR.Qual modName (IR.Ident "trace")
