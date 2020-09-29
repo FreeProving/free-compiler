@@ -33,7 +33,7 @@ Section SecFreeInd.
   Variable Impure_ind : forall (s : Shape) (pf : Pos s -> Free Shape Pos A),
       (forall p, P (pf p)) -> P (impure s pf).
 
-  Definition Free_Ind (fx : Free Shape Pos A) : P fx
+  Definition Free_ind (fx : Free Shape Pos A) : P fx
     := Free_Rect Shape Pos A P Pure_ind Impure_ind fx.
 
 End SecFreeInd.

@@ -9,9 +9,11 @@ Section SecList.
   Variable Pos : Shape -> Type.
   Notation "'Free''" := (Free Shape Pos).
 
+  Local Unset Elimination Schemes.
   Inductive List (A : Type) : Type :=
     | nil  : List A
     | cons : Free' A -> Free' (List A) -> List A.
+  Local Set Elimination Schemes.
 
 End SecList.
 
@@ -106,14 +108,14 @@ Section SecListInd.
                             (fxs : Free Shape Pos (List Shape Pos A)),
       ForFree Shape Pos (List Shape Pos A) P fxs -> P (cons fx fxs).
 
-  Fixpoint List_Ind (l : List Shape Pos A) : P l.
+  Fixpoint List_ind (l : List Shape Pos A) : P l.
   Proof.
     destruct l.
     - apply nilP.
     - apply consP.
       apply (ForFree_forall Shape Pos). intros xs HIn.
-      induction f0 using Free_Ind.
-      + inversion HIn; subst. apply List_Ind.
+      induction f0.
+      + inversion HIn; subst. apply List_ind.
       + dependent destruction HIn; subst. destruct H0 as [ p ].
         apply H with (p := p). apply H0.
   Defined.
