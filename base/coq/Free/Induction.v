@@ -13,11 +13,11 @@ Section SecFreeRect.
   Variable Impure_rect : forall (s : Shape) (pf : Pos s -> Free Shape Pos A),
       (forall p, P (pf p)) -> P (impure s pf).
 
-  Fixpoint Free_Rect (fx : Free Shape Pos A) : P fx :=
+  Fixpoint Free_rect (fx : Free Shape Pos A) : P fx :=
     match fx with
     | pure x => Pure_rect x
     | impure s pf =>
-      Impure_rect s pf (fun p : Pos s => Free_Rect (pf p))
+      Impure_rect s pf (fun p : Pos s => Free_rect (pf p))
     end.
 
 End SecFreeRect.
@@ -34,6 +34,6 @@ Section SecFreeInd.
       (forall p, P (pf p)) -> P (impure s pf).
 
   Definition Free_ind (fx : Free Shape Pos A) : P fx
-    := Free_Rect Shape Pos A P Pure_ind Impure_ind fx.
+    := Free_rect Shape Pos A P Pure_ind Impure_ind fx.
 
 End SecFreeInd.
