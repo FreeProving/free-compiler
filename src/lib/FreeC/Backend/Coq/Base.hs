@@ -23,6 +23,10 @@ module FreeC.Backend.Coq.Base
   , partialArg
   , partialUndefined
   , partialError
+    -- * Tracing
+  , traceable
+  , traceableArg
+  , trace
     -- * Modules
   , qualifiedSmartConstructorModule
     -- * Sharing
@@ -155,6 +159,26 @@ partialError :: Coq.Qualid
 partialError = Coq.bare "error"
 
 -------------------------------------------------------------------------------
+-- Tracing                                                                   --
+-------------------------------------------------------------------------------
+-- | The Coq identifier for the @Traceable@ type class.
+traceable :: Coq.Qualid
+traceable = Coq.bare "Traceable"
+
+-- | The Coq identifier for the argument of the @Traceable@ type class.
+traceableArg :: Coq.Qualid
+traceableArg = Coq.bare "T"
+
+-- | The Coq binder for the @Traceable@ type class.
+tracableBinder :: Coq.Binder
+tracableBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit traceableArg
+  $ Coq.app (Coq.Qualid traceable) [Coq.Qualid shape, Coq.Qualid pos]
+
+-- | The identifier for the effect @trace@.
+trace :: Coq.Qualid
+trace = Coq.bare "trace"
+
+-------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
 -- | The name of the local module, where qualified smart constructor notations
@@ -260,28 +284,33 @@ nType = Coq.bare "nType"
 selectExplicitArgs :: Effect -> [Coq.Term]
 selectExplicitArgs Partiality = [Coq.Qualid partialArg]
 selectExplicitArgs Sharing    = [Coq.Qualid strategyArg]
+selectExplicitArgs Tracing    = [Coq.Qualid traceableArg]
 
 -- | Selects the correct implicit function arguments for the given effect.
 selectImplicitArgs :: Effect -> [Coq.Term]
 selectImplicitArgs Partiality = []
 selectImplicitArgs Sharing    = [implicitArg]
+selectImplicitArgs Tracing    = []
 
 -- | Like 'selectImplicitArgs' but the arguments have to be inserted after
 --   the type arguments the specified number of times.
 selectTypedImplicitArgs :: Effect -> Int -> [Coq.Term]
 selectTypedImplicitArgs Partiality = const []
 selectTypedImplicitArgs Sharing    = flip replicate implicitArg
+selectTypedImplicitArgs Tracing    = const []
 
 -- | Selects the correct binder for the given effect.
 selectBinders :: Effect -> [Coq.Binder]
 selectBinders Partiality = [partialBinder]
 selectBinders Sharing    = [injectableBinder, strategyBinder]
+selectBinders Tracing    = [tracableBinder]
 
 -- | Like 'selectBinders' but the binders are dependent on the type variables
 --   with the given names.
 selectTypedBinders :: Effect -> [Coq.Qualid] -> [Coq.Binder]
 selectTypedBinders Partiality = const []
 selectTypedBinders Sharing    = map shareableArgsBinder
+selectTypedBinders Tracing    = const []
 
 -------------------------------------------------------------------------------
 -- Literal Scopes                                                            --
@@ -319,6 +348,10 @@ reservedIdents
     , partialArg
     , partialUndefined
     , partialError
+      -- Tracing
+    , traceable
+    , traceableArg
+    , trace
       -- Notations
     , Coq.Bare qualifiedSmartConstructorModule
       -- Sharing
