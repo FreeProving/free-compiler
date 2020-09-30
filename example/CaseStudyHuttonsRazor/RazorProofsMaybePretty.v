@@ -40,7 +40,7 @@ Section Proofs.
     (* Destruct the monadic layer of the first piece of code. *)
     destruct fcode1 as [ code1 | ]...
     - (* fcode1 = pure code1 *)
-      induction code1 as [ | [ [ fn | ] | ] fcode1' IHfcode1'] using List_Ind...
+      induction code1 as [ | [ [ fn | ] | ] fcode1' IHfcode1'] using List_ind...
       + (* fcode1 = Nil *)
         (* This case is trivial. *)
         intro fstack.
@@ -71,7 +71,7 @@ Section Proofs.
         * (* If there are to values, we can use the definition of [exec]. *)
           do 2 rewrite def_exec_ADD...
           (* Finish proof with induction. *)
-          induction fcode1' as [ code1' | sCode1' pfCode1' IHpfCode1' ] using Free_Ind...
+          induction fcode1' as [ code1' | sCode1' pfCode1' IHpfCode1' ]...
           -- autoIH; apply IH.
           -- autodef.
              rewrite exec_strict_on_stack_arg...
@@ -105,8 +105,8 @@ Section Proofs.
         = Cons_ (eval fexpr) fstack.
   Proof with (pretty).
     intros fexpr HPureE.
-    destruct fexpr as [ expr | ] using Free_Ind; try eliminate_pureness_property_impure...
-    induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind...
+    destruct fexpr as [ expr | ]; try eliminate_pureness_property_impure...
+    induction expr as [ fn | fx fy IHfx IHfy ]...
     + (* Expr = Val fn *)
       intros fstack HPureS.
       rewrite def_comp_Val...
@@ -147,15 +147,16 @@ Section Proofs.
   (* To prove the equivalence property of the two compilers [comp] and [comp'] we first prove the
      derived property for [comp] and [compApp] which is used by [comp']. *)
   Lemma compApp_comp_append_eq :
-    forall (fexpr : Free Shape Pos (Expr Shape Pos))
+    forall `{Normalform Shape Pos (Op Shape Pos)}
+           (fexpr : Free Shape Pos (Expr Shape Pos))
            (fcode : Free Shape Pos (Code Shape Pos)),
         compApp fexpr fcode
         = append (comp fexpr) fcode.
   Proof with pretty.
-    intro fexpr.
+    intros N fexpr.
     destruct fexpr as [ expr | ]...
     - (* If the expression is pure, we can do an induction over it. *)
-      induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind...
+      induction expr as [ fn | fx fy IHfx IHfy ]...
       + (* expr = Val fn *)
         intro fcode.
         rewrite def_comp_Val...
@@ -166,7 +167,8 @@ Section Proofs.
       + (* expr = Add fx fy *)
         intro fcode.
         rewrite def_comp_Add...
-        rewrite <- append_assocs.
+        specialize (append_assocs _ _ _ N) as HAssoc; simpl in HAssoc.
+        rewrite <- HAssoc.
         rewrite def_append_Cons...
         rewrite def_append_Nil...
         rewrite def_compApp_Add...
@@ -176,7 +178,7 @@ Section Proofs.
           simplify IHfx as IHx.
           rewrite IHy.
           rewrite IHx.
-          rewrite append_assocs.
+          rewrite HAssoc.
           reflexivity.
         * (* fx = Nothing *)
           autodef.
@@ -184,7 +186,7 @@ Section Proofs.
           simplify IHfx as IHx.
           rewrite IHx.
           autodef.
-          rewrite <- append_assocs.
+          rewrite <- HAssoc.
           autodef.
         * (* fx = fy = Nothing *)
           autodef.
@@ -194,25 +196,30 @@ Section Proofs.
    Qed.
 
  (* With the equivalence lemma above the proof of the main equivalence theorem is simple. *)
- Lemma comp_comp'_eq : quickCheck (prop_comp_comp'_eq Shape Pos).
+ Lemma comp_comp'_eq :
+  forall `{Normalform Shape Pos (Op Shape Pos)},
+    quickCheck (prop_comp_comp'_eq Shape Pos).
   Proof with pretty.
-    simpl; intro fexpr.
+    simpl; intros N fexpr.
     rewrite def_comp'.
     rewrite compApp_comp_append_eq.
-    rewrite append_nil.
+    specialize (append_nil _ _ _ N) as HNil; simpl in HNil.
+    rewrite HNil.
     reflexivity.
   Qed.
 
   (* The correctness of the compiler [comp'] is implied by the equivalence to
      the compiler [comp] and the correctness of [comp]. *)
   Lemma comp'_correct : 
-    forall (fexpr : Free Shape Pos (Expr Shape Pos)),
+    forall `{Normalform Shape Pos (Op Shape Pos)}
+           (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
         quickCheck (prop_comp'_correct Shape Pos Part fexpr).
   Proof.
     simpl.
-    intros fexpr HPure.
-    rewrite <- comp_comp'_eq.
+    intros N fexpr HPure.
+    specialize comp_comp'_eq as HEq; simpl in HEq.
+    rewrite <- HEq.
     apply (comp_correct fexpr HPure).
   Qed.
 

@@ -638,3 +638,75 @@ testConvertRecFuncDeclWithHelpers = context "with helper functions" $ do
               ]
             convertRecFuncDeclsWithHelpers input
       in shouldThrow (avoidLaziness res) (errorCall "Maybe.fromJust: Nothing")
+  it "eliminates `let`-bindings for decreasing argument in helper functions"
+    $ shouldSucceedWith
+    $ do
+      "Integer" <- defineTestTypeCon "Integer" 0 []
+      "succ" <- defineTestFunc "succ" 1 "Integer -> Integer"
+      "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
+      ("nil", "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
+      ("cons", "Cons")
+        <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+      "length" <- defineTestFunc "length" 1 "forall a. List a -> Integer"
+      shouldConvertWithHelpersTo
+        [ "length @a (xs :: List a) :: Integer"
+            ++ "  = let { ys = xs } in case ys of {"
+            ++ "      Nil        -> 0;"
+            ++ "      Cons x xs' -> let { ys' = xs' } in succ (length @a ys')"
+            ++ "    }"
+        ]
+        $ "(* Helper functions for length *) "
+        ++ "Fixpoint length0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+        ++ "  (xs : List Shape Pos a)"
+        ++ "  {struct xs}"
+        ++ "  := match xs with"
+        ++ "     | nil        => pure 0%Z"
+        ++ "     | cons x xs' => succ Shape Pos"
+        ++ "         (xs' >>= (fun (xs'0 : List Shape Pos a) =>"
+        ++ "           @length0 Shape Pos a xs'0))"
+        ++ "     end. "
+        ++ "Definition length (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+        ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+        ++ "  : Free Shape Pos (Integer Shape Pos)"
+        ++ "  := call Shape Pos (S Shape Pos _) xs >>= (fun ys =>"
+        ++ "       ys >>= (fun (ys0 : List Shape Pos a) =>"
+        ++ "         @length0 Shape Pos a ys0))."
+  it "does not eliminate other `let`-bindings in helper functions"
+    $ shouldSucceedWith
+    $ do
+      "Integer" <- defineTestTypeCon "Integer" 0 []
+      "succ" <- defineTestFunc "succ" 1 "Integer -> Integer"
+      "List" <- defineTestTypeCon "List" 1 ["Nil", "Cons"]
+      ("nil", "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
+      ("cons", "Cons")
+        <- defineTestCon "Cons" 2 "forall a. a -> List a -> List a"
+      "length" <- defineTestFunc "length" 1 "forall a. List a -> Integer"
+      shouldConvertWithHelpersTo
+        [ "length @a (xs :: List a) :: Integer"
+            ++ "  = let { (zero :: Integer) = 0 } in case xs of {"
+            ++ "      Nil        -> zero;"
+            ++ "      Cons x xs' -> let { y = x ; z = zero }"
+            ++ "                    in succ (length @a xs')"
+            ++ "    }"
+        ]
+        $ "(* Helper functions for length *) "
+        ++ "Fixpoint length0 (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+        ++ "  (xs : List Shape Pos a)"
+        ++ "  (zero : Free Shape Pos (Integer Shape Pos))"
+        ++ "  {struct xs}"
+        ++ "  := match xs with"
+        ++ "     | nil        => zero"
+        ++ "     | cons x xs' => call Shape Pos (S Shape Pos _) zero >>="
+        ++ "         (fun z => succ Shape Pos"
+        ++ "           (@call Shape Pos (S Shape Pos _) (Integer Shape Pos) (pure 0%Z) >>="
+        ++ "             (fun (zero0 : Free Shape Pos (Integer Shape Pos)) =>"
+        ++ "               xs' >>= (fun (xs'0 : List Shape Pos a) =>"
+        ++ "                 @length0 Shape Pos a xs'0 zero0))))"
+        ++ "     end. "
+        ++ "Definition length (Shape : Type) (Pos : Shape -> Type) {a : Type}"
+        ++ "  (xs : Free Shape Pos (List Shape Pos a))"
+        ++ "  : Free Shape Pos (Integer Shape Pos)"
+        ++ "  := @call Shape Pos (S Shape Pos _) (Integer Shape Pos) (pure 0%Z)"
+        ++ "       >>= (fun (zero : Free Shape Pos (Integer Shape Pos)) =>"
+        ++ "         xs >>= (fun (xs0 : List Shape Pos a) =>"
+        ++ "           @length0 Shape Pos a xs0 zero))."

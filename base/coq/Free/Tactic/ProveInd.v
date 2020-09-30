@@ -27,7 +27,7 @@ Local Ltac prove_ind_prove_for_free FP :=
       in let IHpf := fresh "IHpf"
       in let p    := fresh "p"
       in apply ForFree_forall; intros x1 H;
-         induction fx as [ x2 | s pf IHpf ] using Free_Ind;
+         induction fx as [ x2 | s pf IHpf ];
          [ inversion H; subst; apply FP
          | dependent destruction H; subst; destruct H as [ p ];
            apply (IHpf p); apply H ]

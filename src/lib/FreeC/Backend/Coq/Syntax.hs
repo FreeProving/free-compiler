@@ -11,6 +11,7 @@ module FreeC.Backend.Coq.Syntax
     -- * Identifiers
   , ident
   , bare
+  , qualified
   , unpackQualid
   , access
     -- * Functions
@@ -24,6 +25,7 @@ module FreeC.Backend.Coq.Syntax
   , typedBinder'
     -- * Assumptions
   , variable
+  , context
     -- * Definition Sentences
   , definitionSentence
     -- * Notation sentences
@@ -42,6 +44,9 @@ module FreeC.Backend.Coq.Syntax
   , notEquals
   , conj
   , disj
+    -- * Options
+  , setOption
+  , unsetOption
     -- * Imports
   , requireImportFrom
   , requireExportFrom
@@ -87,9 +92,13 @@ blankProof = ProofAdmitted (Text.pack "  (* FILL IN HERE *)")
 ident :: String -> Ident
 ident = Text.pack
 
--- | Smart constructor for Coq identifiers.
+-- | Smart constructor for unqualified Coq identifiers.
 bare :: String -> Qualid
 bare = Bare . ident
+
+-- | Smart constructor for qualified Coq identifiers.
+qualified :: String -> String -> Qualid
+qualified modName name = Qualified (ident modName) (ident name)
 
 -- | Gets the identifier for the given unqualified Coq identifier. Returns
 --   @Nothing@ if the given identifier is qualified.
@@ -171,6 +180,10 @@ typedBinder' generalizability explicitness term
 variable :: [Qualid] -> Term -> Sentence
 variable
   = AssumptionSentence . Assumption Variable .: Assums . NonEmpty.fromList
+
+-- | Generates a @Context@ sentence for the given binder.
+context :: Binder -> Sentence
+context = ContextSentence . NonEmpty.fromList . (: [])
 
 -------------------------------------------------------------------------------
 -- Definition Sentences                                                      --
@@ -256,6 +269,23 @@ conj t1 t2 = app (Qualid (bare "op_/\\__")) [t1, t2]
 -- | Smart constructor for a disjunction in Coq.
 disj :: Term -> Term -> Term
 disj t1 t2 = app (Qualid (bare "op_\\/__")) [t1, t2]
+
+-------------------------------------------------------------------------------
+-- Options                                                                   --
+-------------------------------------------------------------------------------
+-- | Smart constructor for a sentence which sets an option or flag.
+setOption :: Maybe Locality -> String -> Maybe (Either Num String) -> Sentence
+setOption mbLoc opt mbArg = OptionSentence
+  $ SetOption mbLoc (Text.pack opt) mbArg'
+ where
+  mbArg' = case mbArg of
+    Nothing            -> Nothing
+    (Just (Left num))  -> Just (OVNum num)
+    (Just (Right str)) -> Just (OVText (Text.pack str))
+
+-- | Smart constructor for a sentence which unsets an option or flag.
+unsetOption :: Maybe Locality -> String -> Sentence
+unsetOption mbLoc opt = OptionSentence $ UnsetOption mbLoc (Text.pack opt)
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

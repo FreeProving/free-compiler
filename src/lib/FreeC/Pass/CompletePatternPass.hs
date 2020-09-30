@@ -101,7 +101,7 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
     -- The usage of 'fromJust' is safe, because all types are annotated.
     let tau = fromJust $ IR.exprType exprScrutinee
     tau' <- expandAllTypeSynonyms tau
-    case getTypeConName tau' of
+    case IR.getTypeConName tau' of
       Nothing       -> failedPatternCheck srcSpan
       Just typeName -> do
         -- If an entry is found we can assume that it is 'DataEntry' because
@@ -123,6 +123,7 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
   checkPatternExpr IR.Var {} = return ()
   checkPatternExpr IR.Undefined {} = return ()
   checkPatternExpr IR.ErrorExpr {} = return ()
+  checkPatternExpr (IR.Trace _ _ expr _) = checkPatternExpr expr
   checkPatternExpr IR.IntLiteral {} = return ()
 
   performCheck :: [IR.ConName] -> [IR.ConName] -> SrcSpan -> Converter ()
@@ -136,11 +137,3 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
     $ Message srcSpan Error
     $ "Incomplete pattern in function: "
     ++ showPretty (IR.funcDeclName funcDecl)
-
-  -- | Selects the name of the outermost type constructor from a type.
-  getTypeConName :: IR.Type -> Maybe IR.TypeConName
-  getTypeConName (IR.TypeCon _ typeConName)  = Just typeConName
-  getTypeConName (IR.TypeApp _ typeAppLhs _) = getTypeConName typeAppLhs
-  -- The type of the scrutinee shouldn't be a function or type variable.
-  getTypeConName IR.TypeVar {}               = Nothing
-  getTypeConName IR.FuncType {}              = Nothing

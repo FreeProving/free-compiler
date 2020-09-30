@@ -113,7 +113,7 @@ Section Lemmas.
     (* The first piece of code is pure. *)
     destruct fcode1 as [ code1 | ]. 2: dependent destruction HPure1.
     (* Do an induction over the first piece of code. *)
-    induction code1 as [ | fop fcode1' ] using List_Ind.
+    induction code1 as [ | fop fcode1' ] using List_ind.
     - simpl. apply HPure2.
     - (* The first operation in a non-empty [code1] is pure. *)
       destruct fop as [ op | ]. 2: do 2 dependent destruction HPure1.
@@ -133,7 +133,7 @@ Section Lemmas.
     (* The given expression is pure. *)
     destruct fexpr as [ expr | sExpr pfExpr ]. 2: dependent destruction HPure.
     (* Do an induction over this expression. *)
-    induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
+    induction expr as [ fn | fx fy IHfx IHfy ].
     - (* In this case, we have a single value as expression. *)
       simpl. apply recPureCode_cons. apply recPureCode_nil.
     - (* In this case, we have an addition of two expressions [fx] and [fy]. *)

@@ -37,7 +37,7 @@ convertLiftedExpr (LIR.App _ func typeArgs effects args freeArgs) = do
     then return
       $ genericApply' func' explicitEffectArgs' implicitEffectArgs' typeArgs'
       implicitTypeArgs' args'
-    else return $ Coq.app func' args'
+    else return $ Coq.app func' $ explicitEffectArgs' ++ args'
 convertLiftedExpr (LIR.If _ cond true false) = do
   cond' <- convertLiftedExpr cond
   true' <- convertLiftedExpr true
@@ -50,6 +50,7 @@ convertLiftedExpr (LIR.Case _ expr alts) = do
 convertLiftedExpr (LIR.Undefined _)
   = return $ Coq.Qualid Coq.Base.partialUndefined
 convertLiftedExpr (LIR.ErrorExpr _) = return $ Coq.Qualid Coq.Base.partialError
+convertLiftedExpr (LIR.Trace _) = return $ Coq.Qualid Coq.Base.trace
 convertLiftedExpr (LIR.IntLiteral _ value) = do
   let natValue = Coq.Num $ fromInteger (abs value)
       value'   | value < 0 = Coq.app (Coq.Qualid (Coq.bare "-")) [natValue]
@@ -75,14 +76,15 @@ convertLiftedExpr (LIR.Share _ arg argType) = do
   argType' <- mapM convertLiftedType argType
   return
     $ genericApply' (Coq.Qualid Coq.Base.share)
-    [Coq.Qualid Coq.Base.strategyArg] [] (maybeToList argType')
-    [Coq.Base.implicitArg] [arg']
+    [genericApply Coq.Base.strategyArg [Coq.Underscore] [] []] []
+    (maybeToList argType') [Coq.Base.implicitArg] [arg']
 convertLiftedExpr (LIR.Call _ arg argType) = do
   arg' <- convertLiftedExpr arg
   argType' <- mapM convertLiftedType argType
   return
     $ genericApply' (Coq.Qualid Coq.Base.call)
-    [Coq.Qualid Coq.Base.strategyArg] [] (maybeToList argType') [] [arg']
+    [genericApply Coq.Base.strategyArg [Coq.Underscore] [] []] []
+    (maybeToList argType') [] [arg']
 
 -- | Converts a Haskell expression to Coq.
 convertExpr :: IR.Expr -> Converter Coq.Term

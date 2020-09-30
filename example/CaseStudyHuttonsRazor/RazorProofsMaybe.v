@@ -57,7 +57,7 @@ Section Proofs_Maybe.
     (* Destruct the monadic layer of the first piece of code. *)
     destruct fcode1 as [ code1 | sCode1 pfCode1 ].
     - (* fcode1 = pure code1 *)
-      destruct code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'] using List_Ind.
+      destruct code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'] using List_ind.
       + (* fcode1 = pure [] *)
         (* This case is trivial. *)
         intro fstack.
@@ -108,16 +108,17 @@ Section Proofs_Maybe.
      we have to generalize it first by adding an additional recursively pure stack and we
      need the precondition that the given expression is recursively pure. *)
   Lemma comp_correct' :
-    forall (fexpr : Free Shape Pos (Expr Shape Pos)),
+    forall `{Normalform Shape Pos (Op Shape Pos)}
+           (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
     forall (fstack : Free Shape Pos (Stack Shape Pos)),
     RecPureStack fstack ->
         exec Shape Pos Partial (comp Shape Pos fexpr) fstack
         = Cons Shape Pos (eval Shape Pos fexpr) fstack.
   Proof.
-    intros fexpr HPureE.
+    intros N fexpr HPureE.
     destruct fexpr as [ expr | ]. 2: dependent destruction HPureE.
-    induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
+    induction expr as [ fn | fx fy IHfx IHfy ].
     - (* fexpr = pure (val fn) *)
       intros fstack HPureS.
       destruct fstack as [ [ | fv1 fstack1 ] | ]. 3: dependent destruction HPureS.
@@ -131,7 +132,8 @@ Section Proofs_Maybe.
       destruct fy as [ y | ]. 2: dependent destruction HPureE2.
       autoIH; specialize (IH HPureE2) as IHy; simpl comp in IHy; clear IH.
       (* Do actual proof. *)
-      rewrite <- append_assocs.
+      specialize (append_assocs _ _ _ N) as HAssoc; simpl in HAssoc.
+      rewrite <- HAssoc.
       destruct fstack as [ [ | fv1 fstack1 ] | ]. 3: dependent destruction HPureS.
       1,2: rewrite exec_append.
       1,2: rewrite (IHx _ HPureS).
