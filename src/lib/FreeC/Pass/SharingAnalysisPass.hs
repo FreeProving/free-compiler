@@ -64,6 +64,7 @@
 --   explicit by introducing @let@-expressions.
 module FreeC.Pass.SharingAnalysisPass
   ( sharingAnaylsisPass
+    -- * Testing Interface
   , analyseSharingExpr
   , analyseLocalSharing
   ) where
@@ -220,7 +221,6 @@ countVarNames IR.IntLiteral {}           = Map.empty
 countVarNames (IR.Case _ e alts _)
   = let altVars     = concatMap (map IR.varPatQName . IR.altVarPats) alts
         completeMap = countVarNames e
-          `mergeMap` foldr (mergeMap . countVarNames . IR.altRhs) Map.empty alts
           `mergeMap` foldr (Map.unionWith max . countVarNames . IR.altRhs)
           Map.empty alts
     in completeMap `Map.withoutKeys` Set.fromList altVars

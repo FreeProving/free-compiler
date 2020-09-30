@@ -38,6 +38,8 @@
 --
 --   == Postconditions
 --
+--   All function calls have the form  @f x₁ … xₙ@ where @f@ is a function of
+--   arity @m > n@ and @x₁, …, xₙ@ are variables or constants
 --
 module FreeC.Pass.FlattenExprPass
   ( flattenExprPass
@@ -53,19 +55,23 @@ import qualified FreeC.IR.Syntax         as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 
+-- | Transforms all function declarations of a given module into a 'flattened
+--   form'.
 flattenExprPass :: Pass IR.Module IR.Module
 flattenExprPass ast = do
   funcDecls' <- mapM flatFuncDecl (IR.modFuncDecls ast)
   return ast { IR.modFuncDecls = funcDecls' }
 
+-- | Applies the expression 'flattening' on the right hand side of a function
+--   declaration.
 flatFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 flatFuncDecl funcDecl = do
-  rhs' <- (flattenExpr >=> combineLets) (IR.funcDeclRhs funcDecl)
+  rhs' <- flattenExpr (IR.funcDeclRhs funcDecl)
   return funcDecl { IR.funcDeclRhs = rhs' }
 
-combineLets :: IR.Expr -> Converter IR.Expr
-combineLets = return
-
+-- | Converts an expression into a 'flattened Form'.
+--   @let@-expressions are generated as deep as possible without
+--   duplicating @let@-expressions.
 flattenExpr :: IR.Expr -> Converter IR.Expr
 flattenExpr expr = flatExpr expr [] []
 
@@ -110,6 +116,10 @@ flatExpr (IR.Let bindSrcSpan binds expr typeScheme) typeArgs args = do
     rhs' <- flatExpr rhs [] []
     return $ IR.Bind srcSpan varPat rhs'
 
+-- | Builds a @let@-expression containing a given expression.
+--   where each given expression is bound to a fresh variable if it is not a
+--   variable.
+--   Given types are applied visibly.
 buildLet :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter IR.Expr
 buildLet e' typeArgs args = do
   (mBinds, vars) <- mapAndUnzipM buildBind args
