@@ -251,11 +251,9 @@ countVarNames IR.IntLiteral {}           = return $ Map.empty
 countVarNames (IR.Case _ e alts _)       = do
   let altVars = concatMap (map IR.varPatQName . IR.altVarPats) alts
   map1 <- countVarNames e
-  map2 <- foldM (\m alt -> mergeMap m <$> countVarNames (IR.altRhs alt))
-    Map.empty alts
-  map3 <- foldM (\m alt -> Map.unionWith max m
+  map2 <- foldM (\m alt -> Map.unionWith max m
                  <$> countVarNames (IR.altRhs alt)) Map.empty alts
-  let completeMap = map1 `mergeMap` map2 `mergeMap` map3
+  let completeMap = map1 `mergeMap` map2
   return $ completeMap `Map.withoutKeys` Set.fromList altVars
 countVarNames (IR.Lambda _ args rhs _)   = do
   rhsVars <- countVarNames rhs

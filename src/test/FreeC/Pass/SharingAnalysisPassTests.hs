@@ -2,7 +2,7 @@ module FreeC.Pass.SharingAnalysisPassTests ( testSharingAnalysisPass ) where
 
 import           Test.Hspec
 
-import           FreeC.IR.Syntax as IR
+import           FreeC.IR.Syntax                as IR
 import           FreeC.Monad.Class.Testable
 import           FreeC.Pass.SharingAnalysisPass
 import           FreeC.Test.Expectations
