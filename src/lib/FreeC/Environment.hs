@@ -330,7 +330,8 @@ hasEffect effect = maybe False (isFuncEntry .&&. elem effect . entryEffects)
 --
 --   Returns @[]@ if such a function does not exist.
 lookupEffects :: IR.QName -> Environment -> [Effect]
-lookupEffects = maybe [] entryEffects .: lookupEntry IR.ValueScope
+lookupEffects
+  = maybe [] entryEffects . find isFuncEntry .: lookupEntry IR.ValueScope
 
 -- | Looks up the index and name of the decreasing argument of the recursive
 --   function with the given name.

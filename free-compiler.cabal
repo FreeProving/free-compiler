@@ -137,7 +137,6 @@ library freec-internal
                       , FreeC.Frontend.IR.Scanner
                       , FreeC.Frontend.IR.Token
                       , FreeC.IR.Base.Prelude
-                      , FreeC.IR.Base.Test.QuickCheck
                       , FreeC.IR.DependencyGraph
                       , FreeC.IR.Inlining
                       , FreeC.IR.Reference

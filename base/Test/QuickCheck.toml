@@ -67,7 +67,7 @@ exported-values = [
   coq-name        = 'eqProp'
   agda-name       = 'eqProp'
   arity           = 2
-  effects         = []
+  effects         = ['Normalform']
   needs-free-args = true
   encapsulates-effects = true
 
@@ -77,7 +77,7 @@ exported-values = [
   coq-name        = 'neqProp'
   agda-name        = 'neqProp'
   arity           = 2
-  effects         = []
+  effects         = ['Normalform']
   needs-free-args = true
   encapsulates-effects = true
 

@@ -99,16 +99,25 @@ testSimilarExprs = context "expressions" $ do
     int1 <- expectParseTestExpr "42"
     int2 <- expectParseTestExpr "1337"
     int1 `shouldNotBeSimilarTo` int2
-  it "error term 'undefined' is similar to itself" $ do
+  it "effect 'undefined' is similar to itself" $ do
     e <- expectParseTestExpr "undefined"
     e `shouldBeSimilarTo` e
-  it "error term 'error \"...\"' is similar to itself" $ do
+  it "effect 'error \"...\"' is similar to itself" $ do
     e <- expectParseTestExpr "error \"...\""
     e `shouldBeSimilarTo` e
   it "error term is not similar to error term with different message" $ do
     e1 <- expectParseTestExpr "error \"Hello\""
     e2 <- expectParseTestExpr "error \"World\""
     e1 `shouldNotBeSimilarTo` e2
+  it "effect 'trace \"...\"' is similar to itself" $ do
+    e <- expectParseTestExpr "trace \"...\" x"
+    e `shouldBeSimilarTo` e
+  it ("traced expression is not similar to traced expression term with"
+      ++ "different message")
+    $ do
+      e1 <- expectParseTestExpr "trace \"Hello\" x"
+      e2 <- expectParseTestExpr "trace \"World\" x"
+      e1 `shouldNotBeSimilarTo` e2
   it "free variables are similar to themselves" $ do
     f <- expectParseTestExpr "f"
     f `shouldBeSimilarTo` f

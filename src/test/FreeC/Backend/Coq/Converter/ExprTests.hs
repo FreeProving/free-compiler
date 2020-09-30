@@ -40,6 +40,7 @@ testConvertExpr = describe "FreeC.Backend.Coq.Converter.Expr.convertExpr" $ do
   testConvertInteger
   testConvertUndefined
   testConvertError
+  testConvertTrace
 
 -------------------------------------------------------------------------------
 -- Constructor Applications                                                  --
@@ -266,7 +267,7 @@ testConvertLet = context "let expressions" $ do
       "Integer" <- defineTestTypeCon "Integer" 0 []
       "x" <- defineTestVar "x"
       shouldConvertExprTo "let {(x' :: Integer) = x} in (add x' x')"
-        $ "@share Shape Pos S (Integer Shape Pos) _"
+        $ "@share Shape Pos (S Shape Pos _) (Integer Shape Pos) _"
         ++ "  x >>= (fun (x' : Free Shape Pos (Integer Shape Pos)) =>"
         ++ "    add Shape Pos x' x')"
   it "translates a let expression with two binds correctly"
@@ -278,9 +279,9 @@ testConvertLet = context "let expressions" $ do
       "y" <- defineTestVar "y"
       shouldConvertExprTo
         "let {(x' :: Integer) = x; (y' :: Integer) = y} in add (add x' x') (add y' y')"
-        $ "@share Shape Pos S (Integer Shape Pos) _ x"
+        $ "@share Shape Pos (S Shape Pos _) (Integer Shape Pos) _ x"
         ++ "  >>= (fun (x' : Free Shape Pos (Integer Shape Pos)) =>"
-        ++ "    @share Shape Pos S (Integer Shape Pos) _ y"
+        ++ "    @share Shape Pos (S Shape Pos _) (Integer Shape Pos) _ y"
         ++ "      >>= (fun (y' : Free Shape Pos (Integer Shape Pos)) =>"
         ++ "        add Shape Pos (add Shape Pos x' x') (add Shape Pos y' y')))"
   it "translates a let expression with a single variable occurrence correctly"
@@ -289,7 +290,7 @@ testConvertLet = context "let expressions" $ do
       "x" <- defineTestVar "x"
       "a" <- defineTestTypeVar "a"
       shouldConvertExprTo "let {(x' :: a) = x} in x'"
-        "@call Shape Pos S a x >>= (fun (x' : Free Shape Pos a) => x')"
+        "@call Shape Pos (S Shape Pos _) a x >>= (fun (x' : Free Shape Pos a) => x')"
   it "ignores shadowed variables in case expressions" $ shouldSucceedWith $ do
     (_, "Nil") <- defineTestCon "Nil" 0 "forall a. List a"
     (_, "Cons") <- defineTestCon "Cons" 1 "forall a. a -> List a"
@@ -299,7 +300,7 @@ testConvertLet = context "let expressions" $ do
     "a" <- defineTestTypeVar "a"
     shouldConvertExprTo
       "let {(x' :: a) = x} in case xs of {Cons x' -> f @a x' x'; Nil -> x'}"
-      $ "@call Shape Pos S a x >>= (fun (x' : Free Shape Pos a) =>"
+      $ "@call Shape Pos (S Shape Pos _) a x >>= (fun (x' : Free Shape Pos a) =>"
       ++ "  xs >>= (fun xs0 => match xs0 with"
       ++ "                       | cons x'0 => @f Shape Pos a x'0 x'0"
       ++ "                       | nil      => x'"
@@ -313,7 +314,7 @@ testConvertLet = context "let expressions" $ do
     "a" <- defineTestTypeVar "a"
     shouldConvertExprTo
       "let {(x' :: a) = x} in case xs of {Cons y -> x'; Nil -> x'}"
-      $ "@call Shape Pos S a x >>= (fun (x' : Free Shape Pos a) =>"
+      $ "@call Shape Pos (S Shape Pos _) a x >>= (fun (x' : Free Shape Pos a) =>"
       ++ "  xs >>= (fun xs0 => match xs0 with"
       ++ "                       | cons y0 => x'"
       ++ "                       | nil     => x'"
@@ -323,7 +324,7 @@ testConvertLet = context "let expressions" $ do
     "x" <- defineTestVar "x"
     "a" <- defineTestTypeVar "a"
     shouldConvertExprTo "let {(x' :: a) = x} in \\(x' :: a) -> f @a x' x'"
-      $ "@call Shape Pos S a x >>= (fun (x' : Free Shape Pos a) =>"
+      $ "@call Shape Pos (S Shape Pos _) a x >>= (fun (x' : Free Shape Pos a) =>"
       ++ "  pure (fun (x'0 : Free Shape Pos a) => @f Shape Pos a x'0 x'0))"
   it "ignores shadowed variables in let expressions" $ shouldSucceedWith $ do
     "f" <- defineTestFunc "f" 2 "forall a. a -> a -> a"
@@ -331,8 +332,8 @@ testConvertLet = context "let expressions" $ do
     "a" <- defineTestTypeVar "a"
     shouldConvertExprTo
       "let {(x' :: a) = x} in let {(x' :: a) = x} in f @a x' x'"
-      $ "@call Shape Pos S a x >>="
-      ++ "  (fun (x' : Free Shape Pos a) => @share Shape Pos S a _ x >>="
+      $ "@call Shape Pos (S Shape Pos _) a x >>="
+      ++ "  (fun (x' : Free Shape Pos a) => @share Shape Pos (S Shape Pos _) a _ x >>="
       ++ "    (fun (x'0 : Free Shape Pos a) => @f Shape Pos a x'0 x'0))"
 
 -------------------------------------------------------------------------------
@@ -406,7 +407,7 @@ testConvertInteger = context "integer expressions" $ do
     $ shouldSucceedWith
     $ shouldConvertExprTo "-42" "pure (- 42)%Z"
 
--- | Test group for translation of undefined expressions.
+-- | Test group for translation of @undefined@ expressions.
 testConvertUndefined :: Spec
 testConvertUndefined = context "undefined expressions" $ do
   it "translates undefined expressions correctly" $ shouldSucceedWith $ do
@@ -426,7 +427,7 @@ testConvertUndefined = context "undefined expressions" $ do
         ++ " >>= (fun f => f x))"
         ++ " >>= (fun f => f y)"
 
--- | Test group for translation of undefined expressions.
+-- | Test group for translation of @error@ expressions.
 testConvertError :: Spec
 testConvertError = context "error expressions" $ do
   it "translates error expressions correctly" $ shouldSucceedWith $ do
@@ -447,3 +448,12 @@ testConvertError = context "error expressions" $ do
         ++ " \"message\"%string"
         ++ " >>= (fun f => f x))"
         ++ " >>= (fun f => f y)"
+
+-- | Test group for translation of @trace@ expressions.
+testConvertTrace :: Spec
+testConvertTrace = context "traced expressions" $ do
+  it "translates traced expressions correctly" $ shouldSucceedWith $ do
+    "a" <- defineTestTypeVar "a"
+    "x" <- defineTestVar "x"
+    shouldConvertExprTo "trace @a \"message\" x"
+      "@trace Shape Pos T a \"message\"%string x"
