@@ -135,7 +135,6 @@ import           FreeC.Util.Config
 --   a breaking change is made to the encoder or decoder, it is less likely
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
--- TODO bump version number
 moduleInterfaceFileFormatVersion :: Integer
 moduleInterfaceFileFormatVersion = 5
 
