@@ -25,6 +25,7 @@ module FreeC.Backend.Coq.Syntax
   , typedBinder'
     -- * Assumptions
   , variable
+  , context
     -- * Definition Sentences
   , definitionSentence
     -- * Notation sentences
@@ -179,6 +180,10 @@ typedBinder' generalizability explicitness term
 variable :: [Qualid] -> Term -> Sentence
 variable
   = AssumptionSentence . Assumption Variable .: Assums . NonEmpty.fromList
+
+-- | Generates a @Context@ sentence for the given binder.
+context :: Binder -> Sentence
+context = ContextSentence . NonEmpty.fromList . (: [])
 
 -------------------------------------------------------------------------------
 -- Definition Sentences                                                      --

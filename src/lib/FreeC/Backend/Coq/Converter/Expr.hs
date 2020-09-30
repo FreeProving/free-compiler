@@ -37,7 +37,7 @@ convertLiftedExpr (LIR.App _ func typeArgs effects args freeArgs) = do
     then return
       $ genericApply' func' explicitEffectArgs' implicitEffectArgs' typeArgs'
       implicitTypeArgs' args'
-    else return $ Coq.app func' args'
+    else return $ Coq.app func' $ explicitEffectArgs' ++ args'
 convertLiftedExpr (LIR.If _ cond true false) = do
   cond' <- convertLiftedExpr cond
   true' <- convertLiftedExpr true
