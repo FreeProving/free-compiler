@@ -129,7 +129,8 @@ initEnv inputModule@(HST.Module _ _ _ imports _) = do
     <- embed $ lookupAvailableModuleOrFail NoSrcSpan IR.Prelude.modName
   return HST.Environment
     { HST.envCurrentModule   = HST.createModuleInterface inputModule
-    , HST.envImportedModules = zip imports (map convertModuleInterface ifaces)
+    , HST.envImportedModules = zipWith
+        (\imp iface -> ([imp], convertModuleInterface iface)) imports ifaces
     , HST.envOtherEntries    = convertModuleInterface preludeIface
     }
 
@@ -137,12 +138,12 @@ initEnv inputModule@(HST.Module _ _ _ imports _) = do
 --   matching compiler.
 convertModuleInterface :: ModuleInterface -> HST.ModuleInterface Frontend
 convertModuleInterface iface = HST.ModuleInterface
-  { HST.interfaceModName   = Just
+  { HST.interfaceModName     = Just
       (HST.ModuleName HST.NoSrcSpan (interfaceModName iface))
-  , HST.interfaceDataCons  = Map.fromList
-      (map (convertQName *** convertDataEntryCons) (Map.assocs dataEntries))
-  , HST.interfaceTypeNames = Map.fromList
-      (map (convertQName *** convertConEntryType) (Map.assocs conEntries))
+  , HST.interfaceDataEntries = Map.fromList
+      (map (convertQName *** convertDataEntry) (Map.assocs dataEntries))
+  , HST.interfaceConEntries  = Map.fromList
+      (map (convertQName *** convertConEntry) (Map.assocs conEntries))
   }
  where
   -- | All entries that are exported by the module.
@@ -197,12 +198,13 @@ convertModuleInterface iface = HST.ModuleInterface
   isInfixConQName (IR.UnQual (IR.Symbol (':' : _))) = True
   isInfixConQName _ = False
 
-  -- | Converts the entry of an exported data type to a list of its HST
-  --   constructor entries.
-  convertDataEntryCons :: EnvEntry -> [HST.ConEntry Frontend]
-  convertDataEntryCons = map convertConEntry
-    . mapMaybe (flip Map.lookup conEntries)
-    . entryConsNames
+  -- | Converts the entry of an exported data type to an HST data type entry.
+  convertDataEntry :: EnvEntry -> HST.DataEntry Frontend
+  convertDataEntry entry = HST.DataEntry
+    { HST.dataEntryName = convertQName (entryName entry)
+    , HST.dataEntryCons = map convertConEntry
+        (mapMaybe (flip Map.lookup conEntries) (entryConsNames entry))
+    }
 
   -- | Converts the entry of an exported data constructor to an HST constructor
   --   entry.
@@ -211,13 +213,13 @@ convertModuleInterface iface = HST.ModuleInterface
     { HST.conEntryName    = convertQName (entryName entry)
     , HST.conEntryArity   = entryArity entry
     , HST.conEntryIsInfix = isInfixConQName (entryName entry)
-    , HST.conEntryType    = convertConEntryType entry
+    , HST.conEntryType    = extractConEntryType entry
     }
 
-  -- | Converts the entry of an exported data constructor entry to a list of
-  --   its constructor entries.
-  convertConEntryType :: EnvEntry -> HST.TypeName Frontend
-  convertConEntryType = convertQName . extractTypeConQName . entryReturnType
+  -- | Extracts the type name of an exported data constructor entry and
+  --   transforms it to an HST name.
+  extractConEntryType :: EnvEntry -> HST.TypeName Frontend
+  extractConEntryType = convertQName . extractTypeConQName . entryReturnType
 
   -- | Gets the name of the data type from the return type of the constructor.
   extractTypeConQName :: IR.Type -> IR.QName
