@@ -134,7 +134,7 @@ Section Proofs_PureCodes.
        immediately destruct the monadic layer.*)
     destruct fcode1 as [ code1 | ]. 2: dependent destruction HPure1.
     destruct fcode2 as [ code2 | ]. 2: dependent destruction HPure2.
-    induction code1 as [ | [ [ fn | ] | ] fcode1' IHfcode1' ]. 4: dependent destruction HPure1.
+    induction code1 as [ | [ [ fn | ] | ] fcode1' IHfcode1' ] using List_ind. 4: dependent destruction HPure1.
     - (* code1 = [] *)
       (* This case is trivial. *)
       intro fstack.

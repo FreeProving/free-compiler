@@ -107,21 +107,21 @@ Section Proofs_PureCodes.
        immediately destruct the monadic layer.*)
     destruct fcode1 as [ code1 | ]; try eliminate_pureness_property_impure.
     destruct fcode2 as [ code2 | ]; try eliminate_pureness_property_impure.
-    induction code1 as [ | [ [ fn | ] | ] fcode1' IHfcode1' ];
+    induction code1 as [ | [ [ fn | ] | ] fcode1' IHfcode1' ] using List_ind;
       try eliminate_pureness_property_impure...
     - (* code1 = [] *)
       (* This case is trivial. *)
       intro fstack.
       autodef.
       f_equal.
-      induction fstack as [ stack | sStack pfStack IHpfStack ]; autodef; autoIH.
+      induction fstack as [ stack | sStack pfStack IHpfStack ] using List_ind; autodef; autoIH.
     - (* code1 = (PUSH fn : fcode1') *)
       (* This case is also easy. *)
       intro fstack.
       destruct fcode1' as [ code1' | ]; try eliminate_pureness_property_impure.
       simplify IHfcode1' as IH.
       (* We can prove the goal per induction over the stack. *)
-      induction fstack as [ stack | sStack pfStack IHpfStack ]; autodef;
+      induction fstack as [ stack | sStack pfStack IHpfStack ] using List_ind; autodef;
         try (apply IH; prove_pureness_property).
       (* In the impure case we need to destruct the second piece of code to be able to simplify
          the goal before applying the induction hypothesis in the pure cases. *)
@@ -133,14 +133,14 @@ Section Proofs_PureCodes.
       destruct fcode1' as [ code1' | ]; try eliminate_pureness_property_impure.
       simplify IHfcode1' as IH.
       (* As the addition reads two values from the stack, we need to destruct the stack. *)
-      induction fstack as [ [ | fv1 fstack1 ] | sStack pfStack IHpfStack ]...
+      induction fstack as [ [ | fv1 fstack1 ] | sStack pfStack IHpfStack ] using List_ind...
       + (* fstack = [] *)
         (* On both sides an [undefined] is returned. *)
         autodef.
         destruct code2 as [ | [ op | ] fcode2' ]; try eliminate_pureness_property_impure...
         -- symmetry; apply (exec_strict_on_stack_arg_Nil HUndefined1 HUndefined2)...
         -- rewrite (exec_strict_on_stack_arg_Op HUndefined1 HUndefined2)...
-      + induction fstack1 as [ [ | fv2 fstack2 ] | sStack1 pfStack1 IHpfStack1 ]...
+      + induction fstack1 as [ [ | fv2 fstack2 ] | sStack1 pfStack1 IHpfStack1 ] using List_ind...
         * (* fstack = (fv1 : fstack1) *)
           (* On both sides an [undefined] is returned. *)
           autodef.

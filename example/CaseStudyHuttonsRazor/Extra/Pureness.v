@@ -113,7 +113,7 @@ Section Lemmas.
     (* The first piece of code is pure. *)
     destruct fcode1 as [ code1 | ]. 2: dependent destruction HPure1.
     (* Do an induction over the first piece of code. *)
-    induction code1 as [ | fop fcode1' ].
+    induction code1 as [ | fop fcode1' ] using List_ind.
     - simpl. apply HPure2.
     - (* The first operation in a non-empty [code1] is pure. *)
       destruct fop as [ op | ]. 2: do 2 dependent destruction HPure1.

@@ -108,7 +108,7 @@ Section Proofs.
     destruct fcode1 as [ code1 | sCode1 pfCode1 ].
     - (* fcode1 = pure code1 *)
       (* Do an induction over the first piece of code. *)
-      induction code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'].
+      induction code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'] using List_ind.
       + (* fcode1 = pure [] *)
         (* This case is trivial. *)
         intros fstack H.
