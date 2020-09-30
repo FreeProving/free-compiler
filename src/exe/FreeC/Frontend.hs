@@ -121,8 +121,8 @@ transformInputModule inputModule = ifM (inOpts optTransformPatternMatching)
       Nothing      -> return inputModule { IR.modContents = outputModule }
       Just dumpDir -> do
         -- Generate name of dump file.
-        let modName = IR.modName inputModule
-        let modPath      = map (\c -> if c == '.' then '/' else c) modName
+        let modName      = IR.modName inputModule
+            modPath      = map (\c -> if c == '.' then '/' else c) modName
             dumpFile     = dumpDir </> modPath <.> "hs"
             dumpContents = showPretty outputModule
         -- Dump the transformed module.

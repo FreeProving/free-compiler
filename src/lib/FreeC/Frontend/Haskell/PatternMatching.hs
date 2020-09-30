@@ -97,7 +97,7 @@ transformPatternMatching' inputModule = do
 --   source spans of type 'SrcSpan'.
 type Frontend = HSE SrcSpan
 
--- | Converts a source span to a HST source span.
+-- | Converts a source span to an HST source span.
 instance FromHSE.TransformSrcSpan SrcSpan where
   transformSrcSpan srcSpan = HST.SrcSpan srcSpan HST.MsgSrcSpan
     { HST.msgSrcSpanFilePath    = srcSpanFilename srcSpan
@@ -174,7 +174,7 @@ convertModuleInterface iface = HST.ModuleInterface
       (IR.UnQual name) -> convertName name
       (IR.Qual _ name) -> convertName name
 
-  -- | Converts an unqualified IR name to a HST name.
+  -- | Converts an unqualified IR name to an HST name.
   convertName :: IR.Name -> HST.QName Frontend
   convertName (IR.Ident ident) = HST.UnQual HST.NoSrcSpan
     (HST.Ident HST.NoSrcSpan ident)

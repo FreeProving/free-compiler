@@ -18,7 +18,7 @@ plus Zero q     = q
 plus (Succ p) q = plus p (Succ q)
 
 -------------------------------------------------------------------------------
--- Impoted Data Types                                                        --
+-- Imported Data Types                                                       --
 -------------------------------------------------------------------------------
 -- In the following example, the pattern matching compiler knows that the data
 -- type @Maybe@ that was imported from @Data.Maybe@ has a constructor @Just@.

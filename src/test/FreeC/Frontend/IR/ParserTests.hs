@@ -567,7 +567,7 @@ testImportDeclParser = context "import declarations" $ do
   it "accepts import declarations for dotted module names" $ do
     "import M1.M2" `shouldParse` IR.ImportDecl NoSrcSpan "M1.M2"
 
--- |Test group for 'Parseable' instance of 'IR.Module'.
+-- | Test group for 'Parseable' instance of 'IR.Module'.
 testModuleParser :: Spec
 testModuleParser = context "modules" $ do
   let conFoo = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "Foo"))
