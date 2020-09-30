@@ -89,13 +89,13 @@ instance Pretty TopLevelDecl where
 -------------------------------------------------------------------------------
 -- Type Declarations                                                         --
 -------------------------------------------------------------------------------
--- | Gets the type-level declarations of the given module.
+-- | Gets the type declarations of the given module.
 modTypeDecls :: Module -> [TypeDecl]
 modTypeDecls = map topLevelTypeDecl . filter isTopLevelTypeDecl . modContents
 
--- | Sets the type-level declarations of the given module.
+-- | Sets the type declarations of the given module.
 --
---   All other type-level declarations are discarded.
+--   All other type declarations are discarded.
 modWithTypeDecls :: [TypeDecl] -> Module -> Module
 modWithTypeDecls decls = modWithContents $ \contents ->
   map TopLevelTypeDecl decls ++ filter (not . isTopLevelTypeDecl) contents
