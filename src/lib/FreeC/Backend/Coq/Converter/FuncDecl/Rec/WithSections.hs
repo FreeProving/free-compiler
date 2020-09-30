@@ -136,24 +136,21 @@ renameFuncDecls decls = do
   -- Create a substitution from old identifiers to fresh identifiers.
   let names = map IR.funcDeclQName decls
   names' <- mapM freshHaskellQName names
-  let nameMap = zip names names'
-      subst   = composeSubsts $ do
-        (name, name') <- nameMap
-        return (singleSubst' name (flip IR.untypedVar name'))
+  let nameMap = Map.fromList (zip names names')
+      subst   = composeSubsts $ zipWith mkVarSubst names names'
   -- Rename function declarations, apply substituion to right-hand side
   -- and copy type signature and entry of original function.
   decls' <- forM decls
     $ \(IR.FuncDecl srcSpan (IR.DeclIdent srcSpan' name) typeArgs args
         maybeRetType rhs) -> do
-      let Just name' = lookup name nameMap
+      let Just name' = Map.lookup name nameMap
       -- Generate fresh identifiers for type variables.
       let typeArgIdents = map IR.typeVarDeclIdent typeArgs
       typeArgIdents' <- mapM freshHaskellIdent typeArgIdents
       let typeArgs'     = zipWith IR.TypeVarDecl
             (map IR.typeVarDeclSrcSpan typeArgs) typeArgIdents'
           typeVarSubst  = composeSubsts
-            (zipWith singleSubst' (map (IR.UnQual . IR.Ident) typeArgIdents)
-             (map (flip IR.TypeVar) typeArgIdents'))
+            (zipWith mkTypeVarSubst typeArgIdents typeArgIdents')
           args'         = applySubst typeVarSubst args
           maybeRetType' = applySubst typeVarSubst maybeRetType
       -- Set environment entry for renamed function.
@@ -176,7 +173,7 @@ renameFuncDecls decls = do
       -- Rename function declaration.
       return (IR.FuncDecl srcSpan (IR.DeclIdent srcSpan' name') typeArgs' args'
               maybeRetType' rhs')
-  return (decls', Map.fromList nameMap)
+  return (decls', nameMap)
 
 -- | Replaces the function names in the given 'ConstArg' using the given map.
 renameConstArg :: Map IR.QName IR.QName -> ConstArg -> ConstArg
@@ -280,8 +277,8 @@ removeConstArgsFromFuncDecl constArgs
         args'
           = [arg | arg <- args, IR.varPatIdent arg `notElem` removedArgs]
         subst       = composeSubsts
-          [singleSubst' (IR.UnQual (IR.Ident removedArg))
-            (flip IR.untypedVar (IR.UnQual (IR.Ident freshArg)))
+          [mkVarSubst (IR.UnQual (IR.Ident removedArg))
+            (IR.UnQual (IR.Ident freshArg))
           | (removedArg, freshArg) <- zip removedArgs freshArgs
           ]
     rhs' <- removeConstArgsFromExpr constArgs (applySubst subst rhs)
