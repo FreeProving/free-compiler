@@ -57,7 +57,7 @@ Section Proofs_Maybe.
     (* Destruct the monadic layer of the first piece of code. *)
     destruct fcode1 as [ code1 | sCode1 pfCode1 ].
     - (* fcode1 = pure code1 *)
-      destruct code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'].
+      destruct code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'] using List_ind.
       + (* fcode1 = pure [] *)
         (* This case is trivial. *)
         intro fstack.
