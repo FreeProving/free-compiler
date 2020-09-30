@@ -372,6 +372,7 @@ boundVarsWithTypeOf expr i = case expr of
   IR.If _ _ _ _ _        -> Map.empty
   IR.Undefined _ _       -> Map.empty
   IR.ErrorExpr _ _ _     -> Map.empty
+  IR.Trace _ _ _ _       -> Map.empty
   IR.IntLiteral _ _ _    -> Map.empty
  where
   -- | Converts a list of variable patterns to a from of variable names bound
