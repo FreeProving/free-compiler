@@ -53,9 +53,6 @@ import           FreeC.Monad.Reporter
 
 -- | Applies the pattern matching transformation, guard elimination and case
 --   completion.
---
---   Since the pattern matching compiler library does not support source
---   spans, location information is removed during the transformation.
 transformPatternMatching
   :: HSE.Module SrcSpan -> Converter (HSE.Module SrcSpan)
 transformPatternMatching inputModule = do
