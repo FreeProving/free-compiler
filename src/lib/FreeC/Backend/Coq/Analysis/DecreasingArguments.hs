@@ -304,6 +304,7 @@ extendDepthMap _ (IR.TypeAppExpr _ _ _ _) depthMap = depthMap
 extendDepthMap _ (IR.If _ _ _ _ _) depthMap = depthMap
 extendDepthMap _ (IR.Undefined _ _) depthMap = depthMap
 extendDepthMap _ (IR.ErrorExpr _ _ _) depthMap = depthMap
+extendDepthMap _ (IR.Trace _ _ _ _) depthMap = depthMap
 extendDepthMap _ (IR.IntLiteral _ _ _) depthMap = depthMap
 
 -------------------------------------------------------------------------------
