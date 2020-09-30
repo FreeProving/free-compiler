@@ -63,20 +63,20 @@ import           FreeC.Monad.Converter
 import           FreeC.Pass
 
 -- | Transforms all function declarations of a given module into a
---   'flattened form'.
+--   "flattened form".
 flattenExprPass :: Pass IR.Module IR.Module
 flattenExprPass ast = do
   funcDecls' <- mapM flatFuncDecl (IR.modFuncDecls ast)
   return ast { IR.modFuncDecls = funcDecls' }
 
--- | Applies the expression 'flattening' on the right hand side of a function
+-- | Applies the expression "flattening" on the right hand side of a function
 --   declaration.
 flatFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
 flatFuncDecl funcDecl = do
   rhs' <- flattenExpr (IR.funcDeclRhs funcDecl)
   return funcDecl { IR.funcDeclRhs = rhs' }
 
--- | Converts an expression into a 'flattened Form'.
+-- | Converts an expression into a "flattened Form".
 --   @let@-expressions are generated as deep as possible without
 --   duplicating @let@-expressions.
 --
