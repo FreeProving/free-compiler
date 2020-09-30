@@ -12,8 +12,10 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
 
 import           Control.Monad
   ( forM, mapAndUnzipM, zipWithM )
+import           Control.Monad.Extra
+  ( mapMaybeM )
 import           Data.List
-  ( (\\), elemIndex, intercalate )
+  ( (\\), elemIndex, intercalate, nub )
 import           Data.Map.Strict                                      ( Map )
 import qualified Data.Map.Strict                                      as Map
 import           Data.Maybe
@@ -87,10 +89,21 @@ convertRecFuncDeclsWithSection constArgs decls = do
     sectionDecls
   -- Generate @Section@ sentence.
   section <- localEnv $ do
-    -- Create a @Variable@ sentence for the constant arguments and their type
-    -- variables. No @Variable@ sentence is created if a constant argument is
-    -- never used (Coq would ignore the @Variable@ sentence anyway).
+    -- Create a @Variable@ sentence for the type variables of the constant
+    -- arguments.
     maybeTypeArgSentence <- generateConstTypeArgSentence usedTypeArgIdents
+    -- Create the effect binders that are dependent on the constant type
+    -- variables.
+    usedTypeArgIdents' <- mapMaybeM
+      (inEnv . lookupIdent IR.TypeScope . IR.UnQual . IR.Ident)
+      usedTypeArgIdents
+    allEffects <- mapM (inEnv . lookupEffects . IR.funcDeclQName) decls
+    let effects      = nub $ concat allEffects
+        typedBinders = concatMap
+          (flip Coq.Base.selectTypedBinders usedTypeArgIdents') effects
+    -- Create a @Variable@ sentence for the constant arguments.
+    -- No @Variable@ sentence is created if a constant argument is
+    -- never used (Coq would ignore the @Variable@ sentence anyway).
     varSentences <- zipWithM generateConstArgVariable
       (map fst $ filter snd $ zip renamedConstArgs isConstArgUsed)
       (map fst $ filter snd $ zip constArgTypes isConstArgUsed)
@@ -106,6 +119,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
         (Coq.comment ("Constant arguments for " ++ intercalate ", " funcIdents)
          : genericArgVariables
          ++ maybeToList maybeTypeArgSentence
+         ++ map Coq.context typedBinders
          ++ varSentences
          ++ Coq.comment ("Helper functions for " ++ intercalate ", " funcIdents)
          : helperDecls'
