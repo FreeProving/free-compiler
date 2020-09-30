@@ -46,7 +46,7 @@ Section SecForFree.
       + inversion H0; subst; assumption.
       + dependent destruction H0. destruct H0.
         apply H1 with (p := x0). apply H0.
-    - induction fx using Free_Ind; simpl.
+    - induction fx; simpl.
       + apply For_pure. apply H. apply In_Pure.
       + apply For_impure. intros p. apply H0. intros x HIn.
         apply H. apply In_Impure. exists p. apply HIn.
