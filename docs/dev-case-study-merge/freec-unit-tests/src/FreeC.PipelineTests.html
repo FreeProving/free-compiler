@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module contains tests for passes that are part of the compiler</span><span>
+</span><a name="line-2"></a><span class="hs-comment">--   pipeline (see &quot;FreeC.Pipeline&quot;).</span><span>
+</span><a name="line-3"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">FreeC.PipelineTests</span><span> </span><span class="hs-special">(</span><span> </span><a href="FreeC.PipelineTests.html#testPipeline"><span class="hs-identifier hs-var">testPipeline</span></a><span> </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-4"></a><span>
+</span><a name="line-5"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Test.Hspec</span><span>
+</span><a name="line-6"></a><span>
+</span><a name="line-7"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.CompletePatternPassTests.html"><span class="hs-identifier">FreeC.Pass.CompletePatternPassTests</span></a><span>
+</span><a name="line-8"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.EffectAnalysisPassTests.html"><span class="hs-identifier">FreeC.Pass.EffectAnalysisPassTests</span></a><span>
+</span><a name="line-9"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.EtaConversionPassTests.html"><span class="hs-identifier">FreeC.Pass.EtaConversionPassTests</span></a><span>
+</span><a name="line-10"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.ExportPassTests.html"><span class="hs-identifier">FreeC.Pass.ExportPassTests</span></a><span>
+</span><a name="line-11"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.KindCheckPassTests.html"><span class="hs-identifier">FreeC.Pass.KindCheckPassTests</span></a><span>
+</span><a name="line-12"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.LetSortPassTests.html"><span class="hs-identifier">FreeC.Pass.LetSortPassTests</span></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.ResolverPassTests.html"><span class="hs-identifier">FreeC.Pass.ResolverPassTests</span></a><span>
+</span><a name="line-14"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Pass.TypeInferencePassTests.html"><span class="hs-identifier">FreeC.Pass.TypeInferencePassTests</span></a><span>
+</span><a name="line-15"></a><span>
+</span><a name="line-16"></a><span class="hs-comment">-- | Test group for tests of passes in 'FreeC.Pipeline.pipeline'.</span><span>
+</span><a name="line-17"></a><span class="hs-identifier">testPipeline</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Spec</span><span>
+</span><a name="line-18"></a><a name="testPipeline"><a href="FreeC.PipelineTests.html#testPipeline"><span class="hs-identifier">testPipeline</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-19"></a><span>  </span><a href="FreeC.Pass.CompletePatternPassTests.html#testCompletePatternPass"><span class="hs-identifier hs-var">testCompletePatternPass</span></a><span>
+</span><a name="line-20"></a><span>  </span><a href="FreeC.Pass.EffectAnalysisPassTests.html#testEffectAnalysisPass"><span class="hs-identifier hs-var">testEffectAnalysisPass</span></a><span>
+</span><a name="line-21"></a><span>  </span><a href="FreeC.Pass.EtaConversionPassTests.html#testEtaConversionPass"><span class="hs-identifier hs-var">testEtaConversionPass</span></a><span>
+</span><a name="line-22"></a><span>  </span><a href="FreeC.Pass.ExportPassTests.html#testExportPass"><span class="hs-identifier hs-var">testExportPass</span></a><span>
+</span><a name="line-23"></a><span>  </span><a href="FreeC.Pass.KindCheckPassTests.html#testKindCheckPass"><span class="hs-identifier hs-var">testKindCheckPass</span></a><span>
+</span><a name="line-24"></a><span>  </span><a href="FreeC.Pass.LetSortPassTests.html#testLetSortPass"><span class="hs-identifier hs-var">testLetSortPass</span></a><span>
+</span><a name="line-25"></a><span>  </span><a href="FreeC.Pass.ResolverPassTests.html#testResolverPass"><span class="hs-identifier hs-var">testResolverPass</span></a><span>
+</span><a name="line-26"></a><span>  </span><a href="FreeC.Pass.TypeInferencePassTests.html#testTypeInferencePass"><span class="hs-identifier hs-var">testTypeInferencePass</span></a><span>
+</span><a name="line-27"></a></pre></body></html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>FreeC.Pass.EtaConversionPass</title><link href="ocean.css" rel="stylesheet" type="text/css" title="Ocean" /><link rel="stylesheet" type="text/css" href="quick-jump.css" /><script src="haddock-bundle.min.js" async="async" type="text/javascript"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script></head><body><div id="package-header"><ul class="links" id="page-menu"><li><a href="src/FreeC.Pass.EtaConversionPass.html">Source</a></li><li><a href="index.html">Contents</a></li><li><a href="doc-index.html">Index</a></li></ul><p class="caption">free-compiler-0.2.0.0: A Haskell to Coq compiler.</p></div><div id="content"><div id="module-header"><table class="info"><tr><th>Safe Haskell</th><td>None</td></tr><tr><th>Language</th><td>Haskell2010</td></tr></table><p class="caption">FreeC.Pass.EtaConversionPass</p></div><div id="table-of-contents"><p class="caption">Contents</p><ul><li><a href="#g:1">Testing Interface</a></li></ul></div><div id="description"><p class="caption">Description</p><div class="doc"><p>This module contains a compiler pass that applies &#951;-conversions to
+   expressions such that all function and constructor applications are
+   fully applied.</p><p>An &#951;-conversion is the conversion of a partially applied function
+   expression <code>f</code> to a lambda expression <code>\x -&gt; f x</code> that explicitly
+   applies the missing argument.</p><h1>Motivation</h1><p>We have to perform &#951;-conversions due to an optimization of the monadic
+   translation of function declarations.
+   An <code>n</code>-ary function declaration of type <code>&#964;&#8321; -&gt; &#8230; -&gt; &#964;&#8345; -&gt; &#964;</code> is translated
+   to a function declaration of type <code>&#964;&#8321;' -&gt; &#8230; -&gt; &#964;&#8345;' -&gt; &#964;'</code> where <code>&#964;&#7522;'</code> is
+   the translation of type <code>&#964;&#7522;</code>. However, an <code>n</code>-ary lambda abstraction of
+   the same type is translated to <code>m (&#964;&#8321;' -&gt; (&#964;&#8322; -&gt; &#8230; -&gt; &#964;&#8345; -&gt; &#964;)')</code> where
+   <code>m</code> is the target monad. That only the arguments but not the intermediate
+   results of function declarations are lifted to the monad, improves the
+   readability of generated function applications. Intermediate results don't
+   have to be bound since we know that partial applications cannot have an
+   effect.
+   This optimization does not work when functions are applied only partially.
+   Thus, we have to convert partial applications to full applications.</p><p>We differentiate between top-level partial applications (i.e. when a
+   function is defined as the partial application of another defined function
+   or constructor) and partial applications that occur in the arguments of
+   the function declaration's right-hand side.</p><p>We perform regular &#951;-conversions on partial applications in proper
+   subexpressions of a function declaration's right-hand side.</p><p>However, on the top-level, we add the missing arguments to the left-hand
+   and right-hand sides of the function rule explicitly, without a lambda
+   abstraction.
+   This is an optimization that allows the compiler to avoid some unnecessary
+   monadic lifting.</p><h1>Specification</h1><h2>Preconditions</h2><p>The arity of all constructors and functions must be known (i.e., there
+   must be corresponding environment entries) and all function declarations
+   must be type annotated.</p><h2>Translation</h2><p>Assume that we have the following function declaration.</p><pre>f (e&#8321; :: &#964;&#8321;) &#8230; (e&#8342; :: &#964;&#8342;) :: &#964;'&#8321; -&gt; &#8230; -&gt; &#964;'&#8345;&#8331;&#8344; -&gt; &#964; =
+    g @&#945;&#8321; &#8230; @&#945;&#8346; e&#8321; &#8230; e&#8344;</pre><p>where <code>g</code> is the name of an <code>n</code>-ary constructor or function declaration
+   and <code>m &lt; n</code>. This declaration is then replaced by</p><pre>f (e&#8321; :: &#964;&#8321;) &#8230; (e&#8342; :: &#964;&#8342;) (x&#8333;&#8344;&#8330;&#8321;&#8334; :: &#964;'&#8321;) &#8230; (x&#8345; :: &#964;'&#8345;&#8331;&#8344;) :: &#964; =
+    g @&#945;&#8321; &#8230; @&#945;&#8346; e&#8321; &#8230; e&#8344; x&#8333;&#8344;&#8330;&#8321;&#8334; &#8230; x&#8345;</pre><p>where x&#8333;&#8344;&#8330;&#8321;&#8334; &#8230; x&#8345; are <code>n-m</code> fresh variables.</p><p>If a function rule has several alternatives for the right-hand side
+   through (possibly nested) if or case expressions, the number of added
+   arguments is determined by the minimum number of missing arguments for an
+   alternative on the right-hand side.</p><p>Additionally, on the right-hand sides of function declarations, all of the
+   largest sub-expressions of the form</p><pre>h @&#945;&#8321; &#8230; @&#945;&#7523; e&#8321; &#8230; e&#8343;</pre><p>where <code>h</code> is the name of an <code>p</code>-ary constructor or function declaration
+   and <code>l &lt; p</code> are replaced by a lambda abstraction</p><pre>\y&#8333;&#8343;&#8330;&#8321;&#8334; &#8230; y&#8346; -&gt; f @&#945;&#8321; &#8230; @&#945;&#7523; e&#8321; &#8230; e&#8344; y&#8333;&#8343;&#8330;&#8321;&#8334; &#8230; y&#8346;</pre><p>where <code>y&#8333;&#8343;&#8330;&#8321;&#8334; &#8230; y&#8346;</code> are <code>p-l</code> fresh variables.</p><p>Both types of &#951;-conversion may also be applied to the same expression.
+   For example, the function</p><pre>f (e&#8321; :: &#964;&#8321;) ::  &#964;&#8322; -&gt; &#964;&#8323; -&gt; &#964; = case e&#8321; of {
+    c&#8321; -&gt; g;
+    c&#8322; -&gt; h
+  }</pre><p>where <code>c&#8321;</code> and <code>c&#8322;</code> are the constructors of <code>&#964;&#8321;</code>,
+  <code>g</code> is a binary function of type <code>&#964;&#8322; -&gt; &#964;&#8323; -&gt; &#964;</code>, and
+  <code>h</code> is a unary function of type <code>&#964;&#8322; -&gt; (&#964;&#8323; -&gt; &#964;)</code>,
+  will be converted to</p><pre>f (e&#8321; :: &#964;&#8321;) (x :: &#964;&#8322;) :: &#964;&#8323; -&gt; &#964; = case e&#8321; of {
+    c&#8321; -&gt; \y -&gt; g x y;
+    c&#8322; -&gt; h x
+  }</pre><h2>Postconditions</h2><p>All applications of <code>n</code>-ary functions or constructors have at least <code>n</code>
+   arguments.</p></div></div><div id="synopsis"><details id="syn"><summary>Synopsis</summary><ul class="details-toggle" data-details-id="syn"><li class="src short"><a href="#v:etaConversionPass">etaConversionPass</a> :: <a href="FreeC-Pass.html#t:Pass" title="FreeC.Pass">Pass</a> <a href="FreeC-IR-Syntax-Module.html#t:Module" title="FreeC.IR.Syntax.Module">Module</a> <a href="FreeC-IR-Syntax-Module.html#t:Module" title="FreeC.IR.Syntax.Module">Module</a></li><li class="src short"><a href="#v:etaConvertFuncDecl">etaConvertFuncDecl</a> :: <a href="FreeC-IR-Syntax-FuncDecl.html#t:FuncDecl" title="FreeC.IR.Syntax.FuncDecl">FuncDecl</a> -&gt; <a href="FreeC-Monad-Converter.html#t:Converter" title="FreeC.Monad.Converter">Converter</a> <a href="FreeC-IR-Syntax-FuncDecl.html#t:FuncDecl" title="FreeC.IR.Syntax.FuncDecl">FuncDecl</a></li><li class="src short"><a href="#v:etaConvertExpr">etaConvertExpr</a> :: <a href="FreeC-IR-Syntax-Expr.html#t:Expr" title="FreeC.IR.Syntax.Expr">Expr</a> -&gt; <a href="FreeC-Monad-Converter.html#t:Converter" title="FreeC.Monad.Converter">Converter</a> <a href="FreeC-IR-Syntax-Expr.html#t:Expr" title="FreeC.IR.Syntax.Expr">Expr</a></li></ul></details></div><div id="interface"><h1>Documentation</h1><div class="top"><p class="src"><a id="v:etaConversionPass" class="def">etaConversionPass</a> :: <a href="FreeC-Pass.html#t:Pass" title="FreeC.Pass">Pass</a> <a href="FreeC-IR-Syntax-Module.html#t:Module" title="FreeC.IR.Syntax.Module">Module</a> <a href="FreeC-IR-Syntax-Module.html#t:Module" title="FreeC.IR.Syntax.Module">Module</a> <a href="src/FreeC.Pass.EtaConversionPass.html#etaConversionPass" class="link">Source</a> <a href="#v:etaConversionPass" class="selflink">#</a></p><div class="doc"><p>Applies &#951;-conversions to the right-hand sides of all function declarations
+   in the given module until all function and constructor applications are
+   fully applied.</p></div></div><a href="#g:1" id="g:1"><h1>Testing Interface</h1></a><div class="top"><p class="src"><a id="v:etaConvertFuncDecl" class="def">etaConvertFuncDecl</a> :: <a href="FreeC-IR-Syntax-FuncDecl.html#t:FuncDecl" title="FreeC.IR.Syntax.FuncDecl">FuncDecl</a> -&gt; <a href="FreeC-Monad-Converter.html#t:Converter" title="FreeC.Monad.Converter">Converter</a> <a href="FreeC-IR-Syntax-FuncDecl.html#t:FuncDecl" title="FreeC.IR.Syntax.FuncDecl">FuncDecl</a> <a href="src/FreeC.Pass.EtaConversionPass.html#etaConvertFuncDecl" class="link">Source</a> <a href="#v:etaConvertFuncDecl" class="selflink">#</a></p><div class="doc"><p>Applies appropriate &#951;-conversions to a function declaration.</p><p>Depending on the presence or absence of missing top-level arguments,
+   the function uses <code>etaConvertTopLevel</code> or <code><a href="FreeC-Pass-EtaConversionPass.html#v:etaConvertExpr" title="FreeC.Pass.EtaConversionPass">etaConvertExpr</a></code> to ensure
+   all functions and constructors on the right-hand side are fully applied.
+   The missing top-level arguments are also added to the left-hand
+   side of the declaration and the function's type and the environment
+   are updated accordingly.</p></div></div><div class="top"><p class="src"><a id="v:etaConvertExpr" class="def">etaConvertExpr</a> :: <a href="FreeC-IR-Syntax-Expr.html#t:Expr" title="FreeC.IR.Syntax.Expr">Expr</a> -&gt; <a href="FreeC-Monad-Converter.html#t:Converter" title="FreeC.Monad.Converter">Converter</a> <a href="FreeC-IR-Syntax-Expr.html#t:Expr" title="FreeC.IR.Syntax.Expr">Expr</a> <a href="src/FreeC.Pass.EtaConversionPass.html#etaConvertExpr" class="link">Source</a> <a href="#v:etaConvertExpr" class="selflink">#</a></p><div class="doc"><p>Applies &#951;-conversions to the given expression and its sub-expressions.
+   until all function and constructor applications are fully applied.</p></div></div></div></div><div id="footer"><p>Produced by <a href="http://www.haskell.org/haddock/">Haddock</a> version 2.22.0</p></div></body></html>
