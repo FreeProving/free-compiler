@@ -6,6 +6,8 @@
 module FreeC.Environment.Fresh
   ( -- * Prefixes
     freshArgPrefix
+  , freshNormalformArgPrefix
+  , freshSharingArgPrefix
   , freshFuncPrefix
   , freshBoolPrefix
   , freshTypeVarPrefix
@@ -43,6 +45,14 @@ import           FreeC.Monad.Converter
 -- | The prefix to use for artificially introduced variables of type @a@.
 freshArgPrefix :: String
 freshArgPrefix = "x"
+
+-- | The prefix to use for variables artificially introduced by normalization.
+freshNormalformArgPrefix :: String
+freshNormalformArgPrefix = "nx"
+
+-- | The prefix to use for variables artificially introduced by sharing.
+freshSharingArgPrefix :: String
+freshSharingArgPrefix = "sx"
 
 -- | The prefix to use for artificially introduced variables of type @a -> b@.
 freshFuncPrefix :: String
