@@ -18,11 +18,21 @@
    we first enumerate (or <em>guess</em>) all possible combinations and then check
    whether the combination of decreasing arguments is valid.</p><h2>Checking Decreasing Arguments</h2><p>A function <code>f &#8712; F</code> declared by</p><pre>f x&#8321; &#8230; x&#7522; &#8230; x&#8345; = e</pre><p>decreases on its <code>i</code>-th argument if for every recursive call to
    functions <code>g &#8712; F</code> on the right-hand side <code>e</code> of <code>f</code></p><pre>g e&#8321; &#8230; e&#11388; &#8230; e&#8344;</pre><p>where <code>j</code> is the decreasing argument guessed for <code>g</code> the expression
-   <code>e&#11388;</code> is recognizes as structurally smaller than <code>x&#7522;</code>.</p><h2>Checking for Structurally Smaller Expressions</h2><p>Within a function for whose decreasing argument we've guessed <code>x&#7522;</code> a
-   variable <code>x</code> is structurally smaller than <code>x&#7522;</code> if one of the following
-   two conditions is met.</p><ol><li><code>x</code> is bound by a variable pattern in a <code>case</code> expression whose
-      scrutinee is the decreasing argument <code>x&#7522;</code>.</li><li><code>x</code> is bound by a variable pattern in a <code>case</code> expression whose
-      scrutinee is structurally smaller that <code>x&#7522;</code> itself.</li></ol><h2>Bypassing the termination checker</h2><p>Cop's termination checker uses the same idea as described above but
+   <code>e&#11388;</code> is recognized as structurally smaller than <code>x&#7522;</code>.</p><h2>Checking for Structurally Smaller Expressions</h2><p>To test whether an expression is structurally smaller than the decreasing
+   argument, we assign every expression a depth within the structure of the
+   decreasing argument as described below. There is a special depth value <code>&#8869;</code>
+   with the property <code>&#8869; + 1 = &#8869;</code> that is assigned to expressions that are not
+   known to be subterms of the decreasing argument.</p><ol><li>The decreasing argument itself is at depth <code>0</code>.</li><li>The variables <code>x&#8321;, &#8230;, x&#8345;</code> that are bound by an alternative
+      <code>case e of { &#8230; ; C x&#8321; &#8230; x&#8345; -&gt; e' ; &#8230; }</code> of a <code>case</code>-expression whose
+      scrutinee <code>e</code> is at depth <code>d</code> are at depth <code>d + 1</code> within the right-
+      hand side <code>e</code> of the alternative.</li><li>The variables <code>x&#8321;, &#8230;, x&#8345;</code> that are bound by a <code>let</code>-binding
+      <code>let { x&#8321; = e&#8321; ; &#8230; ; x&#8345; = e&#8345; } in e</code> whose right-hand sides <code>e&#8321;, &#8230;, e&#8345;</code>
+      are at depths <code>d&#8321;, &#8230;, d&#8345;</code> are at the same depths within the <code>in</code>-
+      expression <code>e</code> as well as in the right-hand sides <code>e&#8321;, &#8230;, e&#8345;</code>.</li><li>All other variables and non-variable expressions are at depth <code>&#8869;</code>.</li></ol><p>An expression is structurally smaller than the decreasing argument if
+   its depth is greater than the depth of the decreasing argument, i.e., <code>&gt;0</code>.
+   The definition above ensures that</p><ul><li>variables that are introduced by <code>case</code>-expression alternatives are
+      structurally smaller than the scrutinee of the <code>case</code>-expression and</li><li>variables that are introduced by <code>let</code>-bindings are structually equal
+      to their right-hand side.</li></ul><h2>Bypassing the termination checker</h2><p>Coq's termination checker uses the same idea as described above but
    is much more sophisticated. If the user knows that their function
    declaration is decreasing on one of its arguments, they can annotate
    the decreasing argument using a custom pragma (see also
