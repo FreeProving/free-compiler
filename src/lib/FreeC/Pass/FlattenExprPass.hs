@@ -53,7 +53,7 @@ module FreeC.Pass.FlattenExprPass
   , flattenExpr
   ) where
 
-import           Control.Monad           ( (>=>), mapAndUnzipM )
+import           Control.Monad           ( mapAndUnzipM )
 import           Data.Maybe              ( catMaybes )
 
 import           FreeC.Environment       ( encapsulatesEffects )
