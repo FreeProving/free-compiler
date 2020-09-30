@@ -11,6 +11,8 @@ module FreeC.IR.Subst
   , identitySubst
   , singleSubst
   , singleSubst'
+  , mkVarSubst
+  , mkTypeVarSubst
     -- * Composition
   , composeSubst
   , composeSubsts
@@ -74,6 +76,17 @@ singleSubst = flip (flip singleSubst' . const)
 --   variable replaced by 'applySubst'.
 singleSubst' :: IR.QName -> (SrcSpan -> a) -> Subst a
 singleSubst' = Subst .: Map.singleton
+
+-- | Creates a substitution that renames variables with the given name and
+--   preserves source span information of the renamed variable.
+mkVarSubst :: IR.QName -> IR.QName -> Subst IR.Expr
+mkVarSubst v1 v2 = singleSubst' v1 (flip IR.untypedVar v2)
+
+-- | Creates a substitution that renames type variables with the given name
+--   and preserves source span information of the renamed type variable.
+mkTypeVarSubst :: String -> String -> Subst IR.Type
+mkTypeVarSubst v1 v2 = singleSubst' (IR.UnQual (IR.Ident v1))
+  (flip IR.TypeVar v2)
 
 -------------------------------------------------------------------------------
 -- Composition                                                               --
