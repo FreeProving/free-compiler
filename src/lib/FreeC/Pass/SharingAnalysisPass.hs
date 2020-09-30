@@ -56,7 +56,8 @@
 --
 --   After all subexpressions are checked the right hand side of the function
 --   declaration is checked as well.
---   Variables already bound by @let@-bindings are not counted.
+--   Variables already bound by @let@-bindings are not counted, and neither are
+--   variables in the arguments of functions that encapsulate effects.
 --
 --   == Postconditions
 --
@@ -154,8 +155,9 @@ analyseLocalSharing varPats expr@(IR.App srcSpan lhs rhs typeScheme) = do
 -- | Whether an expression is an application of a function that encapsulates
 --   effects.
 shouldEncapsulateSharing :: IR.Expr -> Converter Bool
-shouldEncapsulateSharing expr = inEnv
-  $ encapsulatesEffects (IR.getFuncName expr)
+shouldEncapsulateSharing expr = case IR.getFuncName expr of
+                                     Nothing -> return False
+                                     Just name -> inEnv $ encapsulatesEffects name
 
 -- | Builds let expressions for variables with more than one occurrence
 --   for each argument of a function that encapsulates effects.
@@ -264,9 +266,6 @@ countVarNames (IR.Let _ binds e _)       = do
   map2 <- foldM (\m bind -> mergeMap m <$> countVarNames (IR.bindExpr bind))
     Map.empty binds
   let completeMap = mergeMap map1 map2
-   {- completeMap = countVarNames e
-          `mergeMap` foldr (mergeMap . countVarNames . IR.bindExpr) Map.empty
-          binds-}
   return $ completeMap `Map.withoutKeys` Set.fromList bindVars
 
 mergeMap

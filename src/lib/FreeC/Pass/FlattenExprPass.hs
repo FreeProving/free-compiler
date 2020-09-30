@@ -143,6 +143,7 @@ buildLet e' typeArgs args = do
 -- | Whether an expression is an application of a function that encapsulates
 --   effects.
 shouldEncapsulateEffects :: IR.Expr -> Converter Bool
-shouldEncapsulateEffects expr = inEnv
-  $ encapsulatesEffects (IR.getFuncName expr)
+shouldEncapsulateEffects expr = case IR.getFuncName expr of
+                                     Nothing -> return False
+                                     Just name -> inEnv $ encapsulatesEffects name
 
