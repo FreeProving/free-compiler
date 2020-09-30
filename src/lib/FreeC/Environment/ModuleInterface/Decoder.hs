@@ -109,9 +109,9 @@ import           Data.Aeson                        ( (.!=), (.:), (.:?) )
 import qualified Data.Aeson                        as Aeson
 import qualified Data.Aeson.Types                  as Aeson
 import qualified Data.Set                          as Set
-import           Data.Text                         ( Text )
 import qualified Data.Text                         as Text
 import qualified Data.Vector                       as Vector
+import           Text.Read                         ( readMaybe )
 
 import qualified FreeC.Backend.Agda.Syntax         as Agda
 import qualified FreeC.Backend.Coq.Syntax          as Coq
@@ -139,17 +139,17 @@ moduleInterfaceFileFormatVersion :: Integer
 moduleInterfaceFileFormatVersion = 4
 
 -- | Parses an IR AST node from an Aeson string.
-parseAesonIR :: Parseable a => Text -> Aeson.Parser a
+parseAesonIR :: Parseable a => String -> Aeson.Parser a
 parseAesonIR input = do
-  let srcFile   = mkSrcFile "<config-input>" (Text.unpack input)
+  let srcFile   = mkSrcFile "<config-input>" input
       (res, ms) = runReporter (parseIR srcFile)
   case res of
-    Nothing -> Aeson.parserThrowError [] (showPretty ms)
+    Nothing -> Aeson.parseFail (showPretty ms)
     Just t  -> return t
 
 -- | All Haskell names in the interface file are qualified.
 instance Aeson.FromJSON IR.QName where
-  parseJSON = Aeson.withText "IR.QName" parseAesonIR
+  parseJSON = Aeson.withText "IR.QName" $ parseAesonIR . Text.unpack
 
 -- | Restores a Coq identifier from the interface file.
 instance Aeson.FromJSON Coq.Qualid where
@@ -161,15 +161,16 @@ instance Aeson.FromJSON Agda.QName where
 
 -- | Restores a Haskell type from the interface file.
 instance Aeson.FromJSON IR.Type where
-  parseJSON = Aeson.withText "IR.Type" parseAesonIR
+  parseJSON = Aeson.withText "IR.Type" $ parseAesonIR . Text.unpack
 
 -- | Restores an effect from the interface file.
 instance Aeson.FromJSON Effect where
-  parseJSON = Aeson.withText "Effect" $ \effect -> case effect of
-    "Partiality" -> return Partiality
-    "Sharing"    -> return Sharing
-    "Normalform" -> return Normalform
-    _            -> fail "unknown effect"
+  parseJSON = Aeson.withText "Effect" $ parseEffect . Text.unpack
+   where
+    parseEffect :: String -> Aeson.Parser Effect
+    parseEffect effectName = case readMaybe effectName of
+      Just effect -> return effect
+      Nothing     -> Aeson.parseFail ("Unknown effect: " ++ effectName)
 
 -- | Restores a 'ModuleInterface' from the configuration file.
 instance Aeson.FromJSON ModuleInterface where

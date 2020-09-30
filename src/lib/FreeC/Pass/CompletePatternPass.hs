@@ -123,6 +123,7 @@ checkPatternFuncDecl funcDecl = checkPatternExpr (IR.funcDeclRhs funcDecl)
   checkPatternExpr IR.Var {} = return ()
   checkPatternExpr IR.Undefined {} = return ()
   checkPatternExpr IR.ErrorExpr {} = return ()
+  checkPatternExpr (IR.Trace _ _ expr _) = checkPatternExpr expr
   checkPatternExpr IR.IntLiteral {} = return ()
 
   performCheck :: [IR.ConName] -> [IR.ConName] -> SrcSpan -> Converter ()

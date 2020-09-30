@@ -221,6 +221,8 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
         in checkExpr depthMap' expr [] && all (checkBind depthMap') binds
     -- Recursively check visibly applied expressions.
     checkExpr' (IR.TypeAppExpr _ expr _ _) args = checkExpr' expr args
+    -- Recursively check traced expressions.
+    checkExpr' (IR.Trace _ _ expr _) _          = checkExpr' expr []
     -- Base expressions don't contain recursive calls.
     checkExpr' (IR.Con _ _ _) _                 = True
     checkExpr' (IR.Undefined _ _) _             = True
