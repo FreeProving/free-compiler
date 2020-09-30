@@ -1,4 +1,4 @@
-(* This file contains some naive proofs for the properties of the haskell file. *)
+(* This file contains some naive proofs for the properties of the Haskell file. *)
 
 From Base Require Import Free Free.Instance.Maybe Free.Instance.Error Prelude Test.QuickCheck.
 From Razor.Extra Require Import Tactic Pureness.
@@ -9,7 +9,7 @@ Import AppendAssoc.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
 
-(* This property states, that the given Partial instance represents every [undefined] as an impure value. *)
+(* This property states that the given Partial instance represents every [undefined] as an impure value. *)
 Definition UndefinedIsImpure {Shape : Type} {Pos : Shape -> Type} (Partial : Partial Shape Pos): Prop :=
     forall (A : Type),
     exists (s : Shape) (pf : (Pos s) -> Free Shape Pos A),
@@ -36,7 +36,7 @@ Proof.
   eauto.
 Qed.
 
-(* This is a tactic, which discriminates assumptions where [impure] is equal to some [pure] value. *)
+(* This is a tactic which discriminates assumptions where [impure] is equal to some [pure] value. *)
 Ltac pureEqImpure :=
   match goal with
   | [ HUnd : @UndefinedIsImpure ?Shape ?Pos ?Partial |- _] =>
@@ -117,7 +117,7 @@ Section Proofs.
         destruct H as [ stack' H ]. discriminate H.
       + (* fcode1 = pure (pure (PUSH fn) : fcode1') *)
         intros fstack H.
-        (* Destruct the remaining code [fcode1'] to see, wether it is pure or impure. *)
+        (* Destruct the remaining code [fcode1'] to see, whether it is pure or impure. *)
         destruct fcode1' as [ code1' | sCode1' pfCode1' ].
         * (* fcode1 = pure (pure (PUSH fn) : pure code1') *)
           (* In this case we can apply the induction hypothesis. *)
@@ -133,7 +133,7 @@ Section Proofs.
           destruct fstack as [ [ | fv fstack1 ] | sStack pfStack ]; discriminate Hstack'.
       + (* fcode1 = pure (pure ADD : fcode1') *)
         intros fstack H. destruct H as [ stack' Hstack' ].
-        (* Destruct the remaining code [fcode1'] to see, wether it is pure or impure. *)
+        (* Destruct the remaining code [fcode1'] to see, whether it is pure or impure. *)
         destruct fcode1' as [ code1' | sCode1' pfCode1' ].
         * (* fcode1 = pure (pure ADD : pure code1') *)
           (* As the addition reads its two inputs from the stack [fstack], we need to destruct it.
@@ -182,7 +182,7 @@ Section Proofs.
          the addition, to get a pureness property for [fx] and a pureness property for [fy]. *)
       intros fstack HPureS.
       dependent destruction HPureE.
-      (* Now we know, that both expressions are pure. *)
+      (* Now we know that both expressions are pure. *)
       destruct fx as [ x | sX pfX ]. 2: dependent destruction HPureE1.
       destruct fy as [ y | yX pfY ]. 2: dependent destruction HPureE2.
       simpl comp.
@@ -248,7 +248,7 @@ Section Proofs.
         replace (append Shape Pos _ (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode)))
           with (compApp Shape Pos fx (compApp Shape Pos fy (Cons Shape Pos (ADD Shape Pos) fcode))).
         reflexivity.
-        (* Prove subgoals, that were introduced by the [replace] tactic, by induction. *)
+        (* Prove subgoals that were introduced by the [replace] tactic by induction. *)
         * inductFree fx as [ x | s pf IHpf ].
           -- apply IH.
           -- f_equal. extensionality p. dependent destruction IHfx. specialize (IHpf p (H p)) as IH. apply IH.

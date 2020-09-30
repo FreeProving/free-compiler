@@ -10,7 +10,7 @@ Import AppendAssoc.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
 
-(* This property states, that the given Partial instance represents every [undefined] as an impure value. *)
+(* This property states that the given Partial instance represents every [undefined] as an impure value. *)
 Definition UndefinedIsImpure {Shape : Type} {Pos : Shape -> Type} (Part : Partial Shape Pos): Prop :=
   forall (A : Type),
   exists (s : Shape) (pf : (Pos s) -> Free Shape Pos A),
@@ -33,7 +33,7 @@ Proof.
   reflexivity.
 Qed.
 
-(* This property states, that the given Partial instance has no positions in an impure [undefined]. *)
+(* This property states that the given Partial instance has no positions in an impure [undefined]. *)
 Definition UndefinedHasNoPositions {Shape : Type} {Pos : Shape -> Type} (Partial : Partial Shape Pos): Prop :=
   forall (A : Type)
          (s : Shape)
@@ -88,7 +88,7 @@ Section Proofs_PureCodes.
 
   (* If [UndefinedIsImpure] and [UndefinedHasNoPositions] hold and we are given
      two recursively pure pieces of code and a stack, we know that it doesn't
-     matter wether we concatenate those pieces of code and run them on the
+     matter whether we concatenate those pieces of code and run them on the
      stack, or run the first piece of code on the stack and run the second
      piece of code on the resulting stack afterwards. *)
   Lemma exec_append :
@@ -103,7 +103,7 @@ Section Proofs_PureCodes.
         = exec Part fcode2 (exec Part fcode1 fstack).
   Proof with pretty; unfold Code; unfold Stack; try reflexivity.
     intros HUndefined1 HUndefined2 fcode1 HPure1 fcode2 HPure2.
-    (* As we now that both pieces of code are recursively pure we, we can
+    (* As we now that both pieces of code are recursively pure, we can
        immediately destruct the monadic layer.*)
     destruct fcode1 as [ code1 | ]; try eliminate_pureness_property_impure.
     destruct fcode2 as [ code2 | ]; try eliminate_pureness_property_impure.
@@ -120,7 +120,7 @@ Section Proofs_PureCodes.
       intro fstack.
       destruct fcode1' as [ code1' | ]; try eliminate_pureness_property_impure.
       simplify IHfcode1' as IH.
-      (* We can proof the goal per induction over the stack. *)
+      (* We can prove the goal per induction over the stack. *)
       induction fstack as [ stack | sStack pfStack IHpfStack ] using Free_Ind; autodef;
         try (apply IH; prove_pureness_property).
       (* In the impure case we need to destruct the second piece of code to be able to simplify

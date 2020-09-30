@@ -31,8 +31,7 @@ Inductive RecPureStack {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (St
                               (fstack : Free Shape Pos (Stack Shape Pos)),
       RecPureStack fstack -> RecPureStack (Cons Shape Pos fv fstack).
 
-(* If the goal is to prove one of those pureness properties of those above,
-   this tactic tries to do this. *)
+(* If the goal is to prove one of the above pureness properties, this tactic tries to do that. *)
 Ltac prove_pureness_property :=
   match goal with
   (* Try to apply a hypothesis directly. *)
@@ -103,7 +102,7 @@ Section Lemmas.
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
 
-  (* If we apply [append] on to pieces of recursively pure code the result is recursively pure code. *)
+  (* If we apply [append] on two pieces of recursively pure code the result is recursively pure code. *)
   Lemma append_pure :
     forall (fcode1 fcode2 : Free Shape Pos (Code Shape Pos)),
     RecPureCode fcode1 ->
@@ -116,9 +115,9 @@ Section Lemmas.
     (* Do an induction over the first piece of code. *)
     induction code1 as [ | fop fcode1' ] using List_Ind.
     - simpl. apply HPure2.
-    - (* The first operation in a non empty [code1] is pure. *)
+    - (* The first operation in a non-empty [code1] is pure. *)
       destruct fop as [ op | ]. 2: do 2 dependent destruction HPure1.
-      (* The rest list in a non empty [code1] is also pure. *)
+      (* The rest list in a non-empty [code1] is also pure. *)
       destruct fcode1' as [ code1' | ]. 2: do 2 dependent destruction HPure1.
       simpl. apply recPureCode_cons.
       autoIH. dependent destruction HPure1. apply (IH HPure1).

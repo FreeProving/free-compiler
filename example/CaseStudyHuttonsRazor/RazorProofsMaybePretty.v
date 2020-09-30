@@ -63,7 +63,7 @@ Section Proofs.
       + (* fcode1 = Cons ADD fcode1' *)
         intro fstack.
         rewrite def_append_Cons...
-        (* Check wether there are enough values in the stack for addition. *)
+        (* Check whether there are enough values in the stack for addition. *)
         destruct fstack as [ [ | fv1 [ [ | fv2 fstack2 ] | ] ] | ]...
         1,2: (* If there are not at least two values, the result is undefined. *)
              autodef.
@@ -133,7 +133,7 @@ Section Proofs.
   Qed. 
 
   (* The theorem derived by the correctness QuickCheck property for comp_correct
-     can now be proven with the more general lemma above and under the that the
+     can now be proven with the more general lemma above and under the assumption that the
      given expression is recursively pure. *)
   Lemma comp_correct :
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),

@@ -1,4 +1,4 @@
-(* This file contains a naive proofs for one of the properties of the haskell file.
+(* This file contains a naive proofs for one of the properties of the Haskell file.
    Those proofs use the [Maybe] monad which means that there is only one impure
    value [Nothing] and all impure values are therefore equal and have a trivial
    position function. *)
@@ -19,7 +19,7 @@ Section Proofs_Maybe.
   Definition Pos     := Maybe.Pos.
   Definition Partial := Maybe.Partial Shape Pos.
 
-  (* In the [Maybe] monad exists only one impure value. *)
+  (* In the [Maybe] monad there exists only one impure value. *)
   Lemma impure_Nothing :
     forall (A : Type)
            (s : Maybe.Shape)
@@ -65,7 +65,7 @@ Section Proofs_Maybe.
         simpl. f_equal. do 2 rewrite impure_Nothing. reflexivity.
       + (* fcode1 = pure (pure (PUSH fn) : fcode1') *)
         intro fstack.
-        (* Destruct the remaining code [fcode1'] to see, wether it is pure or impure. *)
+        (* Destruct the remaining code [fcode1'] to see whether it is pure or impure. *)
         destruct fcode1' as [ code1' | sCode1' pfCode1' ].
         * (* fcode1 = pure (pure (PUSH fn) : pure code1') *)
           (* In this case we can apply the induction hypothesis if we have a pure stack.
@@ -80,11 +80,11 @@ Section Proofs_Maybe.
             simpl; do 2 rewrite impure_Nothing; symmetry; apply exec_strict_on_stack_arg.
       + (* fcode1 = pure (pure ADD : fcode1') *)
         intro fstack.
-        (* Destruct the remaining code [fcode1'] to see, wether it is pure or impure. *)
+        (* Destruct the remaining code [fcode1'] to see whether it is pure or impure. *)
         destruct fcode1' as [ code1' | sCode1' pfCode1' ].
         * (* fcode1 = pure (pure ADD : pure code1') *)
           (* As the addition reads its two inputs from the stack [fstack], we need to destruct it.
-             All cases, where the stack does not contain at least two values, produce an undefined. *)
+             All cases where the stack does not contain at least two values produce an undefined. *)
           destruct fstack as [ [ | fv1 [ [ | fv2 fstack2 ] | sStack1 pfStack1 ] ] | sStack pfStack ];
             try (simpl; try do 2 rewrite impure_Nothing; symmetry; apply exec_strict_on_stack_arg).
           (* In the only valid case we can apply the induction hypothesis. *)
@@ -106,7 +106,7 @@ Section Proofs_Maybe.
 
   (* To prove the correctness of the compiler [comp] as stated in the QuickCheck property,
      we have to generalize it first by adding an additional recursively pure stack and we
-     need the precondition, that the given expression is recursively pure. *)
+     need the precondition that the given expression is recursively pure. *)
   Lemma comp_correct' :
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
@@ -141,7 +141,7 @@ Section Proofs_Maybe.
   Qed.
 
   (* The theorem derived by the correctness QuickCheck property for comp_correct
-     can now be proven with the more general lemma above and under the that the
+     can now be proven with the more general lemma above and under the assumption that the
      given expression is recursively pure. *)
   Lemma comp_correct :
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),

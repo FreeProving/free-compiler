@@ -12,7 +12,7 @@ Import AppendAssoc.
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Program.Equality.
 
-(* This property states, that the given Partial instance represents every [undefined] as an impure value. *)
+(* This property states that the given Partial instance represents every [undefined] as an impure value. *)
 Definition UndefinedIsImpure {Shape : Type} {Pos : Shape -> Type} (Partial : Partial Shape Pos): Prop :=
   forall (A : Type),
   exists (s : Shape) (pf : (Pos s) -> Free Shape Pos A),
@@ -35,7 +35,7 @@ Proof.
   reflexivity.
 Qed.
 
-(* This property states, that the given Partial instance has no positions in an impure [undefined]. *)
+(* This property states that the given Partial instance has no positions in an impure [undefined]. *)
 Definition UndefinedHasNoPositions {Shape : Type} {Pos : Shape -> Type} (Partial : Partial Shape Pos): Prop :=
   forall (A : Type)
          (s : Shape)
@@ -115,7 +115,7 @@ Section Proofs_PureCodes.
 
   (* If [UndefinedIsImpure] and [UndefinedHasNoPositions] hold and we are given
      two recursively pure pieces of code and a stack, we know that it doesn't
-     matter wether we concatenate those pieces of code and run them on the
+     matter whether we concatenate those pieces of code and run them on the
      stack, or run the first piece of code on the stack and run the second
      piece of code on the resulting stack afterwards. *)
   Lemma exec_append :
