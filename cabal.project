@@ -3,7 +3,7 @@
 source-repository-package
   type: git
   location: git://github.com/FreeProving/language-coq.git
-  tag: v0.2.0.0
+  tag: 90eda54370fbb6e239f6f382f2eb813ecad86e32
 
 -- The `haskell-src-transformations` package is still in an early development
 -- state and thus not available on Hackage. The dependency is downloaded
