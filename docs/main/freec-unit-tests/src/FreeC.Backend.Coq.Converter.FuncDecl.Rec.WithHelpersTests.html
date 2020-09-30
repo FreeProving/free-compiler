@@ -668,7 +668,7 @@
 </span><a name="line-668"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;Definition length (Shape : Type) (Pos : Shape -&gt; Type) {a : Type}&quot;</span><span>
 </span><a name="line-669"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;  (xs : Free Shape Pos (List Shape Pos a))&quot;</span><span>
 </span><a name="line-670"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;  : Free Shape Pos (Integer Shape Pos)&quot;</span><span>
-</span><a name="line-671"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;  := call Shape Pos S xs &gt;&gt;= (fun ys =&gt;&quot;</span><span>
+</span><a name="line-671"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;  := call Shape Pos (S Shape Pos _) xs &gt;&gt;= (fun ys =&gt;&quot;</span><span>
 </span><a name="line-672"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;       ys &gt;&gt;= (fun (ys0 : List Shape Pos a) =&gt;&quot;</span><span>
 </span><a name="line-673"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;         @length0 Shape Pos a ys0)).&quot;</span><span>
 </span><a name="line-674"></a><span>  </span><span class="hs-identifier hs-var">it</span><span> </span><span class="hs-string">&quot;does not eliminate other `let`-bindings in helper functions&quot;</span><span>
@@ -696,9 +696,9 @@
 </span><a name="line-696"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;  {struct xs}&quot;</span><span>
 </span><a name="line-697"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;  := match xs with&quot;</span><span>
 </span><a name="line-698"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;     | nil        =&gt; zero&quot;</span><span>
-</span><a name="line-699"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;     | cons x xs' =&gt; call Shape Pos S zero &gt;&gt;= (fun z =&gt;&quot;</span><span>
-</span><a name="line-700"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;         succ Shape Pos&quot;</span><span>
-</span><a name="line-701"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;           (@call Shape Pos S (Integer Shape Pos) (pure 0%Z) &gt;&gt;=&quot;</span><span>
+</span><a name="line-699"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;     | cons x xs' =&gt; call Shape Pos (S Shape Pos _) zero &gt;&gt;=&quot;</span><span>
+</span><a name="line-700"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;         (fun z =&gt; succ Shape Pos&quot;</span><span>
+</span><a name="line-701"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;           (@call Shape Pos (S Shape Pos _) (Integer Shape Pos) (pure 0%Z) &gt;&gt;=&quot;</span><span>
 </span><a name="line-702"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;             (fun (zero0 : Free Shape Pos (Integer Shape Pos)) =&gt;&quot;</span><span>
 </span><a name="line-703"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;               xs' &gt;&gt;= (fun (xs'0 : List Shape Pos a) =&gt;&quot;</span><span>
 </span><a name="line-704"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;                 @length0 Shape Pos a xs'0 zero0))))&quot;</span><span>
@@ -706,8 +706,8 @@
 </span><a name="line-706"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;Definition length (Shape : Type) (Pos : Shape -&gt; Type) {a : Type}&quot;</span><span>
 </span><a name="line-707"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;  (xs : Free Shape Pos (List Shape Pos a))&quot;</span><span>
 </span><a name="line-708"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;  : Free Shape Pos (Integer Shape Pos)&quot;</span><span>
-</span><a name="line-709"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;  := @call Shape Pos S (Integer Shape Pos) (pure 0%Z) &gt;&gt;=&quot;</span><span>
-</span><a name="line-710"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;       (fun (zero : Free Shape Pos (Integer Shape Pos)) =&gt;&quot;</span><span>
+</span><a name="line-709"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;  := @call Shape Pos (S Shape Pos _) (Integer Shape Pos) (pure 0%Z)&quot;</span><span>
+</span><a name="line-710"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;       &gt;&gt;= (fun (zero : Free Shape Pos (Integer Shape Pos)) =&gt;&quot;</span><span>
 </span><a name="line-711"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;         xs &gt;&gt;= (fun (xs0 : List Shape Pos a) =&gt;&quot;</span><span>
 </span><a name="line-712"></a><span>        </span><span class="hs-operator hs-var">++</span><span> </span><span class="hs-string">&quot;           @length0 Shape Pos a xs0 zero)).&quot;</span><span>
 </span><a name="line-713"></a></pre></body></html>
