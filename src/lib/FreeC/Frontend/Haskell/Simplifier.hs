@@ -561,15 +561,24 @@ simplifyTypeConName name@(HSE.Special _ (HSE.Cons _)) = usageError
 -- | Simplifies an expression.
 simplifyExpr :: HSE.Exp SrcSpan -> Simplifier IR.Expr
 
--- Error terms are regular functions but need to be handled differently.
+-- Effects are regular functions but need to be handled differently.
 simplifyExpr (HSE.Var srcSpan (HSE.UnQual _ (HSE.Ident _ "undefined"))) = return
   (IR.Undefined srcSpan Nothing)
 simplifyExpr (HSE.App srcSpan (HSE.Var _ (HSE.UnQual _ (HSE.Ident _ "error")))
-              arg) = case arg of
+              msgArg) = case msgArg of
   (HSE.Lit _ (HSE.String _ msg _)) -> return (IR.ErrorExpr srcSpan msg Nothing)
-  _ -> notSupported "Non-literal error messages" arg
+  _ -> notSupported "Non-literal error messages" msgArg
 simplifyExpr expr@(HSE.Var _ (HSE.UnQual _ (HSE.Ident _ "error")))
   = usageError "The function 'error' must be applied immediately." expr
+simplifyExpr
+  (HSE.App srcSpan (HSE.App _ (HSE.Var _ (HSE.UnQual _ (HSE.Ident _ "trace")))
+                    msgArg) arg) = case msgArg of
+    (HSE.Lit _ (HSE.String _ msg _)) -> do
+      arg' <- simplifyExpr arg
+      return (IR.Trace srcSpan msg arg' Nothing)
+    _ -> notSupported "Non-literal error messages" msgArg
+simplifyExpr expr@(HSE.Var _ (HSE.UnQual _ (HSE.Ident _ "trace")))
+  = usageError "The function 'trace' must be applied twice immediately." expr
 -- Parenthesis.
 simplifyExpr (HSE.Paren _ expr) = simplifyExpr expr
 -- Variables.

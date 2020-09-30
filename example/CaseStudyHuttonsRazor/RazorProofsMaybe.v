@@ -57,7 +57,7 @@ Section Proofs_Maybe.
     (* Destruct the monadic layer of the first piece of code. *)
     destruct fcode1 as [ code1 | sCode1 pfCode1 ].
     - (* fcode1 = pure code1 *)
-      destruct code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'] using List_Ind.
+      destruct code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'].
       + (* fcode1 = pure [] *)
         (* This case is trivial. *)
         intro fstack.
@@ -117,7 +117,7 @@ Section Proofs_Maybe.
   Proof.
     intros fexpr HPureE.
     destruct fexpr as [ expr | ]. 2: dependent destruction HPureE.
-    induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
+    induction expr as [ fn | fx fy IHfx IHfy ].
     - (* fexpr = pure (val fn) *)
       intros fstack HPureS.
       destruct fstack as [ [ | fv1 fstack1 ] | ]. 3: dependent destruction HPureS.

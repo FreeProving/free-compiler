@@ -12,8 +12,10 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
 
 import           Control.Monad
   ( forM, mapAndUnzipM, zipWithM )
+import           Control.Monad.Extra
+  ( mapMaybeM )
 import           Data.List
-  ( (\\), elemIndex, intercalate )
+  ( (\\), elemIndex, intercalate, nub )
 import           Data.Map.Strict                                      ( Map )
 import qualified Data.Map.Strict                                      as Map
 import           Data.Maybe
@@ -87,10 +89,21 @@ convertRecFuncDeclsWithSection constArgs decls = do
     sectionDecls
   -- Generate @Section@ sentence.
   section <- localEnv $ do
-    -- Create a @Variable@ sentence for the constant arguments and their type
-    -- variables. No @Variable@ sentence is created if a constant argument is
-    -- never used (Coq would ignore the @Variable@ sentence anyway).
+    -- Create a @Variable@ sentence for the type variables of the constant
+    -- arguments.
     maybeTypeArgSentence <- generateConstTypeArgSentence usedTypeArgIdents
+    -- Create the effect binders that are dependent on the constant type
+    -- variables.
+    usedTypeArgIdents' <- mapMaybeM
+      (inEnv . lookupIdent IR.TypeScope . IR.UnQual . IR.Ident)
+      usedTypeArgIdents
+    allEffects <- mapM (inEnv . lookupEffects . IR.funcDeclQName) decls
+    let effects      = nub $ concat allEffects
+        typedBinders = concatMap
+          (flip Coq.Base.selectTypedBinders usedTypeArgIdents') effects
+    -- Create a @Variable@ sentence for the constant arguments.
+    -- No @Variable@ sentence is created if a constant argument is
+    -- never used (Coq would ignore the @Variable@ sentence anyway).
     varSentences <- zipWithM generateConstArgVariable
       (map fst $ filter snd $ zip renamedConstArgs isConstArgUsed)
       (map fst $ filter snd $ zip constArgTypes isConstArgUsed)
@@ -106,6 +119,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
         (Coq.comment ("Constant arguments for " ++ intercalate ", " funcIdents)
          : genericArgVariables
          ++ maybeToList maybeTypeArgSentence
+         ++ map Coq.context typedBinders
          ++ varSentences
          ++ Coq.comment ("Helper functions for " ++ intercalate ", " funcIdents)
          : helperDecls'
@@ -136,24 +150,21 @@ renameFuncDecls decls = do
   -- Create a substitution from old identifiers to fresh identifiers.
   let names = map IR.funcDeclQName decls
   names' <- mapM freshHaskellQName names
-  let nameMap = zip names names'
-      subst   = composeSubsts $ do
-        (name, name') <- nameMap
-        return (singleSubst' name (flip IR.untypedVar name'))
+  let nameMap = Map.fromList (zip names names')
+      subst   = composeSubsts $ zipWith mkVarSubst names names'
   -- Rename function declarations, apply substituion to right-hand side
   -- and copy type signature and entry of original function.
   decls' <- forM decls
     $ \(IR.FuncDecl srcSpan (IR.DeclIdent srcSpan' name) typeArgs args
         maybeRetType rhs) -> do
-      let Just name' = lookup name nameMap
+      let Just name' = Map.lookup name nameMap
       -- Generate fresh identifiers for type variables.
       let typeArgIdents = map IR.typeVarDeclIdent typeArgs
       typeArgIdents' <- mapM freshHaskellIdent typeArgIdents
       let typeArgs'     = zipWith IR.TypeVarDecl
             (map IR.typeVarDeclSrcSpan typeArgs) typeArgIdents'
           typeVarSubst  = composeSubsts
-            (zipWith singleSubst' (map (IR.UnQual . IR.Ident) typeArgIdents)
-             (map (flip IR.TypeVar) typeArgIdents'))
+            (zipWith mkTypeVarSubst typeArgIdents typeArgIdents')
           args'         = applySubst typeVarSubst args
           maybeRetType' = applySubst typeVarSubst maybeRetType
       -- Set environment entry for renamed function.
@@ -176,7 +187,7 @@ renameFuncDecls decls = do
       -- Rename function declaration.
       return (IR.FuncDecl srcSpan (IR.DeclIdent srcSpan' name') typeArgs' args'
               maybeRetType' rhs')
-  return (decls', Map.fromList nameMap)
+  return (decls', nameMap)
 
 -- | Replaces the function names in the given 'ConstArg' using the given map.
 renameConstArg :: Map IR.QName IR.QName -> ConstArg -> ConstArg
@@ -280,8 +291,8 @@ removeConstArgsFromFuncDecl constArgs
         args'
           = [arg | arg <- args, IR.varPatIdent arg `notElem` removedArgs]
         subst       = composeSubsts
-          [singleSubst' (IR.UnQual (IR.Ident removedArg))
-            (flip IR.untypedVar (IR.UnQual (IR.Ident freshArg)))
+          [mkVarSubst (IR.UnQual (IR.Ident removedArg))
+            (IR.UnQual (IR.Ident freshArg))
           | (removedArg, freshArg) <- zip removedArgs freshArgs
           ]
     rhs' <- removeConstArgsFromExpr constArgs (applySubst subst rhs)
@@ -355,6 +366,9 @@ removeConstArgsFromExpr constArgs rootExpr = do
       binds' <- mapM removeConstArgsFromBind binds
       (expr', []) <- removeConstArgsFromExpr' expr
       return (IR.Let srcSpan binds' expr' exprType, [])
+  removeConstArgsFromExpr' (IR.Trace srcSpan msg expr exprType) = do
+    (expr', []) <- removeConstArgsFromExpr' expr
+    return (IR.Trace srcSpan msg expr' exprType, [])
   -- Leave all other expressions unchanged.
   removeConstArgsFromExpr' expr@(IR.Con _ _ _) = return (expr, [])
   removeConstArgsFromExpr' expr@(IR.Undefined _ _) = return (expr, [])
@@ -521,6 +535,9 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
       binds' <- mapM removeConstTypeArgsFromBind binds
       (expr', []) <- removeConstTypeArgsFromExpr' expr
       return (IR.Let srcSpan binds' expr' exprType, [])
+  removeConstTypeArgsFromExpr' (IR.Trace srcSpan msg expr exprType) = do
+    (expr', []) <- removeConstTypeArgsFromExpr' expr
+    return (IR.Trace srcSpan msg expr' exprType, [])
   -- Leave all other nodes unchanged.
   removeConstTypeArgsFromExpr' expr@(IR.Con _ _ _) = return (expr, [])
   removeConstTypeArgsFromExpr' expr@(IR.Undefined _ _) = return (expr, [])

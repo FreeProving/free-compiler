@@ -108,7 +108,7 @@ Section Proofs.
     destruct fcode1 as [ code1 | sCode1 pfCode1 ].
     - (* fcode1 = pure code1 *)
       (* Do an induction over the first piece of code. *)
-      induction code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'] using List_Ind.
+      induction code1 as [ | [ [ fn | ] | sOp pfOp ] fcode1' IHfcode1'].
       + (* fcode1 = pure [] *)
         (* This case is trivial. *)
         intros fstack H.
@@ -172,7 +172,7 @@ Section Proofs.
     (* The given expression is pure. *)
     destruct fexpr as [ expr | sExpr pfExpr ]. 2: dependent destruction HPureE.
     (* We proof this lemma by doing an induction over this expression. *)
-    induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
+    induction expr as [ fn | fx fy IHfx IHfy ].
     - (* The correctness is trivial for an expression that is a single value. *)
       intros fstack HPureS.
       destruct fstack as [ [ | fv fstack1 ] | sStack pfStack ]; try reflexivity.
@@ -235,7 +235,7 @@ Section Proofs.
     (* We start with an induction over the monadic expression. *)
     inductFree fexpr as [ expr | s pf IHpf ].
     - (* In the pure case, we do an induction over the given expression. *)
-      induction expr as [ fn | fx fy IHfx IHfy ] using Expr_Ind.
+      induction expr as [ fn | fx fy IHfx IHfy ].
       + (* For an expression that is only a single value, the property is trivial. *)
         reflexivity.
       + (* For an addition expression, we start with some simplification steps for the [append] function. *)

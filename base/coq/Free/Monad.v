@@ -2,9 +2,11 @@ Section SecFree.
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
 
+  Local Unset Elimination Schemes.
   Inductive Free (A : Type) : Type :=
     | pure : A -> Free A
     | impure : forall (s : Shape), (Pos s -> Free A) -> Free A.
+  Local Set Elimination Schemes.
 
   Arguments pure {A}.
   Arguments impure {A}.
