@@ -127,6 +127,9 @@ checkExpr (IR.Undefined _ typeScheme)
   = mapM_ checkTypeScheme typeScheme
 checkExpr (IR.ErrorExpr _ _ typeScheme)
   = mapM_ checkTypeScheme typeScheme
+checkExpr (IR.Trace _ _ expr typeScheme)              = do
+  checkExpr expr
+  mapM_ checkTypeScheme typeScheme
 checkExpr (IR.IntLiteral _ _ typeScheme)
   = mapM_ checkTypeScheme typeScheme
 checkExpr (IR.Lambda _ args rhs typeScheme)           = do

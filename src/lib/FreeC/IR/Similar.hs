@@ -354,6 +354,8 @@ similarExpr (IR.Let _ bs e _) (IR.Let _ cs f _)
 similarExpr (IR.Con _ n1 _) (IR.Con _ n2 _) = const (n1 == n2)
 similarExpr (IR.Undefined _ _) (IR.Undefined _ _) = const True
 similarExpr (IR.ErrorExpr _ m1 _) (IR.ErrorExpr _ m2 _) = const (m1 == m2)
+similarExpr (IR.Trace _ m1 e1 _) (IR.Trace _ m2 e2 _) = const (m1 == m2)
+  .&&. similar' e1 e2
 similarExpr (IR.IntLiteral _ i1 _) (IR.IntLiteral _ i2 _) = const (i1 == i2)
 -- Combinations of different constructors are not similar.
 similarExpr (IR.Var _ _ _) _ = const False
@@ -365,6 +367,7 @@ similarExpr (IR.If _ _ _ _ _) _ = const False
 similarExpr (IR.Con _ _ _) _ = const False
 similarExpr (IR.Undefined _ _) _ = const False
 similarExpr (IR.ErrorExpr _ _ _) _ = const False
+similarExpr (IR.Trace _ _ _ _) _ = const False
 similarExpr (IR.IntLiteral _ _ _) _ = const False
 similarExpr (IR.Let _ _ _ _) _ = const False
 

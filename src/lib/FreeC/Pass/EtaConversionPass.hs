@@ -269,6 +269,7 @@ etaConvertSubExprs expr@(IR.If _ _ _ _ _)          = etaConvertSubExprs' expr
 etaConvertSubExprs expr@(IR.Case _ _ _ _)          = etaConvertSubExprs' expr
 etaConvertSubExprs expr@(IR.Lambda _ _ _ _)        = etaConvertSubExprs' expr
 etaConvertSubExprs expr@(IR.Let _ _ _ _)           = etaConvertSubExprs' expr
+etaConvertSubExprs expr@(IR.Trace _ _ _ _)         = etaConvertSubExprs' expr
 -- Leave all other expressions unchanged.
 etaConvertSubExprs expr@(IR.Con _ _ _)             = return expr
 etaConvertSubExprs expr@(IR.Var _ _ _)             = return expr
@@ -319,6 +320,7 @@ arityOf (IR.If _ _ _ _ _)        = return 0
 arityOf (IR.Case _ _ _ _)        = return 0
 arityOf (IR.Undefined _ _)       = return 0
 arityOf (IR.ErrorExpr _ _ _)     = return 0
+arityOf (IR.Trace _ _ _ _)       = return 0
 arityOf (IR.IntLiteral _ _ _)    = return 0
 arityOf (IR.Lambda _ _ _ _)      = return 0
 arityOf (IR.Let _ _ _ _)         = return 0

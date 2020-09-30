@@ -12,6 +12,8 @@ module FreeC.IR.Subterm
   , rootPos
   , consPos
   , parentPos
+  , parentPos'
+  , ancestorPos
   , allPos
   , above
   , below
@@ -26,12 +28,15 @@ module FreeC.IR.Subterm
   , replaceSubterms'
     -- * Searching for Subterms
   , findSubtermPos
+  , findSubtermWithPos
   , findSubterms
   , findFirstSubterm
     -- * Replacing Subterms
   , mapSubterms
   , mapSubtermsM
     -- * Bound Variables
+  , boundVarsOf
+  , boundVarsWithTypeOf
   , boundVarsAt
   , boundVarsWithTypeAt
   ) where
@@ -39,7 +44,7 @@ module FreeC.IR.Subterm
 import           Control.Monad         ( foldM )
 import           Data.Composition      ( (.:) )
 import           Data.Functor.Identity ( runIdentity )
-import           Data.List             ( intersperse, isPrefixOf )
+import           Data.List             ( inits, intersperse, isPrefixOf )
 import           Data.Map.Strict       ( Map )
 import qualified Data.Map.Strict       as Map
 import           Data.Maybe            ( fromMaybe, listToMaybe )
@@ -119,6 +124,7 @@ instance Subterm IR.Expr where
   childTerms (IR.Var _ _ _)              = []
   childTerms (IR.Undefined _ _)          = []
   childTerms (IR.ErrorExpr _ _ _)        = []
+  childTerms (IR.Trace _ _ e _)          = [e]
   childTerms (IR.IntLiteral _ _ _)       = []
   childTerms (IR.Let _ binds e _)        = e : map IR.bindExpr binds
 
@@ -151,6 +157,8 @@ instance Subterm IR.Expr where
   replaceChildTerms expr@(IR.Var _ _ _) = nullary expr
   replaceChildTerms expr@(IR.Undefined _ _) = nullary expr
   replaceChildTerms expr@(IR.ErrorExpr _ _ _) = nullary expr
+  replaceChildTerms (IR.Trace srcSpan msg _ exprType)
+    = checkArity 1 $ \[e'] -> IR.Trace srcSpan msg e' exprType
   replaceChildTerms expr@(IR.IntLiteral _ _ _) = nullary expr
 
 -- | Type expressions have subterms.
@@ -196,11 +204,24 @@ rootPos = Pos []
 consPos :: Int -> Pos -> Pos
 consPos p (Pos ps) = Pos (p : ps)
 
+-- |  Gets the parent position or @Nothing@ if the given position is the
+--    root position.
+--
+--   Returns the index of the child term and the position of the parent term.
+parentPos' :: Pos -> Maybe (Int, Pos)
+parentPos' (Pos []) = Nothing
+parentPos' (Pos ps) = Just (last ps, Pos (init ps))
+
 -- | Gets the parent position or @Nothing@ if the given position is the
 --   root position.
 parentPos :: Pos -> Maybe Pos
 parentPos (Pos ps) | null ps = Nothing
                    | otherwise = Just (Pos (init ps))
+
+-- | Gets the positions of all ancestors of the the given position including
+--   the position itself.
+ancestorPos :: Pos -> [Pos]
+ancestorPos (Pos ps) = map Pos (inits ps)
 
 -- | Gets all valid positions of subterms within the given Haskell expression.
 allPos :: Subterm a => a -> [Pos]
@@ -294,14 +315,19 @@ replaceSubterms' = foldl (\term (pos, term') -> replaceSubterm' term pos term')
 -- | Gets a list of positions for subterms of the given expression that
 --   satisfy the provided predicate.
 findSubtermPos :: Subterm a => (a -> Bool) -> a -> [Pos]
-findSubtermPos predicate term = filter (predicate . selectSubterm' term)
-  (allPos term)
+findSubtermPos predicate = map snd
+  . findSubtermWithPos (flip (const predicate))
+
+-- | Like 'findSubtermPos' but the predicate gets the position as an additional
+--   argument and also returns the subterm.
+findSubtermWithPos :: Subterm a => (a -> Pos -> Bool) -> a -> [(a, Pos)]
+findSubtermWithPos predicate term = filter (uncurry predicate)
+  (map (selectSubterm' term &&& id) (allPos term))
 
 -- | Gets a list of subterms of the given expression that satisfy the
 --   provided predicate.
 findSubterms :: Subterm a => (a -> Bool) -> a -> [a]
-findSubterms predicate term = filter predicate
-  (map (selectSubterm' term) (allPos term))
+findSubterms predicate = map fst . findSubtermWithPos (flip (const predicate))
 
 -- | Gets the first subterm of the given expression that satisfies the
 --   provided predicate.
@@ -329,6 +355,52 @@ mapSubtermsM f term = do
 -------------------------------------------------------------------------------
 -- Bound Variables                                                           --
 -------------------------------------------------------------------------------
+-- | Gets the names of variables that are bound by the given expression in its
+--   subterm at the given index.
+--
+--   For example, a @case@-expression
+--
+--   > case e { … ; Cᵢ x₁ … xₙ -> eᵢ ; … }
+--
+--   with subterms @[e, e₁, …, eₙ]@ binds the variables @x₁ … xₙ@ in it's
+--   @i+1@th subterm @eᵢ@ but no variables are bound in @e@ (i.e., if @i = 0@).
+--
+--   Returns an empty map if the expression does not have such a subterm.
+boundVarsOf :: IR.Expr -> Int -> Set IR.QName
+boundVarsOf = Map.keysSet .: boundVarsWithTypeOf
+
+-- | Like 'boundVarsOf' but also returns the annotated type of the
+--   variable pattern.
+--
+--   Returns an empty map if the expression does not have such a subterm.
+boundVarsWithTypeOf :: IR.Expr -> Int -> Map IR.QName (Maybe IR.Type)
+boundVarsWithTypeOf expr i = case expr of
+  -- A lambda abstraction binds the arguments in the right-hand side.
+  IR.Lambda _ args _ _   -> fromVarPats args
+  -- A @let@-expression binds local variables in the @in@-expression
+  -- as well as all binders.
+  IR.Let _ binds _ _     -> fromVarPats (map IR.bindVarPat binds)
+  -- Only alternatives of @case@-expressions bind variables.
+  -- The @case@-expression itself does not bind any variables.
+  IR.Case _ _ alts _     | i >= 1 && i <= length alts -> fromVarPats
+                           (IR.altVarPats (alts !! (i - 1)))
+                         | otherwise -> Map.empty
+  -- All other expressions don't bind variables.
+  IR.Con _ _ _           -> Map.empty
+  IR.Var _ _ _           -> Map.empty
+  IR.App _ _ _ _         -> Map.empty
+  IR.TypeAppExpr _ _ _ _ -> Map.empty
+  IR.If _ _ _ _ _        -> Map.empty
+  IR.Undefined _ _       -> Map.empty
+  IR.ErrorExpr _ _ _     -> Map.empty
+  IR.Trace _ _ _ _       -> Map.empty
+  IR.IntLiteral _ _ _    -> Map.empty
+ where
+  -- | Converts a list of variable patterns to a from of variable names bound
+  --   by these patterns to the types they have been annotated with.
+  fromVarPats :: [IR.VarPat] -> Map IR.QName (Maybe IR.Type)
+  fromVarPats = Map.fromList . map (IR.varPatQName &&& IR.varPatType)
+
 -- | Gets the names of variables that are bound by lambda abstractions or
 --   variable patterns in @case@-expressions at the given position of an
 --   expression.
@@ -351,21 +423,6 @@ boundVarsWithTypeAt = fromMaybe Map.empty .: boundVarsWithTypeAt'
   boundVarsWithTypeAt' _ (Pos [])          = return Map.empty
   boundVarsWithTypeAt' expr (Pos (p : ps)) = do
     child <- selectSubterm expr (Pos [p])
-    bvars <- boundVarsWithTypeAt' child (Pos ps)
-    case expr of
-      (IR.Case _ _ alts _)
-        | p > 1 -> do
-          let altVars = altBoundVarsWithType (alts !! (p - 2))
-          return (bvars `Map.union` altVars)
-      (IR.Lambda _ args _ _) -> return (bvars `Map.union` fromVarPats args)
-      _ -> return bvars
-
-  -- | Gets the names of variables bound by the variable patterns of the given
-  --   @case@-expression alternative.
-  altBoundVarsWithType :: IR.Alt -> Map IR.QName (Maybe IR.Type)
-  altBoundVarsWithType (IR.Alt _ _ varPats _) = fromVarPats varPats
-
-  -- | Converts a list of variable patterns to a set of variable names bound
-  --   by these patterns.
-  fromVarPats :: [IR.VarPat] -> Map IR.QName (Maybe IR.Type)
-  fromVarPats = Map.fromList . map (IR.varPatQName &&& IR.varPatType)
+    boundInChild <- boundVarsWithTypeAt' child (Pos ps)
+    let boundLocally = boundVarsWithTypeOf expr (p - 1)
+    return (boundInChild `Map.union` boundLocally)

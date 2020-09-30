@@ -739,6 +739,10 @@ instance Resolvable IR.Expr where
     alts' <- resolve alts
     exprType' <- resolve exprType
     return (IR.Case srcSpan scrutinee' alts' exprType')
+  resolve (IR.Trace srcSpan msg expr exprType)            = do
+    expr' <- resolve expr
+    exprType' <- mapM resolve exprType
+    return (IR.Trace srcSpan msg expr' exprType')
   -- Only resolve in type annotation of other expressions.
   resolve (IR.Undefined srcSpan exprType)                 = do
     exprType' <- resolve exprType
