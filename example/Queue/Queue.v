@@ -102,9 +102,9 @@ Lemma append1_assoc :
       = append Shape Pos (append1 Shape Pos a fys xs) fzs.
 Proof.
   intros Shape Pos a xs fys fzs.
-  induction xs using List_Ind.
+  induction xs.
   - reflexivity.
-  - induction fxs using Free_Ind.
+  - induction fxs.
     + simpl. simplify H as IH. rewrite IH. reflexivity.
     + (*Inductive case: [fxs = impure s pf] with induction hypothesis [H] *)
       simpl. do 3 apply f_equal. extensionality p.
@@ -114,7 +114,7 @@ Qed.
 Lemma append_assoc : quickCheck prop_append_assoc.
 Proof.
   intros Shape Pos a NF fxs fys fzs.
-  induction fxs as [ | s pf IH ] using Free_Ind.
+  induction fxs as [ | s pf IH ].
   - simpl. apply append1_assoc.
   - (*Inductive case: [fxs = impure s pf] with induction hypothesis [IH] *)
     simpl. apply f_equal. extensionality p.
@@ -202,14 +202,14 @@ Qed.
 Theorem prop_add_theorem : quickCheck prop_add.
 Proof.
   intros Shape Pos a NF fx fqi.
-  induction fqi as [ [f1 f2] | eq ] using Free_Ind; simpl.
+  induction fqi as [ [f1 f2] | eq ]; simpl.
   - destruct f1 as [l | s pf]; simpl.
     + destruct l as [ | fy fys]; simpl.
       * specialize (append_nil Shape Pos a NF) as appNil. simpl in appNil.
         rewrite appNil. reflexivity.
       * apply (append_assoc Shape Pos _ NF (pure (cons fy fys)) (reverse Shape Pos f2) (singleton Shape Pos fx)).
     + repeat apply f_equal. extensionality p.
-      induction (pf p) as [fys |] using Free_Ind; simpl.
+      induction (pf p) as [fys |]; simpl.
       * destruct fys; simpl.
         -- specialize (append_nil Shape Pos a NF) as appNil. simpl in appNil. rewrite appNil.
            reflexivity.

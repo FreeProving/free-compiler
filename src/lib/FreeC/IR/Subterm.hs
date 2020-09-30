@@ -12,6 +12,8 @@ module FreeC.IR.Subterm
   , rootPos
   , consPos
   , parentPos
+  , parentPos'
+  , ancestorPos
   , allPos
   , above
   , below
@@ -26,6 +28,7 @@ module FreeC.IR.Subterm
   , replaceSubterms'
     -- * Searching for Subterms
   , findSubtermPos
+  , findSubtermWithPos
   , findSubterms
   , findFirstSubterm
     -- * Replacing Subterms
@@ -41,7 +44,7 @@ module FreeC.IR.Subterm
 import           Control.Monad         ( foldM )
 import           Data.Composition      ( (.:) )
 import           Data.Functor.Identity ( runIdentity )
-import           Data.List             ( intersperse, isPrefixOf )
+import           Data.List             ( inits, intersperse, isPrefixOf )
 import           Data.Map.Strict       ( Map )
 import qualified Data.Map.Strict       as Map
 import           Data.Maybe            ( fromMaybe, listToMaybe )
@@ -201,11 +204,24 @@ rootPos = Pos []
 consPos :: Int -> Pos -> Pos
 consPos p (Pos ps) = Pos (p : ps)
 
+-- |  Gets the parent position or @Nothing@ if the given position is the
+--    root position.
+--
+--   Returns the index of the child term and the position of the parent term.
+parentPos' :: Pos -> Maybe (Int, Pos)
+parentPos' (Pos []) = Nothing
+parentPos' (Pos ps) = Just (last ps, Pos (init ps))
+
 -- | Gets the parent position or @Nothing@ if the given position is the
 --   root position.
 parentPos :: Pos -> Maybe Pos
 parentPos (Pos ps) | null ps = Nothing
                    | otherwise = Just (Pos (init ps))
+
+-- | Gets the positions of all ancestors of the the given position including
+--   the position itself.
+ancestorPos :: Pos -> [Pos]
+ancestorPos (Pos ps) = map Pos (inits ps)
 
 -- | Gets all valid positions of subterms within the given Haskell expression.
 allPos :: Subterm a => a -> [Pos]
@@ -299,14 +315,19 @@ replaceSubterms' = foldl (\term (pos, term') -> replaceSubterm' term pos term')
 -- | Gets a list of positions for subterms of the given expression that
 --   satisfy the provided predicate.
 findSubtermPos :: Subterm a => (a -> Bool) -> a -> [Pos]
-findSubtermPos predicate term = filter (predicate . selectSubterm' term)
-  (allPos term)
+findSubtermPos predicate = map snd
+  . findSubtermWithPos (flip (const predicate))
+
+-- | Like 'findSubtermPos' but the predicate gets the position as an additional
+--   argument and also returns the subterm.
+findSubtermWithPos :: Subterm a => (a -> Pos -> Bool) -> a -> [(a, Pos)]
+findSubtermWithPos predicate term = filter (uncurry predicate)
+  (map (selectSubterm' term &&& id) (allPos term))
 
 -- | Gets a list of subterms of the given expression that satisfy the
 --   provided predicate.
 findSubterms :: Subterm a => (a -> Bool) -> a -> [a]
-findSubterms predicate term = filter predicate
-  (map (selectSubterm' term) (allPos term))
+findSubterms predicate = map fst . findSubtermWithPos (flip (const predicate))
 
 -- | Gets the first subterm of the given expression that satisfies the
 --   provided predicate.

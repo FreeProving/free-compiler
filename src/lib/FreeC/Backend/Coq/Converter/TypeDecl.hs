@@ -138,7 +138,9 @@ convertDataDecls dataDecls = do
   return
     ( Coq.comment ("Data type declarations for "
                    ++ showPretty (map IR.typeDeclName dataDecls))
+        : Coq.unsetOption (Just Coq.Local) "Elimination Schemes"
         : Coq.InductiveSentence (Coq.Inductive (NonEmpty.fromList indBodies) [])
+        : Coq.setOption (Just Coq.Local) "Elimination Schemes" Nothing
         : extraSentences ++ instances
     , qualSmartConDecls
     )
