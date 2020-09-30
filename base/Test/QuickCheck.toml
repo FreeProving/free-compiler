@@ -7,7 +7,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
-version = 4
+version = 5
 module-name = 'Test.QuickCheck'
 library-name = 'Base'
 exported-types = [
@@ -45,6 +45,7 @@ exported-values = [
   arity           = 1
   effects         = []
   needs-free-args = true
+  encapsulates-effects = true
 
 ##############################################################################
 # Operators                                                                  #
@@ -58,6 +59,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = true
 
 [[functions]]
   haskell-type    = 'a -> a -> Test.QuickCheck.Property'
@@ -67,6 +69,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = true
 
 [[functions]]
   haskell-type    = 'a -> a -> Test.QuickCheck.Property'
@@ -76,6 +79,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = true
 
 [[functions]]
   haskell-type    = 'Test.QuickCheck.Property -> Test.QuickCheck.Property -> Test.QuickCheck.Property'
@@ -85,6 +89,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = true
 
 [[functions]]
   haskell-type    = 'Test.QuickCheck.Property -> Test.QuickCheck.Property -> Test.QuickCheck.Property'
@@ -94,6 +99,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = true
 
 ##############################################################################
 # Imported from `Prelude`                                                    #

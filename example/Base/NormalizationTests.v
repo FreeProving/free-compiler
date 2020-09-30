@@ -2,6 +2,7 @@
 
 From Base Require Import Free.
 From Base Require Import Free.Handlers.
+From Base Require Import Free.Instance.Error.
 From Base Require Import Free.Instance.Identity.
 From Base Require Import Free.Instance.Maybe.
 From Base Require Import Free.Instance.ND.
@@ -44,8 +45,9 @@ Definition evalNDMaybe {A : Type} p
 Definition IdS := Identity.Shape.
 Definition IdP := Identity.Pos.
 
-(* Infer Shape and Pos for the Maybe Partial instance for convenience- *)
+(* Infer Shape and Pos for Partial instances for convenience. *)
 Arguments Maybe.Partial {_} {_} {_}.
+Arguments Error.Partial {_} {_} {_}.
 
 (* Effectful lists *)
 Section SecData.
@@ -269,12 +271,17 @@ Example componentEffectND : handleND coinList
     (List.cons (True_ IdS IdP) (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)))].
 Proof. constructor. Qed.
 
-(* [true, undefined] --> undefined *)
+(* [true, undefined] --> undefined with the Maybe instance of Partial *)
 Example componentEffectPartial : handleMaybe (partialList Maybe.Partial)
  = None.
 Proof. constructor. Qed.
 
-(* [true, false ? undefined] --> undefined *)
+(* [true, undefined] --> undefined with the Error instance of Partial *)
+Example componentEffectPartialError : handleError (partialList Error.Partial)
+ = inr "undefined".
+Proof. constructor. Qed.
+
+(* [true, false ? undefined] --> undefined with the ND instance of Partial *)
 Example componentEffectPartialND : handleNDMaybe (partialCoinList Maybe.Partial)
  = None.
 Proof. constructor. Qed.
@@ -282,7 +289,7 @@ Proof. constructor. Qed.
 (* Normalization combined with non-strictness. *)
 
 (* Non-strictness should be preserved, so no tracing should occur.
-   head _ _ MaybePartial [true, trace "component effect" false] --> (true,[]) *)
+   head _ _ Maybe.Partial [true, trace "component effect" false] --> (true,[]) *)
 Example nonStrictnessNoTracing : handleMaybeTrace (List.head _ _ Maybe.Partial traceList)
  = (Some true, []).
 Proof. constructor. Qed.
@@ -304,11 +311,20 @@ Proof. constructor. Qed.
 
 (* head _ _ Maybe.Partial [true, false ? undefined] --> true *)
 (* Since non-determinism and Maybe are still handled, the actual
-   result should be [Some true]. *)
+   result should be Some [true]. *)
 Example nonStrictnessNDPartiality : handleNDMaybe
                                     (List.head _ _ Maybe.Partial
                                       (partialCoinList Maybe.Partial))
  = Some [true].
+Proof. constructor. Qed.
+
+(* head _ _ Error.Partial [true, false ? undefined] --> true *)
+(* Since non-determinism and Error are still handled, the actual
+   result should be inl [true]. *)
+Example nonStrictnessNDPartialityError : handleNDError
+                                    (List.head _ _ Error.Partial
+                                      (partialCoinList Error.Partial))
+ = inl [true].
 Proof. constructor. Qed.
 
 (* Effects at different levels are accumulated. *)

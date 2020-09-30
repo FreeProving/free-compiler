@@ -176,6 +176,13 @@ conApp srcSpan = app srcSpan . untypedCon srcSpan
 visibleTypeApp :: SrcSpan -> Expr -> [Type] -> Expr
 visibleTypeApp = foldl . untypedTypeAppExpr
 
+-- | Returns the function name of a function application, or @Nothing@ if the
+--   given expression is not a function application.
+getFuncName :: Expr -> Maybe VarName
+getFuncName (Var _ varName _) = Just varName
+getFuncName (App _ lhs _ _)   = getFuncName lhs
+getFuncName _                 = Nothing
+
 -- | Pretty instance for expressions.
 --
 --   If the expression contains type annotations, the output quickly becomes
@@ -310,6 +317,11 @@ data VarPat = VarPat { varPatSrcSpan  :: SrcSpan
                      }
  deriving ( Eq, Show )
 
+-- | Instance to get the name of a @let@-binding.
+instance HasDeclIdent VarPat where
+  declIdent varPat = DeclIdent (varPatSrcSpan varPat)
+    (UnQual (Ident (varPatIdent varPat)))
+
 -- | Gets the name of the given variable pattern.
 varPatName :: VarPat -> Name
 varPatName = Ident . varPatIdent
@@ -340,10 +352,14 @@ instance Pretty VarPat where
 -------------------------------------------------------------------------------
 -- @let@ Bindings                                                            --
 -------------------------------------------------------------------------------
--- | A binding of a variable to an expression inside of a let clause
+-- | A binding of a variable to an expression inside of a @let@-expression.
 data Bind
   = Bind { bindSrcSpan :: SrcSpan, bindVarPat :: VarPat, bindExpr :: Expr }
  deriving ( Eq, Show )
+
+-- | Instance to get the name of a @let@-binding.
+instance HasDeclIdent Bind where
+  declIdent = declIdent . bindVarPat
 
 -- | Pretty instance for @let@ expression binds.
 instance Pretty Bind where
