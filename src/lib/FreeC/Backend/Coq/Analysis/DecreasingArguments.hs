@@ -169,7 +169,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
       in checkExpr (initDepthMap decArg) rhs
 
   -- | Tests whether there is a variable that is structurally smaller than the
-  --   potential decreasing argument in the position of the decreasing argumnet
+  --   potential decreasing argument in the position of the decreasing argument
   --   for all applications of functions from the strongly connected component.
   --
   --   The first argument maps variables that are known to be structurally

@@ -76,7 +76,7 @@ flatFuncDecl funcDecl = do
   rhs' <- flattenExpr (IR.funcDeclRhs funcDecl)
   return funcDecl { IR.funcDeclRhs = rhs' }
 
--- | Converts an expression into a 'flattened Form'.
+-- | Converts an expression into a 'flattened form'.
 --   @let@-expressions are generated as deep as possible without
 --   duplicating @let@-expressions.
 --
