@@ -336,6 +336,7 @@ reservedIdents
     , injectable
     , strategy
     , strategyArg
+    , strategyNotation
     , shareableArgs
     , shareArgs
     , normalform

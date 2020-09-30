@@ -159,7 +159,7 @@ Section SecQuickCheck.
     (fx : Free' A) (fy : Free' A)
     : Free' Property'
    := pure (fun handler => 
-             @handle Shape Pos A (handler A NF) fx = handle fy).
+             handle fx = handle fy).
 
   (* [(=/=) :: a -> a -> Property] *)
   Definition neqProp (A : Type) `(NF : Normalform Shape Pos A) 
