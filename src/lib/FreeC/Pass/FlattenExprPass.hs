@@ -144,6 +144,6 @@ buildLet e' typeArgs args = do
 --   effects.
 shouldEncapsulateEffects :: IR.Expr -> Converter Bool
 shouldEncapsulateEffects expr = case IR.getFuncName expr of
-                                     Nothing -> return False
-                                     Just name -> inEnv $ encapsulatesEffects name
+  Nothing   -> return False
+  Just name -> inEnv $ encapsulatesEffects name
 

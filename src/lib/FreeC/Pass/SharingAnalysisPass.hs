@@ -156,8 +156,8 @@ analyseLocalSharing varPats expr@(IR.App srcSpan lhs rhs typeScheme) = do
 --   effects.
 shouldEncapsulateSharing :: IR.Expr -> Converter Bool
 shouldEncapsulateSharing expr = case IR.getFuncName expr of
-                                     Nothing -> return False
-                                     Just name -> inEnv $ encapsulatesEffects name
+  Nothing   -> return False
+  Just name -> inEnv $ encapsulatesEffects name
 
 -- | Builds let expressions for variables with more than one occurrence
 --   for each argument of a function that encapsulates effects.
