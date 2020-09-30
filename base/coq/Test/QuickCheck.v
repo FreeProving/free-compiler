@@ -8,13 +8,6 @@ From Base Require Import Free.Instance.Maybe.
 Definition Property (Shape : Type) (Pos : Shape -> Type) := forall (handler : forall (A : Type) (NF : Normalform Shape Pos A),
  Handler Shape Pos A), Prop.
 
-
-(* Normalform instance for Property. *)
-Instance NormalformProperty (Shape : Type) (Pos : Shape -> Type)
-  : Normalform Shape Pos (Property Shape Pos) := {
-    nf' := pure
-}.
-
 (* ShareableArgs instance for Property. *)
 Instance ShareableArgsProperty (Shape : Type) (Pos : Shape -> Type)
   : ShareableArgs Shape Pos (Property Shape Pos) := {
