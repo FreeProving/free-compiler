@@ -25,8 +25,10 @@ function printErrorAndDie() {
 haddock_output=$(mktemp)
 
 # Run tests with cabal.
-cabal new-haddock --haddock-all                   \
-                  --haddock-hyperlink-source 2>&1 | tee "$haddock_output"
+cabal new-haddock --haddock-all                    \
+                  --haddock-hyperlink-source       \
+                  --flags "-PolysemyPluginEnabled" \
+                  2>&1 | tee "$haddock_output"
 
 # Cabal currently does not set the exit status correctly when the Haddock
 # command fails. Thus we have to set the exit status ourselves.

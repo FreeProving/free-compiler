@@ -3,17 +3,33 @@
 --   report a fatal error message when there is no such entry.
 module FreeC.Environment.LookupOrFail where
 
-import           Data.Composition          ( (.:), (.:.) )
+import           Data.Composition                  ( (.:), (.:.) )
 
-import qualified FreeC.Backend.Agda.Syntax as Agda
-import qualified FreeC.Backend.Coq.Syntax  as Coq
+import qualified FreeC.Backend.Agda.Syntax         as Agda
+import qualified FreeC.Backend.Coq.Syntax          as Coq
 import           FreeC.Environment
 import           FreeC.Environment.Entry
+import           FreeC.Environment.ModuleInterface
 import           FreeC.IR.SrcSpan
-import qualified FreeC.IR.Syntax           as IR
+import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
 import           FreeC.Pretty
+
+-- | Looks up the module interface for the module with the given name in the
+--   current environment or reports a fatal error message if no such module
+--   interface is available.
+--
+--   If an error is reported, it points to the given source span.
+lookupAvailableModuleOrFail
+  :: SrcSpan -> IR.ModName -> Converter ModuleInterface
+lookupAvailableModuleOrFail srcSpan modName = do
+  maybeInterface <- inEnv $ lookupAvailableModule modName
+  case maybeInterface of
+    Just interface -> return interface
+    Nothing        -> reportFatal
+      $ Message srcSpan Error
+      $ "Module '" ++ showPretty modName ++ "' not found."
 
 -- | Looks up an entry of the environment with the given name or reports
 --   a fatal error message if the identifier has not been defined or the

@@ -42,6 +42,14 @@ data-files:          base/Prelude.toml
 -- Build configuration.
 build-type:          Simple
 
+-- A flag that controls whether the Polysemy plugin should be enabled or not.
+-- The plugin is disabled by the `./tool/make-docs.sh` script since Haddock
+-- does not support plugins.
+flag PolysemyPluginEnabled
+  description: Enable polysemy plugin
+  default:     True
+  manual:      False
+
 -- Common settings and dependencies that are used by all stanzas below.
 common deps
   build-depends:     base                        ==4.12.*
@@ -60,14 +68,16 @@ common deps
                    , containers                  ==0.6.*
                    , ordered-containers          ==0.2.*
                    , vector                      ==0.12.*
-                     -- Monad transformers:
+                     -- Monad Transformers and Effects:
                    , mtl                         ==2.2.*
+                   , polysemy                    ==1.3.*
+                   , polysemy-plugin             ==0.2.5.*
                    , transformers                ==0.5.*
                      -- Parsing:
                    , parsec                      ==3.1.*
                    , regexpr                     ==0.5.*
                      -- Pattern matching compiler:
-                   , haskell-src-transformations ==0.1.*
+                   , haskell-src-transformations ==0.2.*
                      -- Pretty printing:
                    , text                        ==1.2.*
                    , wl-pprint-text              ==1.2.*
@@ -78,6 +88,15 @@ common deps
                    , extra                       ==1.7.*
   default-language:  Haskell2010
   ghc-options:       -Wall
+
+  -- The Polysemy plugin is currently not supported by Haddock. Thus, the
+  -- plugin needs to be disabled when building the documentation. The
+  -- resulting type errors have to be ignored.
+  if flag(PolysemyPluginEnabled)
+    ghc-options:       -fplugin=Polysemy.Plugin
+  else
+    ghc-options:       -fdefer-type-errors
+                       -fno-warn-deferred-type-errors
 
 -- Build configuration for an internal library that contains the actual
 -- implementation of the compiler. The both the unit tests and the command

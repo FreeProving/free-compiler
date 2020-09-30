@@ -1,7 +1,6 @@
 -- | This is the main module for the compiler's command line interface.
 module Main where
 
-import           Control.Monad                             ( (>=>) )
 import           Control.Monad.Extra
   ( findM, unlessM, whenM )
 import           Control.Monad.IO.Class
@@ -19,6 +18,7 @@ import           FreeC.Application.Options
 import           FreeC.Application.Options.Parser
 import           FreeC.Backend
 import           FreeC.Environment
+import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.ModuleInterface.Decoder
 import           FreeC.Environment.ModuleInterface.Encoder
 import           FreeC.Frontend
@@ -47,7 +47,7 @@ main = runApp compiler
 --
 --   Prints the help message if the @--help@ option or no input file was
 --   specified. Otherwise all input files are processed (see
---   'convertInputModule'). If a fatal message is reported while processing
+--   'convertInputModuleWith'). If a fatal message is reported while processing
 --   any input file, the compiler will exit. All reported messages will be
 --   printed to @stderr@.
 compiler :: Application ()
@@ -74,11 +74,16 @@ compiler = do
   loadPrelude
   backendSpecialAction backend
   -- Process input files.
-  modules <- inOpts optInputFiles
-    >>= mapM (parseInputFile $ frontendParseFile frontend)
-    >>= sortInputModules
-  modules' <- mapM (convertInputModule $ backendConvertModule backend) modules
-  mapM_ (uncurry (outputModule $ backendFileExtension backend)) modules'
+  case frontend of
+    Frontend
+      { frontendParseFile = parser, frontendSimplifyModule = simplifier } -> do
+        let Backend { backendConvertModule = converter } = backend
+        inputFiles <- inOpts optInputFiles
+        inputModules <- mapM (parseInputFileWith parser) inputFiles
+        sortedModules <- sortInputModules inputModules
+        outputModules <- mapM (convertInputModuleWith simplifier converter)
+          sortedModules
+        mapM_ (uncurry (writeOutputModule backend)) outputModules
 
 -------------------------------------------------------------------------------
 -- Front- and Backend Selection                                              --
@@ -114,37 +119,39 @@ selectBackend = do
 -------------------------------------------------------------------------------
 -- Input Files                                                               --
 -------------------------------------------------------------------------------
--- | Parses the given input file with the given parser function.
-parseInputFile
-  :: (SrcFile -> Application IR.Module) -> FilePath -> Application IR.Module
-parseInputFile parser inputFile = reportApp $ do
-  -- Parse and simplify input file.
+-- | Parses the given input file with the given parsing function.
+parseInputFileWith
+  :: FrontendParser decls -> FilePath -> Application (IR.ModuleOf decls)
+parseInputFileWith parser inputFile = reportApp $ do
   putDebug $ "Loading " ++ inputFile
   contents <- liftIO $ readFile inputFile
-  parser $ mkSrcFile inputFile contents
+  parser (mkSrcFile inputFile contents)
 
 -- | Sorts the given modules based on their dependencies.
 --
 --   If the module dependencies form a cycle, a fatal error is reported.
-sortInputModules :: [IR.Module] -> Application [IR.Module]
+sortInputModules :: [IR.ModuleOf decls] -> Application [IR.ModuleOf decls]
 sortInputModules = mapM checkForCycle . groupModules
  where
-  checkForCycle :: DependencyComponent IR.Module -> Application IR.Module
+  checkForCycle :: DependencyComponent (IR.ModuleOf decls)
+                -> Application (IR.ModuleOf decls)
   checkForCycle (NonRecursive m) = return m
   checkForCycle (Recursive ms)   = reportFatal
     $ Message NoSrcSpan Error
     $ "Module imports form a cycle: "
     ++ intercalate ", " (map (showPretty . IR.modName) ms)
 
--- | Converts the given module with the given converter function.
+-- | Converts the given module with the given simplification and conversion
+--   functions.
 --
 --   The resulting string is written to the console or output file.
-convertInputModule :: (IR.Module -> Application String)
-                   -> IR.Module
-                   -> Application (IR.ModName, String)
-convertInputModule converter ast = do
-  let modName = IR.modName ast
-      srcSpan = IR.modSrcSpan ast
+convertInputModuleWith :: FrontendSimplifier decls
+                       -> BackendConverter
+                       -> IR.ModuleOf decls
+                       -> Application (IR.ModName, String)
+convertInputModuleWith simplifier converter inputModule = do
+  let modName = IR.modName inputModule
+      srcSpan = IR.modSrcSpan inputModule
   if hasSrcSpanFilename srcSpan
     then putDebug
       $ "Compiling "
@@ -154,27 +161,34 @@ convertInputModule converter ast = do
       ++ ")"
     else putDebug $ "Compiling " ++ showPretty modName
   reportApp $ do
-    loadRequiredModules ast
-    prog <- moduleEnv $ (liftConverter . runPipeline >=> converter) ast
-    return (modName, prog)
+    loadRequiredModules inputModule
+    moduleEnv $ do
+      inputModule' <- simplifier inputModule
+      outputModule <- liftConverter $ runPipeline inputModule'
+      outputModule' <- converter outputModule
+      return (modName, outputModule')
 
 -------------------------------------------------------------------------------
 -- Output                                                                    --
 -------------------------------------------------------------------------------
--- | Output a module that has been generated from a IR module
---   with the given name.
+-- | Output a module that has been generated by the given backend from an IR
+--   module with the given name.
 --
---  The generated file has the given file extension.
-outputModule :: String -> IR.ModName -> String -> Application ()
-outputModule ext modName outputStr = do
+--   If the @--output@ command line option was specified, the output module is
+--   written to a file whose name is based on the module name and whose
+--   extension depends on the given back end. Otherwise, the output module is
+--   printed to the console.
+writeOutputModule :: Backend -> IR.ModName -> String -> Application ()
+writeOutputModule backend modName outputStr = do
   maybeOutputDir <- inOpts optOutputDir
   case maybeOutputDir of
     Nothing        -> liftIO $ putPrettyLn outputStr
     Just outputDir -> do
       let outputPath = map (\c -> if c == '.' then '/' else c) modName
-          outputFile = outputDir </> outputPath <.> ext
+          outputFile
+            = outputDir </> outputPath <.> backendFileExtension backend
           ifaceFile  = outputDir </> outputPath <.> "json"
-      Just iface <- inEnv $ lookupAvailableModule modName
+      iface <- liftConverter $ lookupAvailableModuleOrFail NoSrcSpan modName
       liftIO $ createDirectoryIfMissing True (takeDirectory outputFile)
       writeModuleInterface ifaceFile iface
       liftIO $ writePrettyFile outputFile outputStr
@@ -184,7 +198,7 @@ outputModule ext modName outputStr = do
 -------------------------------------------------------------------------------
 -- | Loads the environments of modules imported by the given modules from
 --   their environment file.
-loadRequiredModules :: IR.Module -> Application ()
+loadRequiredModules :: IR.ModuleOf decls -> Application ()
 loadRequiredModules = mapM_ loadImport . IR.modImports
 
 -- | Loads the environment of the module imported by the given declaration.

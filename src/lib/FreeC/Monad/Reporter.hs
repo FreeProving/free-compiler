@@ -62,7 +62,7 @@ import           FreeC.Pretty
 -- Messages                                                                  --
 -------------------------------------------------------------------------------
 -- | The severity of a message reported by the compiler.
-data Severity = Internal | Error | Warning | Info
+data Severity = Internal | Error | Warning | Info | Debug
  deriving ( Eq, Show )
 
 -- | A message reported by the compiler.
@@ -252,6 +252,7 @@ instance Pretty Severity where
   pretty Error    = prettyString "error"
   pretty Warning  = prettyString "warning"
   pretty Info     = prettyString "info"
+  pretty Debug    = prettyString "debug"
 
 -- | Pretty instance for messages.
 --

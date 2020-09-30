@@ -9,7 +9,8 @@ import qualified FreeC.Backend.Agda.Base               as Agda.Base
 import           FreeC.Backend.Agda.Converter.FuncDecl ( convertFuncDecls )
 import           FreeC.Backend.Agda.Converter.TypeDecl ( convertTypeDecls )
 import qualified FreeC.Backend.Agda.Syntax             as Agda
-import           FreeC.Environment                     ( lookupAvailableModule )
+import           FreeC.Environment.LookupOrFail
+  ( lookupAvailableModuleOrFail )
 import           FreeC.Environment.ModuleInterface     ( interfaceAgdaLibName )
 import           FreeC.IR.DependencyGraph
   ( typeDependencyComponents, valueDependencyComponents )
@@ -18,17 +19,18 @@ import           FreeC.Monad.Converter
 
 -- | Converts an IR module to an Agda declaration.
 convertModule :: IR.Module -> Converter Agda.Declaration
-convertModule (IR.Module _ name importDecls typeDecls _ _ funcDecls)
-  = Agda.moduleDecl (convertModName name)
+convertModule ast = Agda.moduleDecl (convertModName (IR.modName ast))
   <$> getAp (importDecls' <> typeDecls' <> funcDecls')
  where
-  importDecls' = Ap $ convertImportDecls importDecls
+  importDecls' = Ap $ convertImportDecls (IR.modImports ast)
 
-  typeDecls'
-    = Ap $ concatMapM convertTypeDecls $ typeDependencyComponents typeDecls
+  typeDecls'   = Ap
+    $ concatMapM convertTypeDecls
+    $ typeDependencyComponents (IR.modTypeDecls ast)
 
-  funcDecls'
-    = Ap $ concatMapM convertFuncDecls $ valueDependencyComponents funcDecls
+  funcDecls'   = Ap
+    $ concatMapM convertFuncDecls
+    $ valueDependencyComponents (IR.modFuncDecls ast)
 
 -- | Converts an IR module name to an Agda module name.
 convertModName :: IR.ModName -> Agda.QName
@@ -46,8 +48,8 @@ convertImportDecls imports = (Agda.Base.imports ++)
 
 -- | Convert an import declaration.
 convertImportDecl :: IR.ImportDecl -> Converter Agda.Declaration
-convertImportDecl (IR.ImportDecl _ modName) = do
-  Just iface <- inEnv $ lookupAvailableModule modName
+convertImportDecl (IR.ImportDecl srcSpan modName) = do
+  iface <- lookupAvailableModuleOrFail srcSpan modName
   return
     $ Agda.simpleImport
     $ Agda.qname [interfaceAgdaLibName iface]

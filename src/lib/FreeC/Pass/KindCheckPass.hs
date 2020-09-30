@@ -70,11 +70,11 @@ import           FreeC.Pretty          ( showPretty )
 --   variables or function types on the left-hand side in the module and checks
 --   whether all type construcors in the module are fully applied.
 kindCheckPass :: Pass IR.Module IR.Module
-kindCheckPass m@(IR.Module _ _ _ typeDecls typeSigs _ funcDecls) = do
-  mapM_ checkTypeDecl typeDecls
-  mapM_ checkTypeSig typeSigs
-  mapM_ checkFuncDecl funcDecls
-  return m
+kindCheckPass ast = do
+  mapM_ checkTypeDecl (IR.modTypeDecls ast)
+  mapM_ checkTypeSig (IR.modTypeSigs ast)
+  mapM_ checkFuncDecl (IR.modFuncDecls ast)
+  return ast
 
 -- | Checks whether all type expressions in a type declaration are correct.
 checkTypeDecl :: IR.TypeDecl -> Converter ()

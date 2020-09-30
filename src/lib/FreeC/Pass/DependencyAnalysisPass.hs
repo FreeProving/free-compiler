@@ -60,23 +60,23 @@ class DependencyAnalysisPass decl where
   getDecls :: IR.Module -> [decl]
 
   -- | Replaces the declarations of the node type in the given module.
-  setDecls :: IR.Module -> [decl] -> IR.Module
+  setDecls :: [decl] -> IR.Module -> IR.Module
 
 -- | The dependencies of type declarations can be analyzed.
 instance DependencyAnalysisPass IR.TypeDecl where
-  groupDecls         = typeDependencyComponents
+  groupDecls = typeDependencyComponents
 
-  getDecls           = IR.modTypeDecls
+  getDecls   = IR.modTypeDecls
 
-  setDecls ast decls = ast { IR.modTypeDecls = decls }
+  setDecls   = IR.modWithTypeDecls
 
 -- | The dependencies of function declarations can be analyzed.
 instance DependencyAnalysisPass IR.FuncDecl where
-  groupDecls         = valueDependencyComponents
+  groupDecls = valueDependencyComponents
 
-  getDecls           = IR.modFuncDecls
+  getDecls   = IR.modFuncDecls
 
-  setDecls ast decls = ast { IR.modFuncDecls = decls }
+  setDecls   = IR.modWithFuncDecls
 
 -- | Applies the given child passes to the strongly connected components
 --   of the dependency graph for declarations of type @decl@ of the given
@@ -89,4 +89,4 @@ dependencyAnalysisPass = subPipelinePass getComponents setComponents
  where
   getComponents     = groupDecls . getDecls
 
-  setComponents ast = setDecls ast . concatMap unwrapComponent
+  setComponents ast = flip setDecls ast . concatMap unwrapComponent

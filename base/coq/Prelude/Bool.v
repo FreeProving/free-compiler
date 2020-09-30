@@ -35,6 +35,9 @@ Section SecBool.
   Definition orBool (b1 : Free' Bool') (b2 : Free' Bool') : Free' Bool' :=
     b1 >>= fun(b1' : Bool') => if b1' then True_ Shape Pos else b2.
 
+  (* helper function for guards *)
+  Definition otherwise : Free' Bool' := True_ Shape Pos.
+
 End SecBool.
 
 (* Normalform instance for Bool *)
