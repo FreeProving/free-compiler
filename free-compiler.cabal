@@ -77,7 +77,7 @@ common deps
                    , parsec                      ==3.1.*
                    , regexpr                     ==0.5.*
                      -- Pattern matching compiler:
-                   , haskell-src-transformations ==0.1.*
+                   , haskell-src-transformations ==0.2.*
                      -- Pretty printing:
                    , text                        ==1.2.*
                    , wl-pprint-text              ==1.2.*

@@ -11,7 +11,7 @@ source-repository-package
 source-repository-package
   type: git
   location: git://github.com/FreeProving/haskell-src-transformations.git
-  tag: 8388ba8c5e92dbd1f54d9b72e42b94864fdab574
+  tag: v0.2.0.0-rc2
 
 -- Cabal configuration file for this package.
 packages: ./free-compiler.cabal
