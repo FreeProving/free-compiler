@@ -9,16 +9,24 @@ module FreeC.Backend.Coq.Base
   , free
   , shape
   , pos
+  , idShape
+  , idPos
   , freePureCon
   , freeImpureCon
   , freeBind
   , freeArgs
+  , shapeIdent
+  , posIdent
   , forFree
     -- * Partiality
   , partial
   , partialArg
   , partialUndefined
   , partialError
+    -- * Tracing
+  , traceable
+  , traceableArg
+  , trace
     -- * Modules
   , qualifiedSmartConstructorModule
     -- * Sharing
@@ -28,8 +36,15 @@ module FreeC.Backend.Coq.Base
   , strategyArg
   , shareableArgs
   , shareableArgsBinder
+  , shareArgs
+  , normalform
+  , normalformBinder
+  , nf'
+  , nf
+  , nType
   , implicitArg
   , share
+  , cbneed
   , call
     -- * Effect Selection
   , selectExplicitArgs
@@ -87,6 +102,14 @@ pos = Coq.Bare posIdent
 posIdent :: Coq.Ident
 posIdent = Coq.ident "Pos"
 
+-- | The Coq identifier for the @Identity@ shape.
+idShape :: Coq.Qualid
+idShape = Coq.Qualified (Coq.ident "Identity") shapeIdent
+
+-- | The Coq identifier for the @Identity@ position function.
+idPos :: Coq.Qualid
+idPos = Coq.Qualified (Coq.ident "Identity") posIdent
+
 -- | The Coq identifier for the @pure@ constructor of the @Free@ monad.
 freePureCon :: Coq.Qualid
 freePureCon = Coq.bare "pure"
@@ -136,6 +159,26 @@ partialError :: Coq.Qualid
 partialError = Coq.bare "error"
 
 -------------------------------------------------------------------------------
+-- Tracing                                                                   --
+-------------------------------------------------------------------------------
+-- | The Coq identifier for the @Traceable@ type class.
+traceable :: Coq.Qualid
+traceable = Coq.bare "Traceable"
+
+-- | The Coq identifier for the argument of the @Traceable@ type class.
+traceableArg :: Coq.Qualid
+traceableArg = Coq.bare "T"
+
+-- | The Coq binder for the @Traceable@ type class.
+tracableBinder :: Coq.Binder
+tracableBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit traceableArg
+  $ Coq.app (Coq.Qualid traceable) [Coq.Qualid shape, Coq.Qualid pos]
+
+-- | The identifier for the effect @trace@.
+trace :: Coq.Qualid
+trace = Coq.bare "trace"
+
+-------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
 -- | The name of the local module, where qualified smart constructor notations
@@ -143,6 +186,7 @@ partialError = Coq.bare "error"
 qualifiedSmartConstructorModule :: Coq.Ident
 qualifiedSmartConstructorModule = Coq.ident "QualifiedSmartConstructorModule"
 
+-------------------------------------------------------------------------------
 -- Sharing                                                                   --
 -------------------------------------------------------------------------------
 -- | The Coq identifier for the @Share@ module.
@@ -176,7 +220,7 @@ strategyBinder :: Coq.Binder
 strategyBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit strategyArg
   $ Coq.app (Coq.Qualid strategy) [Coq.Qualid shape, Coq.Qualid pos]
 
--- | The Coq binder for the @ShareableArgs@ type class.
+-- | The Coq identifier for the @ShareableArgs@ type class.
 shareableArgs :: Coq.Qualid
 shareableArgs = Coq.bare "ShareableArgs"
 
@@ -186,6 +230,10 @@ shareableArgsBinder :: Coq.Qualid -> Coq.Binder
 shareableArgsBinder typeArg = Coq.Generalized Coq.Implicit
   $ Coq.app (Coq.Qualid shareableArgs)
   $ map Coq.Qualid [shape, pos, typeArg]
+
+-- | The Coq identifier of the @ShareableArgs@ class function.
+shareArgs :: Coq.Qualid
+shareArgs = Coq.bare "shareArgs"
 
 -- | The Coq identifier for an implicit argument.
 implicitArg :: Coq.Term
@@ -199,6 +247,36 @@ share = Coq.bare "share"
 call :: Coq.Qualid
 call = Coq.bare "call"
 
+-- | The Coq identifier for the @cbneed@ operator.
+cbneed :: Coq.Qualid
+cbneed = Coq.bare "cbneed"
+
+-------------------------------------------------------------------------------
+-- Handling                                                                  --
+-------------------------------------------------------------------------------
+-- | The Coq identifier for the @Normalform@ type class.
+normalform :: Coq.Qualid
+normalform = Coq.bare "Normalform"
+
+-- | The Coq binder for the @Normalform@ type class with the source and target
+--   type variable with the given names.
+normalformBinder :: Coq.Qualid -> Coq.Binder
+normalformBinder sourceType = Coq.Generalized Coq.Implicit
+  $ Coq.app (Coq.Qualid normalform)
+  $ map Coq.Qualid [shape, pos, sourceType]
+
+-- | The Coq identifier of the @Normalform@ class function.
+nf' :: Coq.Qualid
+nf' = Coq.bare "nf'"
+
+-- | The Coq identifier of the function @nf@.
+nf :: Coq.Qualid
+nf = Coq.bare "nf"
+
+-- | The Coq identifier for a normalized type.
+nType :: Coq.Qualid
+nType = Coq.bare "nType"
+
 -------------------------------------------------------------------------------
 -- Effect selection                                                          --
 -------------------------------------------------------------------------------
@@ -206,28 +284,33 @@ call = Coq.bare "call"
 selectExplicitArgs :: Effect -> [Coq.Term]
 selectExplicitArgs Partiality = [Coq.Qualid partialArg]
 selectExplicitArgs Sharing    = [Coq.Qualid strategyArg]
+selectExplicitArgs Tracing    = [Coq.Qualid traceableArg]
 
 -- | Selects the correct implicit function arguments for the given effect.
 selectImplicitArgs :: Effect -> [Coq.Term]
 selectImplicitArgs Partiality = []
 selectImplicitArgs Sharing    = [implicitArg]
+selectImplicitArgs Tracing    = []
 
 -- | Like 'selectImplicitArgs' but the arguments have to be inserted after
 --   the type arguments the specified number of times.
 selectTypedImplicitArgs :: Effect -> Int -> [Coq.Term]
 selectTypedImplicitArgs Partiality = const []
 selectTypedImplicitArgs Sharing    = flip replicate implicitArg
+selectTypedImplicitArgs Tracing    = const []
 
 -- | Selects the correct binder for the given effect.
 selectBinders :: Effect -> [Coq.Binder]
 selectBinders Partiality = [partialBinder]
 selectBinders Sharing    = [injectableBinder, strategyBinder]
+selectBinders Tracing    = [tracableBinder]
 
 -- | Like 'selectBinders' but the binders are dependent on the type variables
 --   with the given names.
 selectTypedBinders :: Effect -> [Coq.Qualid] -> [Coq.Binder]
 selectTypedBinders Partiality = const []
 selectTypedBinders Sharing    = map shareableArgsBinder
+selectTypedBinders Tracing    = const []
 
 -------------------------------------------------------------------------------
 -- Literal Scopes                                                            --
@@ -265,6 +348,10 @@ reservedIdents
     , partialArg
     , partialUndefined
     , partialError
+      -- Tracing
+    , traceable
+    , traceableArg
+    , trace
       -- Notations
     , Coq.Bare qualifiedSmartConstructorModule
       -- Sharing
@@ -272,7 +359,12 @@ reservedIdents
     , strategy
     , strategyArg
     , shareableArgs
+    , shareArgs
+    , normalform
+    , nf'
+    , nf
     , share
     , call
+    , cbneed
     ]
   ++ map fst freeArgs

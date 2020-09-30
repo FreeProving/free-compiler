@@ -171,6 +171,9 @@ instance ApplySubst IR.Expr IR.Expr where
             binds''            = map (applySubst subst') binds'
             expr'              = applySubst subst' expr
         in IR.Let srcSpan binds'' expr' exprType
+    applySubst' (IR.Trace srcSpan msg expr exprType)
+      = let expr' = applySubst' expr
+        in IR.Trace srcSpan msg expr' exprType
     -- All other expressions remain unchanged.
     applySubst' expr@(IR.Con _ _ _) = expr
     applySubst' expr@(IR.Undefined _ _) = expr
@@ -237,6 +240,10 @@ instance ApplySubst IR.Type IR.Expr where
     applySubst' (IR.ErrorExpr srcSpan msg exprType)
       = let exprType' = applySubst subst exprType
         in IR.ErrorExpr srcSpan msg exprType'
+    applySubst' (IR.Trace srcSpan msg expr exprType)
+      = let expr'     = applySubst subst expr
+            exprType' = applySubst subst exprType
+        in IR.Trace srcSpan msg expr' exprType'
     applySubst' (IR.IntLiteral srcSpan value exprType)
       = let exprType' = applySubst subst exprType
         in IR.IntLiteral srcSpan value exprType'
