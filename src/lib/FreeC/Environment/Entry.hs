@@ -85,31 +85,33 @@ data EnvEntry
       }
     -- | Entry for a function declaration.
   | FuncEntry
-      { entrySrcSpan       :: SrcSpan
+      { entrySrcSpan             :: SrcSpan
         -- ^ The source code location where the function was declared.
-      , entryArity         :: Int
+      , entryArity               :: Int
         -- ^ The number of arguments expected by the function.
-      , entryTypeArgs      :: [IR.TypeVarIdent]
+      , entryTypeArgs            :: [IR.TypeVarIdent]
         -- ^ The names of the type arguments.
-      , entryArgTypes      :: [IR.Type]
+      , entryArgTypes            :: [IR.Type]
         -- ^ The types of the function arguments.
         --   Contains exactly 'entryArity' elements.
-      , entryStrictArgs    :: [Bool]
+      , entryStrictArgs          :: [Bool]
         -- ^ Whether each argument is strict.
         --   Contains exactly 'entryArity' elements.
-      , entryReturnType    :: IR.Type
+      , entryReturnType          :: IR.Type
         -- ^ The return type of the function (if known).
-      , entryNeedsFreeArgs :: Bool
+      , entryNeedsFreeArgs       :: Bool
         -- ^ Whether the arguments of the @Free@ monad need to be
         --   passed to the function.
-      , entryEffects       :: [Effect]
+      , entryEncapsulatesEffects :: Bool
+        -- ^ Whether the function should encapsulate effects.
+      , entryEffects             :: [Effect]
         -- ^ The effects of the function, i.e. which type classes are needed
         --   during the translation.
-      , entryIdent         :: Coq.Qualid
+      , entryIdent               :: Coq.Qualid
         -- ^ The name of the function in Coq.
-      , entryAgdaIdent     :: Agda.QName
+      , entryAgdaIdent           :: Agda.QName
         -- ^ The name of the function in Agda.
-      , entryName          :: IR.QName
+      , entryName                :: IR.QName
         -- ^ The name of the function in the module it has been defined in.
       }
     -- | Entry for a variable.

@@ -16,10 +16,9 @@ import           FreeC.Monad.Converter
 --   into an ordered list of @Definition@ sentences such that each definition
 --   only depends on definitions at preceding list positions.
 convertNonRecFuncDecls :: [IR.FuncDecl] -> Converter [Coq.Sentence]
-convertNonRecFuncDecls decls
-  = let orderedDecls = concatMap unwrapComponent
-          (dependencyComponents (funcDependencyGraph decls))
-    in mapM convertNonRecFuncDecl orderedDecls
+convertNonRecFuncDecls decls = do
+  let decls' = concatMap unwrapComponent (valueDependencyComponents decls)
+  mapM convertNonRecFuncDecl decls'
 
 -- | Converts a non-recursive Haskell function declaration to a Coq
 --   @Definition@ sentence.

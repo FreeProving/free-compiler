@@ -169,17 +169,18 @@ defineTestFunc' partial areStrict nameStr arity typeStr = do
   IR.TypeScheme _ typeArgs typeExpr <- parseExplicitTestTypeScheme typeStr
   let (argTypes, returnType) = IR.splitFuncType typeExpr arity
   renameAndAddTestEntry FuncEntry
-    { entrySrcSpan       = NoSrcSpan
-    , entryArity         = arity
-    , entryTypeArgs      = map IR.typeVarDeclIdent typeArgs
-    , entryArgTypes      = argTypes
-    , entryStrictArgs    = areStrict
-    , entryReturnType    = returnType
-    , entryNeedsFreeArgs = True
-    , entryEffects       = [Partiality | partial]
-    , entryName          = name
-    , entryIdent         = undefined -- filled by renamer
-    , entryAgdaIdent     = undefined -- filled by renamer
+    { entrySrcSpan             = NoSrcSpan
+    , entryArity               = arity
+    , entryTypeArgs            = map IR.typeVarDeclIdent typeArgs
+    , entryArgTypes            = argTypes
+    , entryStrictArgs          = areStrict
+    , entryReturnType          = returnType
+    , entryNeedsFreeArgs       = True
+    , entryEncapsulatesEffects = False
+    , entryEffects             = [Partiality | partial]
+    , entryName                = name
+    , entryIdent               = undefined -- filled by renamer
+    , entryAgdaIdent           = undefined -- filled by renamer
     }
 
 -- | Like 'defineTestFunc' but also marks the given function as partial.

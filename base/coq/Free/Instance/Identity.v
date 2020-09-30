@@ -1,7 +1,7 @@
 (** * Definition of the identity monad in terms of the free monad. *)
 
-From Base Require Import Free.
-From Base Require Import Free.Instance.Comb.
+From Base Require Import Free.Class.Injectable.
+From Base Require Import Free.Monad.
 From Base Require Import Free.Util.Void.
 
 Module Identity.

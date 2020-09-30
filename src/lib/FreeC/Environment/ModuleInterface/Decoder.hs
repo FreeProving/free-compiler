@@ -135,8 +135,9 @@ import           FreeC.Util.Config
 --   a breaking change is made to the encoder or decoder, it is less likely
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
+-- TODO bump version number
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 4
+moduleInterfaceFileFormatVersion = 5
 
 -- | Parses an IR AST node from an Aeson string.
 parseAesonIR :: Parseable a => Text -> Aeson.Parser a
@@ -271,23 +272,25 @@ instance Aeson.FromJSON ModuleInterface where
       haskellType <- obj .: "haskell-type"
       effects <- obj .: "effects"
       freeArgsNeeded <- obj .: "needs-free-args"
+      effectsEncapsulated <- obj .: "encapsulates-effects"
       coqName <- obj .: "coq-name"
       agdaName <- obj .: "agda-name"
       -- TODO this does not work with vanishing type arguments.
       let (argTypes, returnType) = IR.splitFuncType haskellType arity
           typeArgs               = freeTypeVars haskellType
       return FuncEntry
-        { entrySrcSpan       = NoSrcSpan
-        , entryArity         = arity
-        , entryTypeArgs      = typeArgs
-        , entryArgTypes      = argTypes
-        , entryStrictArgs    = replicate arity False
-        , entryReturnType    = returnType
-        , entryNeedsFreeArgs = freeArgsNeeded
-        , entryEffects       = effects
-        , entryIdent         = coqName
-        , entryAgdaIdent     = agdaName
-        , entryName          = haskellName
+        { entrySrcSpan             = NoSrcSpan
+        , entryArity               = arity
+        , entryTypeArgs            = typeArgs
+        , entryArgTypes            = argTypes
+        , entryStrictArgs          = replicate arity False
+        , entryReturnType          = returnType
+        , entryNeedsFreeArgs       = freeArgsNeeded
+        , entryEncapsulatesEffects = effectsEncapsulated
+        , entryEffects             = effects
+        , entryIdent               = coqName
+        , entryAgdaIdent           = agdaName
+        , entryName                = haskellName
         }
 
 -- | Loads a module interface file from a @.toml@ or @.json@ file.

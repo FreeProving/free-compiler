@@ -43,7 +43,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 4
+moduleInterfaceFileFormatVersion = 5
 
 instance Aeson.ToJSON IR.QName where
   toJSON = Aeson.toJSON . showPretty
@@ -124,6 +124,7 @@ encodeEntry entry
     , "arity" .= arity
     , "effects" .= effects
     , "needs-free-args" .= freeArgsNeeded
+    , "encapsulates-effects" .= effectsEncapsulated
     ]
   | otherwise = error "encodeEntry: Cannot serialize (type) variable entry."
  where
@@ -155,6 +156,9 @@ encodeEntry entry
 
   freeArgsNeeded :: Aeson.Value
   freeArgsNeeded = Aeson.toJSON (entryNeedsFreeArgs entry)
+
+  effectsEncapsulated :: Aeson.Value
+  effectsEncapsulated = Aeson.toJSON (entryEncapsulatesEffects entry)
 
   haskellType :: Aeson.Value
   haskellType = Aeson.toJSON (foldr (IR.FuncType NoSrcSpan)

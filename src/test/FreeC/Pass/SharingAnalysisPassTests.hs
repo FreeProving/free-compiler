@@ -2,6 +2,7 @@ module FreeC.Pass.SharingAnalysisPassTests ( testSharingAnalysisPass ) where
 
 import           Test.Hspec
 
+import           FreeC.IR.Syntax                as IR
 import           FreeC.Monad.Class.Testable
 import           FreeC.Pass.SharingAnalysisPass
 import           FreeC.Test.Expectations
@@ -16,7 +17,7 @@ testAnalyseSharingExpr :: Spec
 testAnalyseSharingExpr = context "analyseSharingExpr" $ do
   it "introduces 'let'-expression for shared variables" $ shouldSucceedWith $ do
     input <- parseTestExpr "f x x"
-    varName <- parseTestQName "x"
+    let varName = IR.toVarPat "x"
     expectedOutput <- parseTestExpr "let {y = x} in f y y"
     output <- analyseSharingExpr [varName] input
     return $ output `shouldBeSimilarTo` expectedOutput
@@ -28,7 +29,7 @@ testAnalyseSharingExpr = context "analyseSharingExpr" $ do
     $ shouldSucceedWith
     $ do
       input <- parseTestExpr "if b then x else x"
-      varName <- parseTestQName "x"
+      let varName = IR.toVarPat "x"
       output <- analyseSharingExpr [varName] input
       return $ output `shouldBeSimilarTo` input
 
@@ -41,7 +42,7 @@ testAnalyseLocalSharing = context "analyseLocalSharing" $ do
       expectedOutput <- parseTestExpr
         "case e of {Nothing -> 0; Just x  -> let {y = x} in f y y}"
       --expectedOutput <- parseTestExpr "case e of {Nothing -> 0; Just x  -> let {y = x} in f y y}"
-      output <- analyseLocalSharing input
+      output <- analyseLocalSharing [] input
       --return $ output `shouldBeSimilarTo` expectedOutput
       return $ expectedOutput `shouldBeSimilarTo` output
   it "introduces 'let'-expression for shared variables from 'lambda'-expr"
@@ -49,12 +50,12 @@ testAnalyseLocalSharing = context "analyseLocalSharing" $ do
     $ do
       input <- parseTestExpr "\\x -> f x x"
       expectedOutput <- parseTestExpr "\\x -> let {y = x} in f y y"
-      output <- analyseLocalSharing input
+      output <- analyseLocalSharing [] input
       return $ output `shouldBeSimilarTo` expectedOutput
   it "introduces 'let'-expressions for nested expressions"
     $ shouldSucceedWith
     $ do
       input <- parseTestExpr "\\y -> \\x -> f x x"
       expectedOutput <- parseTestExpr "\\y -> \\x -> let {z = x} in f z z"
-      output <- analyseLocalSharing input
+      output <- analyseLocalSharing [] input
       return $ output `shouldBeSimilarTo` expectedOutput

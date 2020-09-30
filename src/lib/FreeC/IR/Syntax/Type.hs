@@ -68,6 +68,33 @@ splitFuncType (FuncType _ t1 t2) arity
                 in (t1 : argTypes, returnType)
 splitFuncType returnType _             = ([], returnType)
 
+-- | Returns the name of the outermost type constructor, or @Nothing@ if there
+--   is no such type constructor.
+getTypeConName :: Type -> Maybe ConName
+getTypeConName (TypeCon _ conName) = Just conName
+getTypeConName (TypeApp _ l _)     = getTypeConName l
+getTypeConName _                   = Nothing
+
+-- | Checks whether the given type is a type variable.
+isTypeVar :: Type -> Bool
+isTypeVar (TypeVar _ _) = True
+isTypeVar _             = False
+
+-- | Checks whether the given type is a type constructor.
+isTypeCon :: Type -> Bool
+isTypeCon (TypeCon _ _) = True
+isTypeCon _             = False
+
+-- | Checks whether the given type is a type application.
+isTypeApp :: Type -> Bool
+isTypeApp (TypeApp _ _ _) = True
+isTypeApp _               = False
+
+-- | Checks whether the given type is a function type.
+isFuncType :: Type -> Bool
+isFuncType (FuncType _ _ _) = True
+isFuncType _                = False
+
 -- | Pretty instance for type expressions.
 instance Pretty Type where
   pretty = prettyTypePred 0

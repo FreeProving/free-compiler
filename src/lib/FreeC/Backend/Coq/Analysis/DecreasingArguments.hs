@@ -67,7 +67,7 @@
 --    * variables that are introduced by @let@-bindings are structually equal
 --      to their right-hand side.
 --
---   == Bypassing the termination checker
+--   == Bypassing the Termination Checker
 --
 --   Coq's termination checker uses the same idea as described above but
 --   is much more sophisticated. If the user knows that their function
@@ -80,15 +80,23 @@
 module FreeC.Backend.Coq.Analysis.DecreasingArguments
   ( DecArgIndex
   , identifyDecArgs
+    -- * Depth Map
+  , DepthMap
+  , lookupDepth
+  , initDepthMap
+  , depthMapAt
+  , mapChildrenWithDepthMaps
   ) where
 
 import           Data.List             ( find )
 import           Data.Map.Strict       ( Map )
 import qualified Data.Map.Strict       as Map
+import           Data.Maybe            ( mapMaybe )
 import qualified Data.Set              as Set
 import           Data.Tuple.Extra      ( uncurry3 )
 
 import           FreeC.Environment
+import           FreeC.IR.Subterm
 import qualified FreeC.IR.Syntax       as IR
 import           FreeC.Monad.Converter
 import           FreeC.Monad.Reporter
@@ -158,115 +166,145 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
   checkDecArg (Just _) _ _ = True
   checkDecArg _ decArgIndex (IR.FuncDecl _ _ _ args _ rhs)
     = let decArg = IR.varPatQName (args !! decArgIndex)
-      in checkExpr (Map.singleton decArg 0) rhs []
+      in checkExpr (initDepthMap decArg) rhs
 
   -- | Tests whether there is a variable that is structurally smaller than the
-  --   argument with the given name in the position of decreasing arguments of
-  --   all applications of functions from the strongly connected component.
+  --   potential decreasing argument in the position of the decreasing argumnet
+  --   for all applications of functions from the strongly connected component.
   --
   --   The first argument maps variables that are known to be structurally
   --   smaller or equal than the decreasing argument of the function whose
   --   right-hand side is checked to their depth within the structure. The
   --   decreasing argument itself and its aliases have a depth of @0@.
-  --
-  --   The last argument is a list of actual arguments passed to the given
-  --   expression.
-  checkExpr :: Map IR.QName Int -> IR.Expr -> [IR.Expr] -> Bool
-  checkExpr depthMap = checkExpr'
+  checkExpr :: DepthMap -> IR.Expr -> Bool
+  checkExpr depthMap = flip checkExpr' []
    where
-    -- | Gets the depth of an expression within the structure of the decreasing
-    --   argument.
-    --
-    --   Returns @Nothing@ if the given expression it is not a subterm of the
-    --   decreasing argument. The decreasing argument itself and its aliases
-    --   have a depth of @0@.
-    lookupDepth :: IR.Expr -> Maybe Int
-    lookupDepth (IR.Var _ varName _) = Map.lookup varName depthMap
-    lookupDepth _                    = Nothing
-
     -- | Tests whether the given expression is structurally smaller than the
     --   decreasing argument.
     isSmaller :: IR.Expr -> Bool
-    isSmaller = any (> 0) . lookupDepth
+    isSmaller = any (> 0) . flip lookupDepth depthMap
+
+    -- | Like 'checkExpr' but the arguments the expression is applied to are
+    --   accumulated in the second argument.
+    checkExpr' :: IR.Expr -> [IR.Expr] -> Bool
 
     -- If one of the recursive functions is applied, there must be a
     -- structurally smaller variable in the decreasing position.
-    checkExpr' (IR.Var _ name _) args
-      = case Map.lookup name decArgMap of
-        Nothing          -> True
-        Just decArgIndex | decArgIndex >= length args -> False
-                         | otherwise -> isSmaller (args !! decArgIndex)
-    -- Function applications and @if@-expressions need to be checked
-    -- recursively. In case of applications we also remember the
-    -- arguments such that the case above can inspect the actual arguments.
-    checkExpr' (IR.App _ e1 e2 _) args          = checkExpr' e1 (e2 : args)
+    checkExpr' (IR.Var _ name _) args = case Map.lookup name decArgMap of
+      Nothing          -> True
+      Just decArgIndex | decArgIndex >= length args -> False
+                       | otherwise -> isSmaller (args !! decArgIndex)
+    -- The arguments that an expression is applied to are accumulated in the
+    -- second argument. The argument still needs to be checked recursively
+    -- because it could contain recursive calls as well.
+    checkExpr' (IR.App _ e1 e2 _) args = checkExpr' e1 (e2 : args)
       && checkExpr' e2 []
-    -- Recursively check branches of @if@ expressions.
-    checkExpr' (IR.If _ e1 e2 e3 _) _
-      = checkExpr' e1 [] && checkExpr' e2 [] && checkExpr' e3 []
-    -- Alternatives of @case@-expressions introduce variables at a depth one
-    -- level deeper than the scrutinee.
-    checkExpr' (IR.Case _ scrutinee alts _) _   = all
-      (checkAlt (lookupDepth scrutinee)) alts
-    -- The depth of arguments of lambda expressions is unknown.
-    checkExpr' (IR.Lambda _ args expr _) _
-      = let depthMap' = withoutArgs args depthMap
-        in checkExpr depthMap' expr []
-    -- The bindings of @let@-expressions  introduce variables at the same depth
-    -- as the expressions on their right-hand sides.
-    checkExpr' (IR.Let _ binds expr _) _
-      = let varPats   = map IR.bindVarPat binds
-            varDepths = map (lookupDepth . IR.bindExpr) binds
-            depthMap' = withDepths (zip varPats varDepths) depthMap
-        in checkExpr depthMap' expr [] && all (checkBind depthMap') binds
-    -- Recursively check visibly applied expressions.
+    -- Visible type applications forward the arguments to the actually applied
+    -- function expression.
     checkExpr' (IR.TypeAppExpr _ expr _ _) args = checkExpr' expr args
-    -- Base expressions don't contain recursive calls.
-    checkExpr' (IR.Con _ _ _) _                 = True
-    checkExpr' (IR.Undefined _ _) _             = True
-    checkExpr' (IR.ErrorExpr _ _ _) _           = True
-    checkExpr' (IR.IntLiteral _ _ _) _          = True
+    -- Check all other expressions recursively and extend the 'depthMap' if
+    -- there are variable binders. Arguments are not passed to subterms.
+    checkExpr' expr _ = and (mapChildrenWithDepthMaps checkExpr depthMap expr)
 
-    -- | Applies 'checkExpr' on the right-hand side of an alternative of a
-    --   @case@ expression.
-    --
-    --   The variable patterns shadow existing (structurally smaller or equal)
-    --   variables with the same name. The first argument is the depth of the
-    --   scrutinee (or @Nothing@ if it is not a subterm of the decreasing
-    --   argument). The variable patterns of the alternative are one level
-    --   deeper than the scrutinee.
-    checkAlt :: Maybe Int -> IR.Alt -> Bool
-    checkAlt srutineeDepth (IR.Alt _ _ varPats expr)
-      = let varDepths = repeat (succ <$> srutineeDepth)
-            depthMap' = withDepths (zip varPats varDepths) depthMap
-        in checkExpr depthMap' expr []
+-------------------------------------------------------------------------------
+-- Depth Map                                                                 --
+-------------------------------------------------------------------------------
+-- | A map that maps the names of variables to their depth within the structure
+--   of a potential decreasing argument.
+--
+--   This map contains @0@ for variables that are structurally equal to the
+--   decreasing argument. If it is not known how whether a variable is a
+--   subterm of the decreasing argument, there is no entry.
+type DepthMap = Map IR.QName Int
 
-    -- | Applies 'checkExpr' to the right-hand side of a binding of a
-    --   @let@ expression.
-    --
-    --   The variables that are bound by the let expression should have been
-    --   shadowed already.
-    checkBind :: Map IR.QName Int -> IR.Bind -> Bool
-    checkBind depthMap' (IR.Bind _ _ expr) = checkExpr depthMap' expr []
+-- | Gets the depth of an expression within the structure of the decreasing
+--   argument.
+--
+--   Returns @Nothing@ if the given expression it is not a subterm of the
+--   decreasing argument. The decreasing argument itself and its aliases
+--   have a depth of @0@.
+lookupDepth :: IR.Expr -> DepthMap -> Maybe Int
+lookupDepth (IR.Var _ varName _) = Map.lookup varName
+lookupDepth _                    = const Nothing
 
-    -- | Sets the depth of the variable that is bound by the given pattern
-    --   or removes the entry from the map if the new depth is @Nothing@.
-    withDepth :: IR.VarPat -> Maybe Int -> Map IR.QName Int -> Map IR.QName Int
-    withDepth varPat maybeDepth = Map.alter (const maybeDepth)
-      (IR.varPatQName varPat)
+-- | Sets the depth of the variable that is bound by the given pattern
+--   or removes the entry from the given 'DepthMap' if the new depth is
+--   @Nothing@.
+withDepth :: IR.VarPat -> Maybe Int -> DepthMap -> DepthMap
+withDepth varPat maybeDepth = Map.alter (const maybeDepth)
+  (IR.varPatQName varPat)
 
-    -- | Sets the depths of the variables that are bound by the given patterns
-    --   or removes the corresponding entries from the map if the new depth
-    --   is @Nothing@.
-    withDepths
-      :: [(IR.VarPat, Maybe Int)] -> Map IR.QName Int -> Map IR.QName Int
-    withDepths = flip (foldr (uncurry withDepth))
+-- | Sets the depths of the variables that are bound by the given patterns
+--   or removes the corresponding entries from the given 'DepthMap' if the new
+--   depth is @Nothing@.
+withDepths :: [(IR.VarPat, Maybe Int)] -> DepthMap -> DepthMap
+withDepths = flip (foldr (uncurry withDepth))
 
-    -- | Removes the given variables from the set of structurally smaller
-    --   variables (because they are shadowed by an argument from a lambda
-    --   abstraction or @case@-alternative).
-    withoutArgs :: [IR.VarPat] -> Map IR.QName Int -> Map IR.QName Int
-    withoutArgs = flip Map.withoutKeys . Set.fromList . map IR.varPatQName
+-- | Removes the given variables from the set of structurally smaller or equal
+--   variables of the given 'DepthMap' (for example, because they are shadowed
+--   by an argument from a lambda abstraction).
+withoutArgs :: [IR.VarPat] -> DepthMap -> DepthMap
+withoutArgs = flip Map.withoutKeys . Set.fromList . map IR.varPatQName
+
+-- | Creates the initial 'DepthMap' for the given decreasing argument.
+initDepthMap :: IR.QName -> DepthMap
+initDepthMap decArg = Map.singleton decArg 0
+
+-- | Builds a 'DepthMap' for variables that are bound at the given position
+--   in the given expression.
+depthMapAt
+  :: Pos      -- ^ The position within the root expression to build the map for.
+  -> IR.Expr  -- ^ The root expression.
+  -> IR.QName -- ^ The name of the decreasing argument.
+  -> DepthMap
+depthMapAt p expr decArg = foldr (uncurry extendDepthMap) (initDepthMap decArg)
+  (mapMaybe selectParent (ancestorPos p))
+ where
+  -- | Gets the subterm at the parent position of the given position as well
+  --   as the index (starting at @1@) of the position within its parent
+  --   position.
+  selectParent :: Pos -> Maybe (Int, IR.Expr)
+  selectParent = fmap (fmap (selectSubterm' expr)) . unConsPos
+
+-- | Applies the given function to the children of the given expression
+--   and the extended 'DepthMap' for that child.
+mapChildrenWithDepthMaps
+  :: (DepthMap -> IR.Expr -> a) -> DepthMap -> IR.Expr -> [a]
+mapChildrenWithDepthMaps f depthMap expr
+  = let children   = childTerms expr
+        indicies   = [1 .. length children]
+        depthMaps' = map (($ depthMap) . flip extendDepthMap expr) indicies
+    in zipWith f depthMaps' children
+
+-- | Updates the given 'DepthMap' for binders that bind variables in the child
+--   expression with the given index (starting at @1@) in the given expression.
+extendDepthMap :: Int -> IR.Expr -> DepthMap -> DepthMap
+
+-- The bindings of @let@-expressions introduce variables at the same depth
+-- as the expressions on their right-hand sides.
+extendDepthMap _ (IR.Let _ binds _ _) depthMap
+  = let bindDepths = map (flip lookupDepth depthMap . IR.bindExpr) binds
+        bindPats   = map IR.bindVarPat binds
+    in withDepths (zip bindPats bindDepths) depthMap
+-- Alternatives of @case@-expressions introduce variables at a depth one
+-- level deeper than the scrutinee.
+extendDepthMap childIndex (IR.Case _ scrutinee alts _) depthMap
+  | childIndex == 1 = depthMap
+  | otherwise = let srutineeDepth = lookupDepth scrutinee depthMap
+                    varDepths     = repeat (succ <$> srutineeDepth)
+                    varPats       = IR.altVarPats (alts !! (childIndex - 2))
+                in withDepths (zip varPats varDepths) depthMap
+-- The depth of arguments of lambda expressions is unknown.
+extendDepthMap _ (IR.Lambda _ args _ _) depthMap = withoutArgs args depthMap
+-- All other expressions don't introduce variables.
+extendDepthMap _ (IR.Var _ _ _) depthMap = depthMap
+extendDepthMap _ (IR.Con _ _ _) depthMap = depthMap
+extendDepthMap _ (IR.App _ _ _ _) depthMap = depthMap
+extendDepthMap _ (IR.TypeAppExpr _ _ _ _) depthMap = depthMap
+extendDepthMap _ (IR.If _ _ _ _ _) depthMap = depthMap
+extendDepthMap _ (IR.Undefined _ _) depthMap = depthMap
+extendDepthMap _ (IR.ErrorExpr _ _ _) depthMap = depthMap
+extendDepthMap _ (IR.IntLiteral _ _ _) depthMap = depthMap
 
 -------------------------------------------------------------------------------
 -- Identifying Decreasing Arguments                                          --

@@ -6,7 +6,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
-version = 4
+version = 5
 module-name = 'Prelude'
 library-name = 'Base'
 exported-types = [
@@ -83,6 +83,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Bool -> Prelude.Bool -> Prelude.Bool'
@@ -92,6 +93,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 ##############################################################################
 # Integer                                                                    #
@@ -112,6 +114,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
@@ -121,6 +124,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
@@ -130,6 +134,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
@@ -139,6 +144,7 @@ exported-values = [
   arity           = 2
   effects         = ['Partiality']
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
@@ -148,6 +154,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
@@ -157,6 +164,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
@@ -166,6 +174,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
@@ -175,6 +184,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
@@ -184,6 +194,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
@@ -193,6 +204,7 @@ exported-values = [
   arity           = 2
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer'
@@ -202,6 +214,7 @@ exported-values = [
   arity           = 1
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 ##############################################################################
 # Lists                                                                      #
