@@ -45,7 +45,7 @@ import           Polysemy.Embed                    ( Embed, embed )
 import           FreeC.Environment.Entry
 import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.ModuleInterface
-import           FreeC.IR.Base.Prelude             as IR.Prelude
+import qualified FreeC.IR.Base.Prelude             as IR.Prelude
 import           FreeC.IR.SrcSpan
 import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Converter
