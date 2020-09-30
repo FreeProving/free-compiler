@@ -1,0 +1,11 @@
+-R ./ Razor
+-R ../generated Generated
+-R ../Proofs Proofs
+-R ../../base/coq Base
+
+../Proofs/AppendAssocProofs.v
+../generated/Proofs/AppendAssoc.v
+../generated/Razor.v
+Extra/FreeDB.v
+Extra/Pureness.v
+Extra/Tactic.v

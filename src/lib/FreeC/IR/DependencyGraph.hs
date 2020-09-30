@@ -14,12 +14,12 @@
 --   keys for predefined functions (but not local variables) as well as the
 --   special functions @error@ and @undefined@ that are used in error terms.
 --
---   We distinguish between the type and function dependency graph.
+--   We distinguish between the type and value dependency graph.
 --   This is because function declarations and type declarations
 --   live in separate scopes but we want to avoid name conflicts.
 --   Since we assume all type declarations to precede function declarations
 --   in the generated Coq code, this separation of the dependency graphs
---   should not be a problem. For the same reason, the function dependency
+--   should not be a problem. For the same reason, the value dependency
 --   graph does not include nodes for constructors (as always, the keys of
 --   used constructors are still present).
 --
@@ -45,15 +45,15 @@ module FreeC.IR.DependencyGraph
   , dependsDirectlyOn
     -- ** Constructors
   , typeDependencyGraph
-  , funcDependencyGraph
+  , valueDependencyGraph
   , moduleDependencyGraph
     -- * Strongly Connected Components
   , DependencyComponent(..)
   , unwrapComponent
     -- ** Constructors
   , dependencyComponents
-  , groupFuncDecls
-  , groupTypeDecls
+  , typeDependencyComponents
+  , valueDependencyComponents
   , groupModules
     -- ** Manipulating
   , mapComponent
@@ -67,7 +67,7 @@ import           Data.Graph
 import           Data.Maybe         ( mapMaybe )
 import           Data.Tuple.Extra
 
-import           FreeC.IR.Reference ( typeRefs, valueRefs )
+import           FreeC.IR.Reference ( HasRefs, typeRefs, valueRefs )
 import qualified FreeC.IR.Syntax    as IR
 import           FreeC.Pretty
 
@@ -140,29 +140,28 @@ dependsDirectlyOn graph k1 k2 = containsEdge == Just True
 -------------------------------------------------------------------------------
 -- Type Dependencies                                                         --
 -------------------------------------------------------------------------------
--- | Creates the dependency graph for a list of data type or type synonym
---   declarations.
-typeDependencyGraph :: [IR.TypeDecl] -> DependencyGraph IR.TypeDecl
+-- | Creates the type dependency graph for a list of nodes.
 typeDependencyGraph
-  = uncurry3 DependencyGraph . graphFromEdges . map typeDeclEntry
+  :: (HasRefs node, IR.HasDeclIdent node) => [node] -> DependencyGraph node
+typeDependencyGraph = uncurry3 DependencyGraph . graphFromEdges . map typeEntry
 
--- | Creates an entry of the dependency graph for the given data type or type
---   synonym declaration.
-typeDeclEntry :: IR.TypeDecl -> DGEntry IR.TypeDecl
-typeDeclEntry decl = (decl, IR.typeDeclQName decl, typeRefs decl)
+-- | Creates an entry of the type dependency graph.
+typeEntry :: (HasRefs node, IR.HasDeclIdent node) => node -> DGEntry node
+typeEntry node = (node, IR.declQName node, typeRefs node)
 
 -------------------------------------------------------------------------------
 -- Function Dependencies                                                     --
 -------------------------------------------------------------------------------
 -- | Creates the dependency graph for a list of function declarations.
-funcDependencyGraph :: [IR.FuncDecl] -> DependencyGraph IR.FuncDecl
-funcDependencyGraph
-  = uncurry3 DependencyGraph . graphFromEdges . map funcDeclEntry
+valueDependencyGraph
+  :: (HasRefs node, IR.HasDeclIdent node) => [node] -> DependencyGraph node
+valueDependencyGraph
+  = uncurry3 DependencyGraph . graphFromEdges . map valueEntry
 
 -- | Creates an entry of the dependency graph for the given function
 --   declaration or pattern binding.
-funcDeclEntry :: IR.FuncDecl -> DGEntry IR.FuncDecl
-funcDeclEntry decl = (decl, IR.funcDeclQName decl, valueRefs decl)
+valueEntry :: (HasRefs node, IR.HasDeclIdent node) => node -> DGEntry node
+valueEntry node = (node, IR.declQName node, valueRefs node)
 
 -------------------------------------------------------------------------------
 -- Module Dependencies                                                       --
@@ -273,17 +272,19 @@ dependencyComponents = map convertSCC . stronglyConnComp . dgEntries
   convertSCC (AcyclicSCC decl) = NonRecursive decl
   convertSCC (CyclicSCC decls) = Recursive decls
 
--- | Combines the construction of the dependency graphs for the given
---   type declarations (See 'typeDependencyGraph') with the computation of
---   strongly connected components.
-groupTypeDecls :: [IR.TypeDecl] -> [DependencyComponent IR.TypeDecl]
-groupTypeDecls = dependencyComponents . typeDependencyGraph
+-- | Combines the construction of the type dependency graph with the
+--   computation of strongly connected components.
+typeDependencyComponents :: (HasRefs node, IR.HasDeclIdent node)
+                         => [node]
+                         -> [DependencyComponent node]
+typeDependencyComponents = dependencyComponents . typeDependencyGraph
 
--- | Combines the construction of the dependency graphs for the given
---   function declarations (See 'funcDependencyGraph') with the computation
---   of strongly connected components.
-groupFuncDecls :: [IR.FuncDecl] -> [DependencyComponent IR.FuncDecl]
-groupFuncDecls = dependencyComponents . funcDependencyGraph
+-- | Combines the construction of the value dependency graph with the
+--   computation of strongly connected components.
+valueDependencyComponents :: (HasRefs node, IR.HasDeclIdent node)
+                          => [node]
+                          -> [DependencyComponent node]
+valueDependencyComponents = dependencyComponents . valueDependencyGraph
 
 -- | Combines the construction of the dependency graph for the given
 --   modules (See 'moduleDependencyGraph') with the computation of strongly

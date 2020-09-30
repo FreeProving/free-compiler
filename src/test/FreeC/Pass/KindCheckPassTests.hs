@@ -1,5 +1,5 @@
 -- | This module contains tests for "FreeC.Pass.KindCheckPass".
-module FreeC.Pass.KindCheckPassTests where
+module FreeC.Pass.KindCheckPassTests ( testKindCheckPass ) where
 
 import           Test.Hspec
 
@@ -10,7 +10,7 @@ import           FreeC.Test.Parser
 
 -- | Test group for 'kindCheckPass' tests.
 testKindCheckPass :: Spec
-testKindCheckPass = describe "FreeC.Pass.KindCheckPassTests" $ do
+testKindCheckPass = describe "FreeC.Pass.KindCheckPass" $ do
   testValidTypes
   testNotValidTypes
 

@@ -15,7 +15,7 @@ import           FreeC.Monad.Converter
 -- | Converts the given function declarations.
 convertFuncDecls :: [IR.FuncDecl] -> Converter [Coq.Sentence]
 convertFuncDecls funcDecls = do
-  let components = groupFuncDecls funcDecls
+  let components = valueDependencyComponents funcDecls
   concatMapM convertFuncComponent components
 
 -- | Converts a strongly connected component of the function dependency graph.
