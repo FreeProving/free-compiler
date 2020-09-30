@@ -369,6 +369,9 @@ removeConstArgsFromExpr constArgs rootExpr = do
       binds' <- mapM removeConstArgsFromBind binds
       (expr', []) <- removeConstArgsFromExpr' expr
       return (IR.Let srcSpan binds' expr' exprType, [])
+  removeConstArgsFromExpr' (IR.Trace srcSpan msg expr exprType) = do
+    (expr', []) <- removeConstArgsFromExpr' expr
+    return (IR.Trace srcSpan msg expr' exprType, [])
   -- Leave all other expressions unchanged.
   removeConstArgsFromExpr' expr@(IR.Con _ _ _) = return (expr, [])
   removeConstArgsFromExpr' expr@(IR.Undefined _ _) = return (expr, [])
@@ -535,6 +538,9 @@ removeConstTypeArgsFromExpr constTypeVars rootExpr = do
       binds' <- mapM removeConstTypeArgsFromBind binds
       (expr', []) <- removeConstTypeArgsFromExpr' expr
       return (IR.Let srcSpan binds' expr' exprType, [])
+  removeConstTypeArgsFromExpr' (IR.Trace srcSpan msg expr exprType) = do
+    (expr', []) <- removeConstTypeArgsFromExpr' expr
+    return (IR.Trace srcSpan msg expr' exprType, [])
   -- Leave all other nodes unchanged.
   removeConstTypeArgsFromExpr' expr@(IR.Con _ _ _) = return (expr, [])
   removeConstTypeArgsFromExpr' expr@(IR.Undefined _ _) = return (expr, [])
