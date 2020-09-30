@@ -6,7 +6,6 @@
 --
 --   == Example 1
 --
---
 --   The following function does contain functions, which are applied on other
 --   function calls.
 --
@@ -36,10 +35,17 @@
 --
 --   == Translation
 --
+--   For a function application @f e₁ … eₙ@ where @e₁, …, eₙ@ are expressions
+--   the transformation generates the following expression.
+--   @let {x₁ = e₁ ; … ; xₙ = eₙ} in f x₁ … xₙ@
+--   where {x₁ … xₙ} are fresh variables.
+--   The @let@-bindings are only introduced if the corresponding expression is
+--   not a variable or constant.
+--
 --   == Postconditions
 --
 --   All function calls have the form  @f x₁ … xₙ@ where @f@ is a function of
---   arity @m > n@ and @x₁, …, xₙ@ are variables or constants
+--   arity @m > n@ and @x₁, …, xₙ@ are variables or constants.
 --
 module FreeC.Pass.FlattenExprPass
   ( flattenExprPass
@@ -56,8 +62,8 @@ import qualified FreeC.IR.Syntax         as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 
--- | Transforms all function declarations of a given module into a 'flattened
---   form'.
+-- | Transforms all function declarations of a given module into a
+--   'flattened form'.
 flattenExprPass :: Pass IR.Module IR.Module
 flattenExprPass ast = do
   funcDecls' <- mapM flatFuncDecl (IR.modFuncDecls ast)
@@ -73,6 +79,9 @@ flatFuncDecl funcDecl = do
 -- | Converts an expression into a 'flattened Form'.
 --   @let@-expressions are generated as deep as possible without
 --   duplicating @let@-expressions.
+--
+--   @let@-expressions are not generated for a function that should encapsulate
+--   effects in it arguments.
 flattenExpr :: IR.Expr -> Converter IR.Expr
 flattenExpr expr = flatExpr expr [] []
 
@@ -85,8 +94,8 @@ flatExpr (IR.App srcSpan lhs rhs typeScheme) typeArgs args = do
   encEffects <- shouldEncapsulateEffects lhs
   if encEffects
     then do
-      lhs' <- flatExpr lhs [] []
-      rhs' <- flatExpr rhs [] []
+      lhs' <- flatExpr lhs typeArgs args
+      rhs' <- flatExpr rhs typeArgs args
       return $ IR.App srcSpan lhs' rhs' typeScheme
     else flatExpr lhs typeArgs (rhs : args)
 flatExpr (IR.TypeAppExpr _ expr typeArg _) typeArgs args = flatExpr expr
@@ -111,6 +120,9 @@ flatExpr (IR.ErrorExpr srcSpan exprMsg typeScheme) typeArgs args = buildLet
   (IR.ErrorExpr srcSpan exprMsg typeScheme) typeArgs args
 flatExpr (IR.IntLiteral srcSpan literalValue typeScheme) typeArgs args
   = buildLet (IR.IntLiteral srcSpan literalValue typeScheme) typeArgs args
+flatExpr (IR.Trace srcSpan msg e typeScheme) typeArgs args = do
+  e' <- flatExpr e [] []
+  buildLet (IR.Trace srcSpan msg e' typeScheme) typeArgs args
 flatExpr (IR.Lambda srcSpan exprArgs rhs typeScheme) typeArgs args = do
   rhs' <- flatExpr rhs [] []
   buildLet (IR.Lambda srcSpan exprArgs rhs' typeScheme) typeArgs args
@@ -156,4 +168,3 @@ shouldEncapsulateEffects :: IR.Expr -> Converter Bool
 shouldEncapsulateEffects expr = case IR.getFuncName expr of
   Nothing   -> return False
   Just name -> inEnv $ encapsulatesEffects name
-

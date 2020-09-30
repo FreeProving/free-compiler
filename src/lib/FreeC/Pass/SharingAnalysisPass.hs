@@ -129,6 +129,9 @@ analyseLocalSharing _ expr@IR.Undefined {} = return expr
 analyseLocalSharing _ expr@IR.ErrorExpr {} = return expr
 analyseLocalSharing _ expr@IR.Var {} = return expr
 analyseLocalSharing _ expr@IR.IntLiteral {} = return expr
+analyseLocalSharing varPats (IR.Trace srcSpan msg e typeScheme) = do
+  e' <- analyseLocalSharing varPats e
+  return (IR.Trace srcSpan msg e' typeScheme)
 analyseLocalSharing varPats (IR.Let srcSpan binds rhs typeScheme) = do
   binds' <- mapM analyseSharingBind binds
   rhs' <- analyseLocalSharing varPats rhs
@@ -249,6 +252,7 @@ countVarNames IR.Con {}                  = return $ Map.empty
 countVarNames IR.Undefined {}            = return $ Map.empty
 countVarNames IR.ErrorExpr {}            = return $ Map.empty
 countVarNames IR.IntLiteral {}           = return $ Map.empty
+countVarNames (IR.Trace _ _ e _)         = countVarNames e
 countVarNames (IR.Case _ e alts _)       = do
   let altVars = concatMap (map IR.varPatQName . IR.altVarPats) alts
   map1 <- countVarNames e
