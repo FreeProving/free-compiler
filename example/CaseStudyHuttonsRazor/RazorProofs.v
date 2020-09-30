@@ -226,12 +226,13 @@ Section Proofs.
   (* To prove the equivalence property of the two compilers [comp] and [comp'] we first prove the
      derived property for [comp] and [compApp] which is used by [comp']. *)
   Lemma compApp_comp_append_eq :
-    forall (fexpr : Free Shape Pos (Expr Shape Pos))
+    forall `{Normalform Shape Pos (Op Shape Pos)}
+           (fexpr : Free Shape Pos (Expr Shape Pos))
            (fcode : Free Shape Pos (Code Shape Pos)),
         compApp Shape Pos fexpr fcode
         = append Shape Pos (comp Shape Pos fexpr) fcode.
   Proof.
-    intro fexpr.
+    intros N fexpr.
     (* We start with an induction over the monadic expression. *)
     inductFree fexpr as [ expr | s pf IHpf ].
     - (* In the pure case, we do an induction over the given expression. *)
@@ -240,7 +241,8 @@ Section Proofs.
         reflexivity.
       + (* For an addition expression, we start with some simplification steps for the [append] function. *)
         intro fcode. simpl comp0.
-        do 2 (rewrite <- append_assocs).
+        specialize (append_assocs _ _ _ N) as HAssoc; simpl in HAssoc.
+        do 2 (rewrite <- HAssoc).
         simpl append.
         (* We use [replace] here to make this main proof simple and produce additional simple subgoals. *)
         replace (append Shape Pos _ (Cons Shape Pos (ADD Shape Pos) fcode))
@@ -260,26 +262,31 @@ Section Proofs.
   Qed.
 
   (* With the equivalence lemma above the proof of the main equivalence theorem is simple. *)
-  Theorem comp_comp'_eq : quickCheck (prop_comp_comp'_eq Shape Pos).
+  Theorem comp_comp'_eq :
+    forall `{Normalform Shape Pos (Op Shape Pos)},
+      quickCheck (prop_comp_comp'_eq Shape Pos).
   Proof.
     simpl.
-    intro fexpr.
-    rewrite <- append_nil.
+    intros N fexpr.
+    specialize (append_nil _ _ _ N) as HNil; simpl in HNil.
+    rewrite <- HNil with (x := comp _ _ _).
     rewrite <- compApp_comp_append_eq.
     reflexivity.
   Qed.
 
   (* The correctness of the compiler [comp'] is implied by the equivalence to
      the compiler [comp] and the correctness of [comp]. *)
-  Lemma comp'_correct : 
+  Lemma comp'_correct :
+    forall `{Normalform Shape Pos (Op Shape Pos)},
     UndefinedIsImpure Partial ->
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
         quickCheck (prop_comp'_correct Shape Pos Partial fexpr).
   Proof.
     simpl.
-    intros HUndefined fexpr HPure.
-    rewrite <- comp_comp'_eq.
+    intros N HUndefined fexpr HPure.
+    specialize comp_comp'_eq as HEq; simpl in HEq.
+    rewrite <- HEq.
     apply (comp_correct HUndefined fexpr HPure).
   Qed.
 
