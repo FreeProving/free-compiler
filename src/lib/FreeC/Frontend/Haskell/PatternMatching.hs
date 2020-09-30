@@ -226,7 +226,7 @@ convertModuleInterface iface = HST.ModuleInterface
     = error "extractTypeConQName: Expected type constructor."
 
 -------------------------------------------------------------------------------
--- Interpretation for `Report` Effect                                        --
+-- Interpretation for the `Report` Effect                                    --
 -------------------------------------------------------------------------------
 -- | Interprets a computation that can report messages in terms of a
 --   'MonadReporter'.

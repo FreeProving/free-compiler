@@ -14,7 +14,11 @@ import           FreeC.Pretty
 -------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
--- | A module declaration.
+-- | A module declaration that contains declarations of type @contents@.
+--
+--   This type is used for example to represent partially transformed modules
+--   where only the name, imports and pragmas of the module are transformed
+--   into the intermediate representation.
 data ModuleOf contents = ModuleOf
   { modSrcSpan  :: SrcSpan
   , modName     :: ModName
@@ -54,20 +58,24 @@ instance Pretty ImportDecl where
 -------------------------------------------------------------------------------
 -- Declarations                                                              --
 -------------------------------------------------------------------------------
+-- | Declarations that can occur on top-level of a 'Module' declaration.
 data TopLevelDecl
   = TopLevelTypeDecl { topLevelTypeDecl :: TypeDecl }
   | TopLevelTypeSig { topLevelTypeSig :: TypeSig }
   | TopLevelFuncDecl { topLevelFuncDecl :: FuncDecl }
  deriving ( Eq, Show )
 
+-- | Tests whether the given top-level declaration is a 'TypeDecl'.
 isTopLevelTypeDecl :: TopLevelDecl -> Bool
 isTopLevelTypeDecl TopLevelTypeDecl {} = True
 isTopLevelTypeDecl _                   = False
 
+-- | Tests whether the given top-level declaration is a 'TypeSig'.
 isTopLevelTypeSig :: TopLevelDecl -> Bool
 isTopLevelTypeSig TopLevelTypeSig {} = True
 isTopLevelTypeSig _                  = False
 
+-- | Tests whether the given top-level declaration is a 'FuncDecl'.
 isTopLevelFuncDecl :: TopLevelDecl -> Bool
 isTopLevelFuncDecl TopLevelFuncDecl {} = True
 isTopLevelFuncDecl _                   = False
@@ -81,9 +89,13 @@ instance Pretty TopLevelDecl where
 -------------------------------------------------------------------------------
 -- Type Declarations                                                         --
 -------------------------------------------------------------------------------
+-- | Gets the type-level declarations of the given module.
 modTypeDecls :: Module -> [TypeDecl]
 modTypeDecls = map topLevelTypeDecl . filter isTopLevelTypeDecl . modContents
 
+-- | Sets the type-level declarations of the given module.
+--
+--   All other type-level declarations are discarded.
 modWithTypeDecls :: [TypeDecl] -> Module -> Module
 modWithTypeDecls decls = modWithContents $ \contents ->
   map TopLevelTypeDecl decls ++ filter (not . isTopLevelTypeDecl) contents
@@ -91,9 +103,13 @@ modWithTypeDecls decls = modWithContents $ \contents ->
 -------------------------------------------------------------------------------
 -- Type Signatures                                                           --
 -------------------------------------------------------------------------------
+-- | Gets the type signatures of the given module.
 modTypeSigs :: Module -> [TypeSig]
 modTypeSigs = map topLevelTypeSig . filter isTopLevelTypeSig . modContents
 
+-- | Sets the type signatures of the given module.
+--
+--   All other type signatures are discarded.
 modWithTypeSigs :: [TypeSig] -> Module -> Module
 modWithTypeSigs decls = modWithContents $ \contents -> map TopLevelTypeSig decls
   ++ filter (not . isTopLevelTypeSig) contents
@@ -101,9 +117,13 @@ modWithTypeSigs decls = modWithContents $ \contents -> map TopLevelTypeSig decls
 -------------------------------------------------------------------------------
 -- Function Declarations                                                     --
 -------------------------------------------------------------------------------
+-- | Gets the function declarations of the given module.
 modFuncDecls :: Module -> [FuncDecl]
 modFuncDecls = map topLevelFuncDecl . filter isTopLevelFuncDecl . modContents
 
+-- | Sets the function declarations of the given module.
+--
+--   All other function declarations are discarded.
 modWithFuncDecls :: [FuncDecl] -> Module -> Module
 modWithFuncDecls decls = modWithContents $ \contents ->
   map TopLevelFuncDecl decls ++ filter (not . isTopLevelFuncDecl) contents
