@@ -8,12 +8,12 @@ Require Import Coq.Logic.FunctionalExtensionality.
 
 (* If you want to proof a QuickCheck property for every effect,
    just apply [quickCheck] *)
-Theorem prop_map_id_theorem : quickCheck prop_map_id.
+Theorem prop_map_id_theorem : quickCheck (fun Shape Pos I => @prop_map_id Shape Pos I Cbn).
 Proof.
-  simpl. intros Shape Pos NF t0. unfold Data.Function.id.
+  simpl. intros Shape Pos I t0 SA NF. unfold Data.Function.id.
   apply f_equal. extensionality fxs.
   induction fxs using FreeList_ind
-    with (P := fun xs => Data.List.map Shape Pos (pure (fun x => x)) (pure xs) = pure xs).
+    with (P := fun xs => Data.List.map Shape Pos Cbn (pure (fun x => x)) (pure xs) = pure xs).
   - (* fxs = pure nil *)              simpl. reflexivity.
   - (* fxs = pure (cons fxs1 fxs2) *) simpl. do 2 apply f_equal. apply IHfxs1.
   - (* fxs = pure xs *)               simpl. apply IHfxs.
@@ -25,8 +25,10 @@ Qed.
    [quickCheck] as usual.
    In this case we can reuse the proof from above, because the functor law
    holds for lists regardless of the effect. *)
-Theorem prop_map_id_total : quickCheck (@prop_map_id Identity.Shape Identity.Pos).
+Theorem prop_map_id_total : quickCheck (@prop_map_id (Comb.Shape Share.Shape Identity.Shape)
+                                                     (Comb.Pos Share.Pos Identity.Pos) _ Cbn).
 Proof. apply prop_map_id_theorem. Qed.
 
-Theorem prop_map_id_partial : quickCheck (@prop_map_id Maybe.Shape Maybe.Pos).
+Theorem prop_map_id_partial : quickCheck (@prop_map_id (Comb.Shape Share.Shape Maybe.Shape)
+                                                       (Comb.Pos Share.Pos Maybe.Pos) _ Cbn).
 Proof. apply prop_map_id_theorem. Qed.

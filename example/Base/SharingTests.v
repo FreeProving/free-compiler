@@ -794,7 +794,8 @@ Example exAddDeepListTrace
      Cbneed_ addInteger_ (traceList Cbneed_))
   = (Some 0%Z, ["0"]).
 Proof. constructor. Qed.
-
+(* TODO Commented out due to sections bug making foldr uncompilable.
+        Uncomment later! 
 (*
   sumTails :: [Integer] -> Integer
   sumTails l = sum (map sum (tails l))
@@ -867,4 +868,4 @@ Proof. constructor. Qed.
 Example exSumTailsNDCbv : @handle _ _ _ (HandlerShareND _) (sumTails _ _ Cbv_ (coinList Cbv_))
  = [4%Z;6%Z;5%Z;7%Z].
 Proof. constructor. Qed.
-
+*)

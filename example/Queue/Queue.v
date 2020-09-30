@@ -223,10 +223,10 @@ Proof.
 Qed.
 
 (* We have to add a totality constraint to [prop_front]. *)
-Theorem prop_front_theorem : forall Shape Pos P a NF total_a qi,
-  total_queue Shape Pos total_a qi -> quickCheck (@prop_front Shape Pos P a NF qi).
+Theorem prop_front_theorem : forall Shape Pos I P a NF SA total_a qi,
+  total_queue Shape Pos total_a qi -> quickCheck (@prop_front Shape Pos I Cbn P a SA NF qi).
 Proof.
-  intros Shape Pos P a total_a NF fqi Htotal HinvNempty.
+  intros Shape Pos I P a total_a SA NF fqi Htotal HinvNempty.
   apply is_pure_true_and in HinvNempty.
   destruct HinvNempty as [Hinv Hnempty].
   destruct Htotal as [ff fb Htotal1 Htotal2]. (* fqi = pure (ff, fb) *)

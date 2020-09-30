@@ -6,32 +6,44 @@ Require Import Coq.Logic.FunctionalExtensionality.
 (* The first QuickCheck property holds for any [Partial] instance. Therefore
    its proof differs only in that way from proofs about functions that do not
    return an error, that an [Partial] instance for [Shape] and [Pos] is given. *)
-Lemma cons_unconsE : quickCheck prop_cons_unconsE.
+Lemma cons_unconsE : quickCheck (fun Shape Pos I => @prop_cons_unconsE Shape Pos I Cbn).
 Proof.
-  intros Shape Pos Partial A NF fx fxs.
+  intros Shape Pos I Partial A SA NF fx fxs.
   reflexivity.
 Qed.
 
 (* The second QuickCheck property holds provably for the [Maybe] instance of [Partial]. *)
-Lemma unconsE_fst_Maybe : quickCheck
-  (@prop_unconsE_fst Maybe.Shape Maybe.Pos (Maybe.Partial Maybe.Shape Maybe.Pos)).
+Lemma unconsE_fst_Maybe : quickCheck (@prop_unconsE_fst 
+    (Comb.Shape Share.Shape Maybe.Shape)
+    (Comb.Pos Share.Pos Maybe.Pos)
+    _ Cbn
+    (Maybe.Partial _ _)).
 Proof.
-  intros A NF fxs.
+  intros A SA NF fxs.
   simpl.
   destruct fxs as [ xs | s pf ].
   - destruct xs as [ | fx1 fxs1 ].
     + simpl. unfold Nothing. f_equal. extensionality p. destruct p.
     + reflexivity.
-  - simpl. f_equal. extensionality p. destruct p.
-Qed.
+  - simpl. f_equal. extensionality p. destruct s.
+    (* Because the Share effect is required in the effect stack even though
+       call-by-name evaluation is used, an impure value could theoretically consist
+       of sharing syntax, even though sharing syntax is never used in this setting. *)
+    + admit.
+    (* The Maybe effect does not have any positions. *)
+    + destruct p. Admitted.
 
 (* But the second QuickCheck property doesn't hold for the [Error] instance of
    [Partial] as [unconsE] and [head] have different error messages on an empty
    list. *)
-Lemma unconsE_fst_Error : not (quickCheck (@prop_unconsE_fst (Error.Shape string) Error.Pos (Error.Partial (Error.Shape string) Error.Pos))).
+Lemma unconsE_fst_Error : not (quickCheck (@prop_unconsE_fst 
+  (Comb.Shape Share.Shape (Error.Shape string))
+  (Comb.Pos Share.Pos Error.Pos) 
+   _ Cbn
+  (Error.Partial _ _))).
 Proof.
   intro H.
-  specialize (H bool _ (Nil _ _)).
+  specialize (H bool _ _ (Nil _ _)).
   discriminate H.
 Qed.
 
