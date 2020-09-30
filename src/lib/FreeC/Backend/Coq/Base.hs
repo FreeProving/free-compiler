@@ -215,10 +215,16 @@ strategy = Coq.bare "Strategy"
 strategyArg :: Coq.Qualid
 strategyArg = Coq.bare "S"
 
--- | The Coq binder for the @Strategy@ type class.
+-- | A notation for the term
+--   (forall (Shape : Type) (Pos : Shape -> Type)
+--    `{Injectable Share.Shape Share.Pos Shape Pos},
+--    Strategy Shape Pos).
+strategyNotation :: Coq.Qualid
+strategyNotation = Coq.bare "EvaluationStrategy"
+
 strategyBinder :: Coq.Binder
 strategyBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit strategyArg
-  $ Coq.app (Coq.Qualid strategy) [Coq.Qualid shape, Coq.Qualid pos]
+  (Coq.Qualid strategyNotation)
 
 -- | The Coq identifier for the @ShareableArgs@ type class.
 shareableArgs :: Coq.Qualid
@@ -261,9 +267,9 @@ normalform = Coq.bare "Normalform"
 -- | The Coq binder for the @Normalform@ type class with the source and target
 --   type variable with the given names.
 normalformBinder :: Coq.Qualid -> Coq.Binder
-normalformBinder sourceType = Coq.Generalized Coq.Implicit
+normalformBinder a = Coq.Generalized Coq.Implicit
   $ Coq.app (Coq.Qualid normalform)
-  $ map Coq.Qualid [shape, pos, sourceType]
+  $ map Coq.Qualid [shape, pos, a]
 
 -- | The Coq identifier of the @Normalform@ class function.
 nf' :: Coq.Qualid
@@ -285,12 +291,14 @@ selectExplicitArgs :: Effect -> [Coq.Term]
 selectExplicitArgs Partiality = [Coq.Qualid partialArg]
 selectExplicitArgs Sharing    = [Coq.Qualid strategyArg]
 selectExplicitArgs Tracing    = [Coq.Qualid traceableArg]
+selectExplicitArgs Normalform = []
 
 -- | Selects the correct implicit function arguments for the given effect.
 selectImplicitArgs :: Effect -> [Coq.Term]
 selectImplicitArgs Partiality = []
 selectImplicitArgs Sharing    = [implicitArg]
 selectImplicitArgs Tracing    = []
+selectImplicitArgs Normalform = []
 
 -- | Like 'selectImplicitArgs' but the arguments have to be inserted after
 --   the type arguments the specified number of times.
@@ -298,12 +306,14 @@ selectTypedImplicitArgs :: Effect -> Int -> [Coq.Term]
 selectTypedImplicitArgs Partiality = const []
 selectTypedImplicitArgs Sharing    = flip replicate implicitArg
 selectTypedImplicitArgs Tracing    = const []
+selectTypedImplicitArgs Normalform = flip replicate implicitArg
 
 -- | Selects the correct binder for the given effect.
 selectBinders :: Effect -> [Coq.Binder]
 selectBinders Partiality = [partialBinder]
 selectBinders Sharing    = [injectableBinder, strategyBinder]
 selectBinders Tracing    = [tracableBinder]
+selectBinders Normalform = []
 
 -- | Like 'selectBinders' but the binders are dependent on the type variables
 --   with the given names.
@@ -311,6 +321,7 @@ selectTypedBinders :: Effect -> [Coq.Qualid] -> [Coq.Binder]
 selectTypedBinders Partiality = const []
 selectTypedBinders Sharing    = map shareableArgsBinder
 selectTypedBinders Tracing    = const []
+selectTypedBinders Normalform = map normalformBinder
 
 -------------------------------------------------------------------------------
 -- Literal Scopes                                                            --
@@ -358,11 +369,13 @@ reservedIdents
     , injectable
     , strategy
     , strategyArg
+    , strategyNotation
     , shareableArgs
     , shareArgs
     , normalform
     , nf'
     , nf
+    , nType
     , share
     , call
     , cbneed

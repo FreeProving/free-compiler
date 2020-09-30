@@ -9,5 +9,5 @@ module FreeC.LiftedIR.Effect where
 --
 --   The 'Sharing' effect is the first effect by convention. All other effects
 --   are in alphabetical order by default.
-data Effect = Sharing | Partiality | Tracing
+data Effect = Sharing | Normalform | Partiality | Tracing
  deriving ( Eq, Ord, Read, Show )
