@@ -4,6 +4,18 @@ From Base Require Import Prelude.
 (* QuickCheck properties are implemented as Coq propositions. *)
 Definition Property (Shape : Type) (Pos : Shape -> Type) := Prop.
 
+(* Normalform instance for Property. *)
+Instance NormalformProperty (Shape : Type) (Pos : Shape -> Type)
+  : Normalform Shape Pos (Property Shape Pos) := {
+    nf' := pure
+}.
+
+(* ShareableArgs instance for Property. *)
+Instance ShareableArgsProperty (Shape : Type) (Pos : Shape -> Type)
+  : ShareableArgs Shape Pos (Property Shape Pos) := {
+    shareArgs := pure
+}.
+
 (* * [Testable] type class *)
 
 (* [class Testable prop where property :: prop -> Property] *)
