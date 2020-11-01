@@ -7,6 +7,7 @@ module FreeC.IR.Subterm
   ( -- * Direct Children
     childTerms
   , replaceChildTerms
+  , replaceChildTerms'
     -- * Positions
   , Pos(..)
   , rootPos

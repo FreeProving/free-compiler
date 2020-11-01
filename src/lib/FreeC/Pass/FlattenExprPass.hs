@@ -1,6 +1,6 @@
 -- | This module contains a compiler pass that transforms all expressions from
---   function declarations into a "flattened form" meaning that all contained
---   functions are only applied on constants or variables.
+--   function declarations into a flat form. An expression is "flat" if all
+--   function and constructors are only applied to variables.
 --
 --   = Examples
 --
@@ -19,7 +19,6 @@
 --
 --   where @y@ is a fresh variable.
 --
---
 --   == Example 2
 --
 --   > dollar :: (a -> b) -> a -> b
@@ -35,18 +34,21 @@
 --
 --   == Translation
 --
---   For a function application @f e₁ … eₙ@ where @e₁, …, eₙ@ are expressions
---   the transformation generates the following expression.
---   @let {x₁ = e₁ ; … ; xₙ = eₙ} in f x₁ … xₙ@
---   where {x₁ … xₙ} are fresh variables.
+--   For every function or constructor applications @f e₁ … eₙ@ where
+--   @e₁, …, eₙ@ are arbitrary expressions the transformation generates
+--   the following expression
+--
+--   > let {x₁ = e₁ ; … ; xₙ = eₙ} in f x₁ … xₙ
+--
+--   where @x₁, …, xₙ@ are fresh variables.
 --   The @let@-bindings are only introduced if the corresponding expression is
---   not a variable or constant.
+--   not a variable. The translation is applied to the expressions @e₁, …, eₙ@
+--   recursively.
 --
 --   == Postconditions
 --
---   All function calls have the form  @f x₁ … xₙ@ where @f@ is a function of
---   arity @m > n@ and @x₁, …, xₙ@ are variables or constants.
---
+--   All applications of functions and constructors have the form @f x₁ … xₙ@
+--   where @f@ is a function or constructor and @x₁, …, xₙ@ are variables.
 module FreeC.Pass.FlattenExprPass
   ( flattenExprPass
     -- * Testing Interface
@@ -58,88 +60,63 @@ import           Data.Maybe              ( catMaybes )
 
 import           FreeC.Environment       ( encapsulatesEffects )
 import           FreeC.Environment.Fresh ( freshArgPrefix, freshHaskellIdent )
+import           FreeC.IR.Subterm        ( childTerms, replaceChildTerms' )
 import qualified FreeC.IR.Syntax         as IR
 import           FreeC.Monad.Converter
 import           FreeC.Pass
 
--- | Transforms all function declarations of a given module into a
---   "flattened form".
+-- | Transforms all function declarations of a given module into the flat form.
 flattenExprPass :: Pass IR.Module IR.Module
 flattenExprPass ast = do
-  funcDecls' <- mapM flatFuncDecl (IR.modFuncDecls ast)
+  funcDecls' <- mapM flattenFuncDecl (IR.modFuncDecls ast)
   return (IR.modWithFuncDecls funcDecls' ast)
 
--- | Applies the expression "flattening" on the right hand side of a function
+-- | Flattens the expression on the right hand side of the given function
 --   declaration.
-flatFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
-flatFuncDecl funcDecl = do
+flattenFuncDecl :: IR.FuncDecl -> Converter IR.FuncDecl
+flattenFuncDecl funcDecl = do
   rhs' <- flattenExpr (IR.funcDeclRhs funcDecl)
   return funcDecl { IR.funcDeclRhs = rhs' }
 
--- | Converts an expression into a "flattened Form".
---   @let@-expressions are generated as deep as possible without
---   duplicating @let@-expressions.
+-- | Flattens the given expression.
+--
+--   @let@-expressions are generated as deep as possible without duplicating @let@-expressions.
 --
 --   @let@-expressions are not generated for a function that should encapsulate
---   effects in it arguments.
+--   effects in its arguments.
 flattenExpr :: IR.Expr -> Converter IR.Expr
-flattenExpr expr = flatExpr expr [] []
+flattenExpr expr = flattenExpr' expr [] []
 
-flatExpr :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter IR.Expr
-flatExpr (IR.Con srcSpan conName typeScheme) typeArgs args = buildLet
-  (IR.Con srcSpan conName typeScheme) typeArgs args
-flatExpr (IR.Var srcSpan varName typeScheme) typeArgs args = buildLet
-  (IR.Var srcSpan varName typeScheme) typeArgs args
-flatExpr (IR.App srcSpan lhs rhs typeScheme) typeArgs args = do
-  encEffects <- shouldEncapsulateEffects lhs
-  if encEffects
-    then do
-      lhs' <- flatExpr lhs typeArgs args
-      rhs' <- flatExpr rhs typeArgs args
-      return $ IR.App srcSpan lhs' rhs' typeScheme
-    else flatExpr lhs typeArgs (rhs : args)
-flatExpr (IR.TypeAppExpr _ expr typeArg _) typeArgs args = flatExpr expr
+-- | Like 'flattenExpr' but accumulates the type arguments and arguments the
+--   expression has been applied to in the additional two arguments.
+--
+--   The arguments should be in flat form already.
+flattenExpr' :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter IR.Expr
+
+-- Constructors always need to be flattened. Functions only need to be
+-- flattened when they don't encapsulate effects.
+flattenExpr' expr@(IR.Con _ _ _) typeArgs args = buildLet expr typeArgs args
+flattenExpr' expr@(IR.Var srcSpan varName _) typeArgs args = do
+  enapsulatesEffects <- inEnv $ encapsulatesEffects varName
+  if enapsulatesEffects
+    then return (IR.app srcSpan (IR.visibleTypeApp srcSpan expr typeArgs) args)
+    else buildLet expr typeArgs args
+-- Accumulate arguments and type arguments.
+flattenExpr' (IR.App _ expr arg _) typeArgs args = do
+  arg' <- flattenExpr arg
+  flattenExpr' expr typeArgs (arg' : args)
+flattenExpr' (IR.TypeAppExpr _ expr typeArg _) typeArgs args = flattenExpr' expr
   (typeArg : typeArgs) args
-flatExpr (IR.If srcSpan e1 e2 e3 typeScheme) typeArgs args = do
-  e1' <- flatExpr e1 [] []
-  e2' <- flatExpr e2 [] []
-  e3' <- flatExpr e3 [] []
-  buildLet (IR.If srcSpan e1' e2' e3' typeScheme) typeArgs args
-flatExpr (IR.Case srcSpan scrutinee alts typeScheme) typeArgs args = do
-  scrutinee' <- flatExpr scrutinee [] []
-  alts' <- mapM flatAlt alts
-  buildLet (IR.Case srcSpan scrutinee' alts' typeScheme) typeArgs args
- where
-  flatAlt :: IR.Alt -> Converter IR.Alt
-  flatAlt (IR.Alt altSrcSpan conPat varPats rhs) = do
-    rhs' <- flatExpr rhs [] []
-    return $ IR.Alt altSrcSpan conPat varPats rhs'
-flatExpr (IR.Undefined srcSpan typeScheme) typeArgs args = buildLet
-  (IR.Undefined srcSpan typeScheme) typeArgs args
-flatExpr (IR.ErrorExpr srcSpan exprMsg typeScheme) typeArgs args = buildLet
-  (IR.ErrorExpr srcSpan exprMsg typeScheme) typeArgs args
-flatExpr (IR.IntLiteral srcSpan literalValue typeScheme) typeArgs args
-  = buildLet (IR.IntLiteral srcSpan literalValue typeScheme) typeArgs args
-flatExpr (IR.Trace srcSpan msg e typeScheme) typeArgs args = do
-  e' <- flatExpr e [] []
-  buildLet (IR.Trace srcSpan msg e' typeScheme) typeArgs args
-flatExpr (IR.Lambda srcSpan exprArgs rhs typeScheme) typeArgs args = do
-  rhs' <- flatExpr rhs [] []
-  buildLet (IR.Lambda srcSpan exprArgs rhs' typeScheme) typeArgs args
-flatExpr (IR.Let bindSrcSpan binds expr typeScheme) typeArgs args = do
-  binds' <- mapM flatBind binds
-  expr' <- flatExpr expr [] []
-  buildLet (IR.Let bindSrcSpan binds' expr' typeScheme) typeArgs args
- where
-  flatBind :: IR.Bind -> Converter IR.Bind
-  flatBind (IR.Bind srcSpan varPat rhs) = do
-    rhs' <- flatExpr rhs [] []
-    return $ IR.Bind srcSpan varPat rhs'
+-- Recursively flatten all other expressions.
+flattenExpr' expr typeArgs args = do
+  children' <- mapM flattenExpr (childTerms expr)
+  buildLet (replaceChildTerms' expr children') typeArgs args
 
--- | Builds a @let@-expression containing a given expression.
---   where each given expression is bound to a fresh variable if it is not a
---   variable.
---   Given types are applied visibly.
+-- | Builds a @let@-expression that binds the given arguments to fresh
+--   variables and applies the given expression to the provided type arguments
+--   and fresh variables.
+--
+--   If an argument is a variable already, it is not bound again.
 buildLet :: IR.Expr -> [IR.Type] -> [IR.Expr] -> Converter IR.Expr
 buildLet e' typeArgs args = do
   (mBinds, vars) <- mapAndUnzipM buildBind args
@@ -150,21 +127,19 @@ buildLet e' typeArgs args = do
     then return expr
     else return $ IR.Let srcSpan binds expr (IR.exprTypeScheme e')
  where
+  -- | Creates a @let@-binding that binds the given expression to a fresh
+  --   variable.
+  --
+  --   Returns the binding and a variable expression for the fresh variable.
+  --   No new binding is generated if the given expression is a variable
+  --   already.
   buildBind :: IR.Expr -> Converter (Maybe IR.Bind, IR.Expr)
   buildBind v@IR.Var {} = return (Nothing, v)
   buildBind expr        = do
-    expr' <- flatExpr expr [] []
     varIdent <- freshHaskellIdent freshArgPrefix
     let srcSpan = IR.exprSrcSpan expr
         varPat  = IR.VarPat srcSpan varIdent Nothing False
-        bind    = IR.Bind srcSpan varPat expr'
+        bind    = IR.Bind srcSpan varPat expr
         varName = IR.UnQual $ IR.Ident varIdent
         var     = IR.Var srcSpan varName (IR.exprTypeScheme expr)
     return (Just bind, var)
-
--- | Whether an expression is an application of a function that encapsulates
---   effects.
-shouldEncapsulateEffects :: IR.Expr -> Converter Bool
-shouldEncapsulateEffects expr = case IR.getFuncName expr of
-  Nothing   -> return False
-  Just name -> inEnv $ encapsulatesEffects name
