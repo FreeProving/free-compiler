@@ -67,7 +67,7 @@ import           FreeC.Pass
 flattenExprPass :: Pass IR.Module IR.Module
 flattenExprPass ast = do
   funcDecls' <- mapM flatFuncDecl (IR.modFuncDecls ast)
-  return ast { IR.modFuncDecls = funcDecls' }
+  return (IR.modWithFuncDecls funcDecls' ast)
 
 -- | Applies the expression "flattening" on the right hand side of a function
 --   declaration.

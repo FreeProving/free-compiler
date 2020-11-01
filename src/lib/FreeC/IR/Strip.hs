@@ -21,9 +21,22 @@ import qualified FreeC.IR.Syntax  as IR
 class StripExprType node where
   stripExprType :: node -> node
 
-instance StripExprType IR.Module where
+-- | When expression type annotations can be removed from a node, they can also
+--   be removed from a list of those nodes.
+instance StripExprType node => StripExprType [node] where
+  stripExprType = map stripExprType
+
+-- | Strips the expression type annotations from all declarations in a module.
+instance StripExprType contents => StripExprType (IR.ModuleOf contents) where
   stripExprType ast
-    = ast { IR.modFuncDecls = map stripExprType (IR.modFuncDecls ast) }
+    = ast { IR.modContents = stripExprType (IR.modContents ast) }
+
+-- | Strips the expression type annotations from top-level function
+--   declarations.
+instance StripExprType IR.TopLevelDecl where
+  stripExprType decl | IR.isTopLevelFuncDecl decl = IR.TopLevelFuncDecl
+                       (stripExprType (IR.topLevelFuncDecl decl))
+                     | otherwise = decl
 
 -- | Strips the expression type annotations from function declarations.
 instance StripExprType IR.FuncDecl where

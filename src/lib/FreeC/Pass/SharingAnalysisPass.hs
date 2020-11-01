@@ -91,7 +91,7 @@ import           FreeC.Pass
 sharingAnaylsisPass :: Pass IR.Module IR.Module
 sharingAnaylsisPass ast = do
   funcDecls' <- mapM analyseSharingDecl (IR.modFuncDecls ast)
-  return ast { IR.modFuncDecls = funcDecls' }
+  return (IR.modWithFuncDecls funcDecls' ast)
 
 -- | Checks a function declaration for @case@-expressions to introduce local
 --   @let@-expressions and applies the transformation on the right-hand side.
