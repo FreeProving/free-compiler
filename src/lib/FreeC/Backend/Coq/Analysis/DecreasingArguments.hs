@@ -264,7 +264,7 @@ depthMapAt p expr decArg = foldr (uncurry extendDepthMap) (initDepthMap decArg)
   --   as the index (starting at @1@) of the position within its parent
   --   position.
   selectParent :: Pos -> Maybe (Int, IR.Expr)
-  selectParent = fmap (fmap (selectSubterm' expr)) . unConsPos
+  selectParent = fmap (fmap (selectSubterm' expr)) . parentPos'
 
 -- | Applies the given function to the children of the given expression
 --   and the extended 'DepthMap' for that child.
@@ -304,6 +304,7 @@ extendDepthMap _ (IR.TypeAppExpr _ _ _ _) depthMap = depthMap
 extendDepthMap _ (IR.If _ _ _ _ _) depthMap = depthMap
 extendDepthMap _ (IR.Undefined _ _) depthMap = depthMap
 extendDepthMap _ (IR.ErrorExpr _ _ _) depthMap = depthMap
+extendDepthMap _ (IR.Trace _ _ _ _) depthMap = depthMap
 extendDepthMap _ (IR.IntLiteral _ _ _) depthMap = depthMap
 extendDepthMap _ (IR.Trace _ _ _ _) depthMap = depthMap
 

@@ -79,10 +79,8 @@ qualifierPass = return . qualifyDecls
 --   of the module.
 qualifyDecls :: IR.Module -> IR.Module
 qualifyDecls ast = ast
-  { IR.modTypeDecls = map qualifyTypeDecl (IR.modTypeDecls ast)
-  , IR.modTypeSigs  = map qualifyTypeSig (IR.modTypeSigs ast)
-  , IR.modPragmas   = map qualifyPragma (IR.modPragmas ast)
-  , IR.modFuncDecls = map qualifyFuncDecl (IR.modFuncDecls ast)
+  { IR.modPragmas  = map qualifyPragma (IR.modPragmas ast)
+  , IR.modContents = map qualifyTopLevelDecl (IR.modContents ast)
   }
  where
   -- | The name of the module to qualify the names of all declarations with.
@@ -100,6 +98,15 @@ qualifyDecls ast = ast
   qualifyDeclIdent :: IR.DeclIdent -> IR.DeclIdent
   qualifyDeclIdent declIdent
     = declIdent { IR.declIdentName = qualify (IR.declIdentName declIdent) }
+
+  -- | Qualifies the given top level declaration.
+  qualifyTopLevelDecl :: IR.TopLevelDecl -> IR.TopLevelDecl
+  qualifyTopLevelDecl (IR.TopLevelTypeDecl typeDecl) = IR.TopLevelTypeDecl
+    (qualifyTypeDecl typeDecl)
+  qualifyTopLevelDecl (IR.TopLevelTypeSig typeSig)   = IR.TopLevelTypeSig
+    (qualifyTypeSig typeSig)
+  qualifyTopLevelDecl (IR.TopLevelFuncDecl funcDecl) = IR.TopLevelFuncDecl
+    (qualifyFuncDecl funcDecl)
 
   -- | Qualifies the name of the given type declaration with 'modName'.
   --

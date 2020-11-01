@@ -44,6 +44,9 @@ module FreeC.Backend.Coq.Syntax
   , notEquals
   , conj
   , disj
+    -- * Options
+  , setOption
+  , unsetOption
     -- * Imports
   , requireImportFrom
   , requireExportFrom
@@ -266,6 +269,23 @@ conj t1 t2 = app (Qualid (bare "op_/\\__")) [t1, t2]
 -- | Smart constructor for a disjunction in Coq.
 disj :: Term -> Term -> Term
 disj t1 t2 = app (Qualid (bare "op_\\/__")) [t1, t2]
+
+-------------------------------------------------------------------------------
+-- Options                                                                   --
+-------------------------------------------------------------------------------
+-- | Smart constructor for a sentence which sets an option or flag.
+setOption :: Maybe Locality -> String -> Maybe (Either Num String) -> Sentence
+setOption mbLoc opt mbArg = OptionSentence
+  $ SetOption mbLoc (Text.pack opt) mbArg'
+ where
+  mbArg' = case mbArg of
+    Nothing            -> Nothing
+    (Just (Left num))  -> Just (OVNum num)
+    (Just (Right str)) -> Just (OVText (Text.pack str))
+
+-- | Smart constructor for a sentence which unsets an option or flag.
+unsetOption :: Maybe Locality -> String -> Sentence
+unsetOption mbLoc opt = OptionSentence $ UnsetOption mbLoc (Text.pack opt)
 
 -------------------------------------------------------------------------------
 -- Imports                                                                   --

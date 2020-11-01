@@ -104,9 +104,9 @@ Lemma append1_assoc :
       = append Shape Pos Cbn (append1 Shape Pos a fys Cbn xs) fzs.
 Proof.
   intros Shape Pos I a SA xs fys fzs.
-  induction xs using List_Ind.
+  induction xs.
   - reflexivity.
-  - induction fxs using Free_Ind.
+  - induction fxs.
     + simpl. simplify H as IH. rewrite IH. reflexivity.
     + (*Inductive case: [fxs = impure s pf] with induction hypothesis [H] *)
       simpl. do 3 apply f_equal. extensionality p.
@@ -116,7 +116,7 @@ Qed.
 Lemma append_assoc : quickCheck (fun Shape Pos I => @prop_append_assoc Shape Pos I Cbn).
 Proof.
   intros Shape Pos I a SA NF fxs fys fzs.
-  induction fxs as [ | s pf IH ] using Free_Ind.
+  induction fxs as [ | s pf IH ].
   - simpl. apply append1_assoc.
   - (*Inductive case: [fxs = impure s pf] with induction hypothesis [IH] *)
     simpl. apply f_equal. extensionality p.
@@ -190,7 +190,7 @@ Proof.
          apply (null_rev Shape Pos I a SA) in Hnull.
          destruct (reverse Shape Pos Cbn fys) as [[| y ys'] |].
          ++ (* reverse Shape Pos fys = Nil Shape Pos *)
-            specialize (append_nil Shape Pos I a SA NF) as appNil. 
+            specialize (append_nil Shape Pos I a SA NF) as appNil.
             simpl in appNil. unfold isEmpty. rewrite appNil. reflexivity.
          ++ (* reverse Shape Pos fys = Cons Shape Pos y ys' *)
             simpl in Hnull. discriminate Hnull.
@@ -206,15 +206,15 @@ Qed.
 Theorem prop_add_theorem : quickCheck (fun Shape Pos I => @prop_add Shape Pos I Cbn).
 Proof.
   intros Shape Pos I a SA NF fx fqi.
-  induction fqi as [ [f1 f2] | eq ] using Free_Ind; simpl.
+  induction fqi as [ [f1 f2] | eq ]; simpl.
   - destruct f1 as [l | s pf]; simpl.
     + destruct l as [ | fy fys]; simpl.
       * specialize (append_nil Shape Pos I a SA NF) as appNil. simpl in appNil.
         rewrite appNil. reflexivity.
-      * apply (append_assoc Shape Pos I _ SA NF (pure (cons fy fys)) 
+      * apply (append_assoc Shape Pos I _ SA NF (pure (cons fy fys))
           (reverse Shape Pos Cbn f2) (singleton Shape Pos fx)).
     + unfold add. simpl. repeat apply f_equal. extensionality p.
-      induction (pf p) as [fys |] using Free_Ind; simpl.
+      induction (pf p) as [fys |]; simpl.
       * destruct fys; simpl.
         -- specialize (append_nil Shape Pos I a SA NF) as appNil. simpl in appNil. rewrite appNil.
            reflexivity.

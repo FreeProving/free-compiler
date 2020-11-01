@@ -11,8 +11,8 @@ module FreeC.IR.Subterm
   , Pos(..)
   , rootPos
   , consPos
-  , unConsPos
   , parentPos
+  , parentPos'
   , ancestorPos
   , allPos
   , above
@@ -204,12 +204,13 @@ rootPos = Pos []
 consPos :: Int -> Pos -> Pos
 consPos p (Pos ps) = Pos (p : ps)
 
--- | Inverse function of 'consPos'.
+-- |  Gets the parent position or @Nothing@ if the given position is the
+--    root position.
 --
---   Returns @Nothing@ if the given position is the 'rootPos'.
-unConsPos :: Pos -> Maybe (Int, Pos)
-unConsPos (Pos [])       = Nothing
-unConsPos (Pos (p : ps)) = Just (p, Pos ps)
+--   Returns the index of the child term and the position of the parent term.
+parentPos' :: Pos -> Maybe (Int, Pos)
+parentPos' (Pos []) = Nothing
+parentPos' (Pos ps) = Just (last ps, Pos (init ps))
 
 -- | Gets the parent position or @Nothing@ if the given position is the
 --   root position.

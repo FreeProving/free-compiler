@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 -- | This module contains a parser for our intermediate representation (IR).
 --
 --   The intermediate language is usually not parsed directly. It is more
@@ -226,15 +228,12 @@ instance Parseable IR.QName where
 moduleParser :: Parser IR.Module
 moduleParser = do
   modName <- keyword MODULE *> modNameParser <* keyword WHERE
-  let ast = IR.Module
-        { IR.modSrcSpan   = NoSrcSpan
-        , IR.modName      = modName
-        , IR.modImports   = []
-        , IR.modTypeDecls = []
-        , IR.modTypeSigs  = []
-        , IR.modPragmas   = []
-        , IR.modFuncDecls = []
-        }
+  let ast = IR.ModuleOf { IR.modSrcSpan  = NoSrcSpan
+                        , IR.modName     = modName
+                        , IR.modImports  = []
+                        , IR.modPragmas  = []
+                        , IR.modContents = []
+                        }
   topLevelDecls <- topLevelDeclParser `Parsec.sepEndBy` token Semi
   return (foldr ($) ast topLevelDecls)
 
@@ -268,21 +267,23 @@ topLevelDeclParser = Parsec.choice
 
   -- | Inserts a type declaration into the given module.
   insertTypeDecl :: IR.TypeDecl -> IR.Module -> IR.Module
-  insertTypeDecl typeDecl ast
-    = ast { IR.modTypeDecls = typeDecl : IR.modTypeDecls ast }
+  insertTypeDecl typeDecl ast = ast
+    { IR.modContents = IR.TopLevelTypeDecl typeDecl : IR.modContents ast
+    }
 
   -- | Inserts a type signature into the given module.
   insertTypeSig :: IR.TypeSig -> IR.Module -> IR.Module
   insertTypeSig typeSig ast
-    = ast { IR.modTypeSigs = typeSig : IR.modTypeSigs ast }
+    = ast { IR.modContents = IR.TopLevelTypeSig typeSig : IR.modContents ast }
 
   -- | Inserts a function declaration into the given module.
   insertFuncDecl :: IR.FuncDecl -> IR.Module -> IR.Module
-  insertFuncDecl funcDecl ast
-    = ast { IR.modFuncDecls = funcDecl : IR.modFuncDecls ast }
+  insertFuncDecl funcDecl ast = ast
+    { IR.modContents = IR.TopLevelFuncDecl funcDecl : IR.modContents ast
+    }
 
 -- | Modules can be parsed.
-instance Parseable IR.Module where
+instance Parseable (IR.ModuleOf [IR.TopLevelDecl]) where
   parseIR' = moduleParser
 
 -------------------------------------------------------------------------------

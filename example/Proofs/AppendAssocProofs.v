@@ -28,9 +28,9 @@ Lemma append1_assoc :
       = append Shape Pos Cbn (append1 Shape Pos a fys Cbn xs) fzs.
 Proof.
   intros Shape Pos I a SA xs fys fzs.
-  induction xs using List_Ind.
+  induction xs.
   - reflexivity.
-  - induction fxs using Free_Ind.
+  - induction fxs.
     + simpl. simplify H as IH. rewrite IH. reflexivity.
     + (*Inductive case: [fxs = impure s pf] with induction hypothesis [H] *)
       simpl. do 3 apply f_equal. extensionality p.
@@ -41,7 +41,7 @@ Qed.
 Theorem append_assocs: quickCheck (fun Shape Pos I => @prop_append_assoc Shape Pos I Cbn).
 Proof.
   intros Shape Pos I a SA NF fxs fys fzs.
-  induction fxs as [ | s pf IH ] using Free_Ind.
+  induction fxs as [ | s pf IH ].
   - simpl. apply append1_assoc.
   - (*Inductive case: [fxs = impure s pf] with induction hypothesis [IH] *)
     simpl. apply f_equal. extensionality p.

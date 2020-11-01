@@ -66,10 +66,10 @@ import qualified Data.Set                          as Set
 
 import           FreeC.Environment
 import           FreeC.Environment.Entry
+import           FreeC.Environment.LookupOrFail
 import           FreeC.Environment.ModuleInterface
 import qualified FreeC.IR.Syntax                   as IR
 import           FreeC.Monad.Converter
-import           FreeC.Monad.Reporter
 import           FreeC.Pass
 
 -- | Compiler pass that adds entries imported by the given module to the
@@ -98,9 +98,5 @@ importInterface = importEntries . Set.toList . interfaceEntries
 --   Reports a fatal error when there is no such module.
 importModule :: IR.ImportDecl -> Converter ()
 importModule (IR.ImportDecl srcSpan modName) = do
-  maybeIface <- inEnv $ lookupAvailableModule modName
-  case maybeIface of
-    Just iface -> modifyEnv $ importInterface iface
-    Nothing    -> reportFatal
-      $ Message srcSpan Error
-      $ "Could not find module '" ++ modName ++ "'"
+  iface <- lookupAvailableModuleOrFail srcSpan modName
+  modifyEnv $ importInterface iface

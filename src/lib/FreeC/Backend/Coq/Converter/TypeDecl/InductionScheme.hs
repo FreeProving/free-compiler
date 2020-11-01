@@ -42,7 +42,7 @@ generateInductionScheme
     (valIdent, valBinder) <- generateArg
       (genericApply tIdent [] [] (map Coq.Qualid tvarIdents))
     -- Stick everything together.
-    schemeName <- freshCoqQualid $ fromJust (Coq.unpackQualid tIdent) ++ "_Ind"
+    schemeName <- freshCoqQualid $ fromJust (Coq.unpackQualid tIdent) ++ "_ind"
     hypothesisVar <- freshCoqIdent "H"
     let binders = genericArgDecls Coq.Explicit
           ++ tvarBinders

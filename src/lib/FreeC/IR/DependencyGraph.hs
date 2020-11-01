@@ -167,12 +167,13 @@ valueEntry node = (node, IR.declQName node, valueRefs node)
 -- Module Dependencies                                                       --
 -------------------------------------------------------------------------------
 -- | Creates the dependency graph for the given modules.
-moduleDependencyGraph :: [IR.Module] -> DependencyGraph IR.Module
+moduleDependencyGraph
+  :: [IR.ModuleOf decls] -> DependencyGraph (IR.ModuleOf decls)
 moduleDependencyGraph
   = uncurry3 DependencyGraph . graphFromEdges . map moduleEntries
 
 -- | Creates an entry of the dependency graph for the given module.
-moduleEntries :: IR.Module -> DGEntry IR.Module
+moduleEntries :: IR.ModuleOf decls -> DGEntry (IR.ModuleOf decls)
 moduleEntries decl
   = ( decl
     , IR.UnQual (IR.Ident (IR.modName decl))
@@ -293,7 +294,8 @@ valueDependencyComponents = dependencyComponents . valueDependencyGraph
 --   Since cyclic module dependencies are not allowed, all
 --   'DependencyComponent's in the returned list should be 'NonRecursive'.
 --   Otherwise, there is a module dependency error.
-groupModules :: [IR.Module] -> [DependencyComponent IR.Module]
+groupModules :: [IR.ModuleOf decls]
+             -> [DependencyComponent (IR.ModuleOf decls)]
 groupModules = dependencyComponents . moduleDependencyGraph
 
 -------------------------------------------------------------------------------

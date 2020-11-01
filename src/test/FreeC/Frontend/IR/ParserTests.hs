@@ -579,66 +579,101 @@ testImportDeclParser = context "import declarations" $ do
   it "accepts import declarations for dotted module names" $ do
     "import M1.M2" `shouldParse` IR.ImportDecl NoSrcSpan "M1.M2"
 
--- |Test group for 'Parseable' instance of 'IR.Module'.
+-- | Test group for 'Parseable' instance of 'IR.Module'.
 testModuleParser :: Spec
 testModuleParser = context "modules" $ do
-  let emptyModule = IR.Module
-        { IR.modSrcSpan   = NoSrcSpan
-        , IR.modName      = undefined -- specify in tests
-        , IR.modImports   = []
-        , IR.modTypeDecls = []
-        , IR.modTypeSigs  = []
-        , IR.modPragmas   = []
-        , IR.modFuncDecls = []
-        }
-      conFoo      = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "Foo"))
-      tyFoo       = IR.TypeCon NoSrcSpan (IR.UnQual (IR.Ident "Foo"))
-      funFoo      = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "foo"))
-      conBar      = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "Bar"))
-      x           = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
-      xPat        = IR.VarPat NoSrcSpan "x" Nothing False
+  let conFoo = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "Foo"))
+      tyFoo  = IR.TypeCon NoSrcSpan (IR.UnQual (IR.Ident "Foo"))
+      funFoo = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "foo"))
+      conBar = IR.DeclIdent NoSrcSpan (IR.UnQual (IR.Ident "Bar"))
+      x      = IR.Var NoSrcSpan (IR.UnQual (IR.Ident "x")) Nothing
+      xPat   = IR.VarPat NoSrcSpan "x" Nothing False
   it "accepts empty modules" $ do
-    "module M where" `shouldParse` emptyModule { IR.modName = "M" }
+    "module M where"
+      `shouldParse` IR.ModuleOf
+      { IR.modSrcSpan  = NoSrcSpan
+      , IR.modName     = "M"
+      , IR.modImports  = []
+      , IR.modPragmas  = []
+      , IR.modContents = [] :: [IR.TopLevelDecl]
+      }
   it "accepts empty modules with dotted names" $ do
-    "module M1.M2 where" `shouldParse` emptyModule { IR.modName = "M1.M2" }
+    "module M1.M2 where"
+      `shouldParse` IR.ModuleOf
+      { IR.modSrcSpan  = NoSrcSpan
+      , IR.modName     = "M1.M2"
+      , IR.modImports  = []
+      , IR.modPragmas  = []
+      , IR.modContents = [] :: [IR.TopLevelDecl]
+      }
   it "accepts modules with imports" $ do
-    shouldParseModule ["module M1 where", "import M2"] emptyModule
-      { IR.modName    = "M1"
-      , IR.modImports = [IR.ImportDecl NoSrcSpan "M2"]
+    shouldParseModule ["module M1 where", "import M2"] IR.ModuleOf
+      { IR.modSrcSpan  = NoSrcSpan
+      , IR.modName     = "M1"
+      , IR.modImports  = [IR.ImportDecl NoSrcSpan "M2"]
+      , IR.modPragmas  = []
+      , IR.modContents = [] :: [IR.TopLevelDecl]
       }
   it "accepts modules with type synonyms declarations" $ do
-    shouldParseModule ["module M where", "type Bar = Foo"] emptyModule
-      { IR.modName      = "M"
-      , IR.modTypeDecls = [IR.TypeSynDecl NoSrcSpan conBar [] tyFoo]
+    shouldParseModule ["module M where", "type Bar = Foo"] IR.ModuleOf
+      { IR.modSrcSpan  = NoSrcSpan
+      , IR.modName     = "M"
+      , IR.modImports  = []
+      , IR.modPragmas  = []
+      , IR.modContents
+          = [IR.TopLevelTypeDecl (IR.TypeSynDecl NoSrcSpan conBar [] tyFoo)]
       }
   it "accepts modules with data type declarations" $ do
-    shouldParseModule ["module M where", "data Foo = Bar"] emptyModule
-      { IR.modName      = "M"
-      , IR.modTypeDecls
-          = [IR.DataDecl NoSrcSpan conFoo [] [IR.ConDecl NoSrcSpan conBar []]]
+    shouldParseModule ["module M where", "data Foo = Bar"] IR.ModuleOf
+      { IR.modSrcSpan  = NoSrcSpan
+      , IR.modName     = "M"
+      , IR.modImports  = []
+      , IR.modPragmas  = []
+      , IR.modContents
+          = [ IR.TopLevelTypeDecl (IR.DataDecl NoSrcSpan conFoo []
+                                   [IR.ConDecl NoSrcSpan conBar []])
+            ]
       }
   it "accepts modules with type signatures" $ do
-    shouldParseModule ["module M where", "foo :: Foo"] emptyModule
-      { IR.modName     = "M"
-      , IR.modTypeSigs
-          = [IR.TypeSig NoSrcSpan [funFoo] (IR.TypeScheme NoSrcSpan [] tyFoo)]
+    shouldParseModule ["module M where", "foo :: Foo"] IR.ModuleOf
+      { IR.modSrcSpan  = NoSrcSpan
+      , IR.modName     = "M"
+      , IR.modImports  = []
+      , IR.modPragmas  = []
+      , IR.modContents
+          = [ IR.TopLevelTypeSig (IR.TypeSig NoSrcSpan [funFoo]
+                                  (IR.TypeScheme NoSrcSpan [] tyFoo))
+            ]
       }
   it "accepts modules with function declarations" $ do
-    shouldParseModule ["module M where", "foo x = x"] emptyModule
-      { IR.modName      = "M"
-      , IR.modFuncDecls = [IR.FuncDecl NoSrcSpan funFoo [] [xPat] Nothing x]
+    shouldParseModule ["module M where", "foo x = x"] IR.ModuleOf
+      { IR.modSrcSpan  = NoSrcSpan
+      , IR.modName     = "M"
+      , IR.modImports  = []
+      , IR.modPragmas  = []
+      , IR.modContents = [ IR.TopLevelFuncDecl
+                             (IR.FuncDecl NoSrcSpan funFoo [] [xPat] Nothing x)
+                         ]
       }
   it ("accepts modules with nullary function declarations whose return type"
       ++ "is annotated")
     $ do
-      shouldParseModule ["module M where", "foo :: Foo = x"] emptyModule
-        { IR.modName      = "M"
-        , IR.modFuncDecls = [IR.FuncDecl NoSrcSpan funFoo [] [] (Just tyFoo) x]
+      shouldParseModule ["module M where", "foo :: Foo = x"] IR.ModuleOf
+        { IR.modSrcSpan  = NoSrcSpan
+        , IR.modName     = "M"
+        , IR.modImports  = []
+        , IR.modPragmas  = []
+        , IR.modContents = [ IR.TopLevelFuncDecl (IR.FuncDecl NoSrcSpan funFoo
+                                                  [] [] (Just tyFoo) x)
+                           ]
         }
   it "accepts modules with top-level declarations separated by semicolon" $ do
     shouldParseModule ["module M1 where", "import M2;", "type Bar = Foo;"]
-      emptyModule
-      { IR.modName      = "M1"
-      , IR.modImports   = [IR.ImportDecl NoSrcSpan "M2"]
-      , IR.modTypeDecls = [IR.TypeSynDecl NoSrcSpan conBar [] tyFoo]
+      IR.ModuleOf
+      { IR.modSrcSpan  = NoSrcSpan
+      , IR.modName     = "M1"
+      , IR.modImports  = [IR.ImportDecl NoSrcSpan "M2"]
+      , IR.modPragmas  = []
+      , IR.modContents
+          = [IR.TopLevelTypeDecl (IR.TypeSynDecl NoSrcSpan conBar [] tyFoo)]
       }

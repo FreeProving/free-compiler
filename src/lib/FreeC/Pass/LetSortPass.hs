@@ -69,7 +69,7 @@ import           FreeC.Pretty
 letSortPass :: Pass IR.Module IR.Module
 letSortPass ast = do
   funcDecls' <- mapM sortFuncDecl (IR.modFuncDecls ast)
-  return ast { IR.modFuncDecls = funcDecls' }
+  return (IR.modWithFuncDecls funcDecls' ast)
 
 -- | Sorts all @let@-expressions on the right-hand side of the given function
 --   declaration topologically.

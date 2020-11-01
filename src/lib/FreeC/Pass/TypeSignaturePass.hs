@@ -113,7 +113,7 @@ typeSignaturePass ast = do
       funcDecls = IR.modFuncDecls ast
   mapM_ (checkHasBinding funcDecls) typeSigs
   funcDecls' <- addTypeSigsToFuncDecls typeSigs funcDecls
-  return ast { IR.modFuncDecls = funcDecls' }
+  return (IR.modWithFuncDecls funcDecls' ast)
 
 -------------------------------------------------------------------------------
 -- Checks                                                                    --

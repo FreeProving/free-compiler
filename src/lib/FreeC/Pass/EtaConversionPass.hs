@@ -125,7 +125,7 @@ import           FreeC.Pass.TypeSignaturePass ( splitFuncType )
 etaConversionPass :: Pass IR.Module IR.Module
 etaConversionPass ast = do
   funcDecls' <- etaConvertFuncDecls (IR.modFuncDecls ast) []
-  return ast { IR.modFuncDecls = funcDecls' }
+  return (IR.modWithFuncDecls funcDecls' ast)
 
 -------------------------------------------------------------------------------
 -- Function Declarations                                                     --
