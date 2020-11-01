@@ -17,9 +17,10 @@ Instance ShareableArgsProperty (Shape : Type) (Pos : Shape -> Type)
 (* * [Testable] type class *)
 
 (* [class Testable prop where property :: prop -> Property] *)
-Class Testable (prop : Type) := { 
+Class Testable (prop : Type) := {
   property' : prop -> Prop;
-  property : prop -> Prop }.
+  property : prop -> Prop
+}.
 
 (* [instance Testable Prop] *)
 Instance TestableProp
@@ -86,12 +87,11 @@ Instance TestableFree (Shape : Type) (Pos : Shape -> Type)
 
 (* Similar to Testable, but returns a Property instead of a Prop so
    that a handler can be applied. *)
-Class Handleable (Shape : Type) (Pos : Shape -> Type) (prop : Type) := 
-  {  toProperty : prop -> Property Shape Pos
-}.
+Class Handleable (Shape : Type) (Pos : Shape -> Type) (prop : Type) :=
+  {  toProperty : prop -> Property Shape Pos }.
 
 Instance HandleableBool (Shape : Type) (Pos : Shape -> Type)
-  : Handleable Shape Pos (Bool Shape Pos) 
+  : Handleable Shape Pos (Bool Shape Pos)
  := { toProperty b := fun _ => b = true }.
 
 Instance HandleableProperty (Shape : Type) (Pos : Shape -> Type) : Handleable Shape Pos (Property Shape Pos) := {
@@ -104,7 +104,7 @@ Instance HandleableFree (Shape : Type) (Pos : Shape -> Type) {A : Type} {H_A : H
                    | impure s pf => (fun _ => False)
                    end }.
 
-Instance HandleableFunction (Shape : Type) (Pos : Shape -> Type) (A : Type) (B : Type) 
+Instance HandleableFunction (Shape : Type) (Pos : Shape -> Type) (A : Type) (B : Type)
  (T_B : Handleable Shape Pos B)
   : Handleable Shape Pos (A -> B)
  := { toProperty f := fun handler => forall x, toProperty (f x) handler }.
@@ -163,29 +163,27 @@ Section SecQuickCheck.
   Definition eqProp (A : Type) `(NF : Normalform Shape Pos A)
     (fx : Free' A) (fy : Free' A)
     : Free' Property'
-   := pure (fun handler => 
-             handle fx = handle fy).
+   := pure (fun handler => handle fx = handle fy).
 
   (* [(=/=) :: a -> a -> Property] *)
-  Definition neqProp (A : Type) `(NF : Normalform Shape Pos A) 
+  Definition neqProp (A : Type) `(NF : Normalform Shape Pos A)
                      (fx : Free' A) (fy : Free' A)
     : Free' Property'
-   := pure (fun handler => 
-             handle fx <> handle fy).
+   := pure (fun handler => handle fx <> handle fy).
 
   (* [(.&&.) :: Property -> Property -> Property] *)
   Definition conjProp (fp1 : Free' Property') (fp2 : Free' Property')
     : Free' Property'
-   :=  fp1 >>= fun p1 => 
-       fp2 >>= fun p2 => 
-       pure (fun handler => p1 handler /\ p2 handler).
+   := fp1 >>= fun p1 =>
+      fp2 >>= fun p2 =>
+      pure (fun handler => p1 handler /\ p2 handler).
 
   (* [(.||.) :: Property -> Property -> Property] *)
   Definition disjProp (fp1 : Free' Property') (fp2 : Free' Property')
     : Free' Property'
-   :=  fp1 >>= fun p1 => 
-       fp2 >>= fun p2 => 
-       pure (fun handler => p1 handler \/ p2 handler).
+   := fp1 >>= fun p1 =>
+      fp2 >>= fun p2 =>
+      pure (fun handler => p1 handler \/ p2 handler).
 End SecQuickCheck.
 
 (* Helper lemma to avoid the [match] expression introduced by [property]. *)

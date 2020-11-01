@@ -101,6 +101,13 @@
 --       i.e. which type classes need to be passed.
 --     * @needs-free-args@ (@Boolean@) whether the arguments of the @Free@
 --       monad need to be passed to the function.
+--
+--   Additionally, the following optional key/value pairs are allowed.
+--
+--     * @encapsulates-effects@ (@Boolean@, defaults to @false@) whether the
+--       function encapsulates effects. This property should only be set to
+--       @true@ for selected functions from the base library. For example, the
+--       flag is set for functions from the QuickCheck extension.
 module FreeC.Environment.ModuleInterface.Decoder ( loadModuleInterface ) where
 
 import           Control.Monad                     ( when )
@@ -273,7 +280,7 @@ instance Aeson.FromJSON ModuleInterface where
       haskellType <- obj .: "haskell-type"
       effects <- obj .: "effects"
       freeArgsNeeded <- obj .: "needs-free-args"
-      effectsEncapsulated <- obj .: "encapsulates-effects"
+      effectsEncapsulated <- obj .:? "encapsulates-effects" .!= False
       coqName <- obj .: "coq-name"
       agdaName <- obj .: "agda-name"
       -- TODO this does not work with vanishing type arguments.
