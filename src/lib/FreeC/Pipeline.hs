@@ -25,7 +25,6 @@ import           FreeC.Pass.LetSortPass
 import           FreeC.Pass.PragmaPass
 import           FreeC.Pass.QualifierPass
 import           FreeC.Pass.ResolverPass
-import           FreeC.Pass.SharingAnalysisPass
 import           FreeC.Pass.TypeInferencePass
 import           FreeC.Pass.TypeSignaturePass
 
@@ -40,7 +39,6 @@ pipeline = implicitPreludePass
   >=> letSortPass
   >=> typeSignaturePass
   >=> pragmaPass
-  >=> sharingAnaylsisPass
   >=> flattenExprPass
   >=> dependencyAnalysisPass
   (typeInferencePass >=> defineFuncDeclsPass >=> effectAnalysisPass)
