@@ -14,9 +14,12 @@ Require Import Coq.Program.Equality.
 
 Section Proofs_Maybe.
 
-  (* In the following proofs we use the [Maybe] monad. *)
+  (* In the following proofs we use the [Maybe] monad in a call-by-name setting.
+
+     TODO remove [Injectable] constraint. *)
   Definition Shape   := Maybe.Shape.
   Definition Pos     := Maybe.Pos.
+  Context `{Injectable Share.Shape Share.Pos Shape Pos}.
   Definition Partial := Maybe.Partial Shape Pos.
 
   (* In the [Maybe] monad there exists only one impure value. *)
@@ -35,7 +38,7 @@ Section Proofs_Maybe.
   (* If the stack is impure the result of any [exec] call on that stack will be impure. *)
   Lemma exec_strict_on_stack_arg :
     forall (fcode  : Free Shape Pos (Code Shape Pos)),
-      exec Shape Pos Partial fcode (Nothing _ _) = Nothing _ _.
+      exec Shape Pos Cbn Partial fcode (Nothing _ _) = Nothing _ _.
   Proof.
     intro fcode.
     destruct fcode as [ [ | [ [ fn | ] | sOp pfOp ] fcode1 ] | sCode pfCode ];
@@ -50,8 +53,8 @@ Section Proofs_Maybe.
     forall (fcode1 : Free Shape Pos (Code Shape Pos)),
     forall (fcode2 : Free Shape Pos (Code Shape Pos)),
     forall (fstack        : Free Shape Pos (Stack Shape Pos)),
-        exec Shape Pos Partial (append Shape Pos fcode1 fcode2) fstack
-        = exec Shape Pos Partial fcode2 (exec Shape Pos Partial fcode1 fstack).
+        exec Shape Pos Cbn Partial (append Shape Pos Cbn fcode1 fcode2) fstack
+        = exec Shape Pos Cbn Partial fcode2 (exec Shape Pos Cbn Partial fcode1 fstack).
   Proof.
     intros fcode1 fcode2.
     (* Destruct the monadic layer of the first piece of code. *)
@@ -113,8 +116,8 @@ Section Proofs_Maybe.
     RecPureExpr fexpr ->
     forall (fstack : Free Shape Pos (Stack Shape Pos)),
     RecPureStack fstack ->
-        exec Shape Pos Partial (comp Shape Pos fexpr) fstack
-        = Cons Shape Pos (eval Shape Pos fexpr) fstack.
+        exec Shape Pos Cbn Partial (comp Shape Pos Cbn fexpr) fstack
+        = Cons Shape Pos (eval Shape Pos Cbn fexpr) fstack.
   Proof.
     intros N fexpr HPureE.
     destruct fexpr as [ expr | ]. 2: dependent destruction HPureE.
@@ -132,7 +135,7 @@ Section Proofs_Maybe.
       destruct fy as [ y | ]. 2: dependent destruction HPureE2.
       autoIH; specialize (IH HPureE2) as IHy; simpl comp in IHy; clear IH.
       (* Do actual proof. *)
-      specialize (append_assocs _ _ _ N) as HAssoc; simpl in HAssoc.
+      specialize (append_assocs _ _ _ _ _ N) as HAssoc; simpl in HAssoc.
       rewrite <- HAssoc.
       destruct fstack as [ [ | fv1 fstack1 ] | ]. 3: dependent destruction HPureS.
       1,2: rewrite exec_append.
@@ -148,7 +151,7 @@ Section Proofs_Maybe.
   Lemma comp_correct :
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
-        quickCheck (prop_comp_correct Shape Pos Partial fexpr).
+        quickCheck (prop_comp_correct Shape Pos Cbn Partial fexpr).
   Proof.
     intros fexpr HPureE.
     apply (comp_correct' fexpr HPureE (Nil Shape Pos) recPureStack_nil).

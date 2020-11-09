@@ -16,15 +16,15 @@ Inductive RecPureExpr {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (Exp
       RecPureExpr (Val Shape Pos fn)
   | recPureExpr_add : forall (fx fy : Free Shape Pos (Expr Shape Pos)),
       RecPureExpr fx -> RecPureExpr fy -> RecPureExpr (Add0 Shape Pos fx fy).
- 
- (* This property states that the for a given code the list is recursively pure
+
+ (* This property states that for a given code the list is recursively pure
     and all contained operations are pure.
     The integers in those operations however might still be impure. *)
 Inductive RecPureCode {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (Code Shape Pos) -> Prop :=
    | recPureCode_nil : RecPureCode (Nil Shape Pos)
    | recPureCode_cons : forall (op : Op Shape Pos) (fcode : Free Shape Pos (Code Shape Pos)),
        RecPureCode fcode -> RecPureCode (Cons Shape Pos (pure op) fcode).
- 
+
 Inductive RecPureStack {Shape : Type} {Pos : Shape -> Type} : Free Shape Pos (Stack Shape Pos) -> Prop :=
   | recPureStack_nil : RecPureStack (Nil Shape Pos)
   | recPureStack_cons : forall (fv : Free Shape Pos (Integer Shape Pos))
@@ -101,13 +101,14 @@ Ltac eliminate_pureness_property_impure :=
 Section Lemmas.
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
+  Context `{Injectable Share.Shape Share.Pos Shape Pos}.
 
   (* If we apply [append] on two pieces of recursively pure code the result is recursively pure code. *)
   Lemma append_pure :
     forall (fcode1 fcode2 : Free Shape Pos (Code Shape Pos)),
     RecPureCode fcode1 ->
     RecPureCode fcode2 ->
-        RecPureCode (append Shape Pos fcode1 fcode2).
+        RecPureCode (append Shape Pos Cbn fcode1 fcode2).
   Proof.
     intros fcode1 fcode2 HPure1 HPure2.
     (* The first piece of code is pure. *)
@@ -127,7 +128,7 @@ Section Lemmas.
   Lemma comp_pure :
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
-        RecPureCode (comp Shape Pos fexpr).
+        RecPureCode (comp Shape Pos Cbn fexpr).
   Proof.
     intros fexpr HPure.
     (* The given expression is pure. *)
@@ -140,7 +141,7 @@ Section Lemmas.
       dependent destruction HPure.
       (* The expression [fx] is pure. *)
       destruct fx as [ x | sX pfX ]. 2: dependent destruction HPure1.
-      (* Use the lemma [append_pure] with the three recursively pure pieces of code: 
+      (* Use the lemma [append_pure] with the three recursively pure pieces of code:
          - (comp_0 Shape Pos x)
          - (fy >>= (fun y : Expr Shape Pos => comp_0 Shape Pos y))
          - (Cons Shape Pos (ADD Shape Pos) (Nil Shape Pos)) *)
