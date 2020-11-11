@@ -33,6 +33,4 @@ Instance NormalformUnit (Shape : Type) (Pos : Shape -> Type)
 
 Instance ShareableArgsUnit (Shape : Type) (Pos : Shape -> Type)
   : ShareableArgs Shape Pos (Unit Shape Pos)
- := {
-        shareArgs := pure
-    }.
+ := { shareArgs _ := pure }.

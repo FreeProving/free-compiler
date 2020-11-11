@@ -30,10 +30,9 @@ module FreeC.Backend.Coq.Base
     -- * Modules
   , qualifiedSmartConstructorModule
     -- * Sharing
-  , injectable
-  , injectableBinder
   , strategy
   , strategyArg
+  , strategyBinder
   , shareableArgs
   , shareableArgsBinder
   , shareArgs
@@ -44,7 +43,7 @@ module FreeC.Backend.Coq.Base
   , nType
   , implicitArg
   , share
-  , cbneed
+  , shareWith
   , call
     -- * Effect Selection
   , selectExplicitArgs
@@ -189,24 +188,6 @@ qualifiedSmartConstructorModule = Coq.ident "QualifiedSmartConstructorModule"
 -------------------------------------------------------------------------------
 -- Sharing                                                                   --
 -------------------------------------------------------------------------------
--- | The Coq identifier for the @Share@ module.
-shareModuleIdent :: Coq.Ident
-shareModuleIdent = Coq.ident "Share"
-
--- | The Coq identifier for the @Injectable@ type class.
-injectable :: Coq.Qualid
-injectable = Coq.bare "Injectable"
-
--- | The Coq binder for the @Injectable@ type class.
-injectableBinder :: Coq.Binder
-injectableBinder = Coq.Generalized Coq.Implicit
-  $ Coq.app (Coq.Qualid injectable)
-  $ map Coq.Qualid [ Coq.Qualified shareModuleIdent shapeIdent
-                   , Coq.Qualified shareModuleIdent posIdent
-                   , shape
-                   , pos
-                   ]
-
 -- | The Coq identifier for the @Strategy@ type class.
 strategy :: Coq.Qualid
 strategy = Coq.bare "Strategy"
@@ -215,16 +196,9 @@ strategy = Coq.bare "Strategy"
 strategyArg :: Coq.Qualid
 strategyArg = Coq.bare "S"
 
--- | A notation for the term
---   (forall (Shape : Type) (Pos : Shape -> Type)
---    `{Injectable Share.Shape Share.Pos Shape Pos},
---    Strategy Shape Pos).
-strategyNotation :: Coq.Qualid
-strategyNotation = Coq.bare "EvaluationStrategy"
-
 strategyBinder :: Coq.Binder
 strategyBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit strategyArg
-  (Coq.Qualid strategyNotation)
+  (Coq.app (Coq.Qualid strategy) [Coq.Qualid shape, Coq.Qualid pos])
 
 -- | The Coq identifier for the @ShareableArgs@ type class.
 shareableArgs :: Coq.Qualid
@@ -249,13 +223,13 @@ implicitArg = Coq.Underscore
 share :: Coq.Qualid
 share = Coq.bare "share"
 
+-- | The Coq identifier for the @shareWith@ operator.
+shareWith :: Coq.Qualid
+shareWith = Coq.bare "shareWith"
+
 -- | The Coq identifier for the @call@ operator.
 call :: Coq.Qualid
 call = Coq.bare "call"
-
--- | The Coq identifier for the @cbneed@ operator.
-cbneed :: Coq.Qualid
-cbneed = Coq.bare "cbneed"
 
 -------------------------------------------------------------------------------
 -- Handling                                                                  --
@@ -296,7 +270,7 @@ selectExplicitArgs Normalform = []
 -- | Selects the correct implicit function arguments for the given effect.
 selectImplicitArgs :: Effect -> [Coq.Term]
 selectImplicitArgs Partiality = []
-selectImplicitArgs Sharing    = [implicitArg]
+selectImplicitArgs Sharing    = []
 selectImplicitArgs Tracing    = []
 selectImplicitArgs Normalform = []
 
@@ -311,7 +285,7 @@ selectTypedImplicitArgs Normalform = flip replicate implicitArg
 -- | Selects the correct binder for the given effect.
 selectBinders :: Effect -> [Coq.Binder]
 selectBinders Partiality = [partialBinder]
-selectBinders Sharing    = [injectableBinder, strategyBinder]
+selectBinders Sharing    = [strategyBinder]
 selectBinders Tracing    = [tracableBinder]
 selectBinders Normalform = []
 
@@ -366,10 +340,8 @@ reservedIdents
       -- Notations
     , Coq.Bare qualifiedSmartConstructorModule
       -- Sharing
-    , injectable
     , strategy
     , strategyArg
-    , strategyNotation
     , shareableArgs
     , shareArgs
     , normalform
@@ -377,7 +349,7 @@ reservedIdents
     , nf
     , nType
     , share
+    , shareWith
     , call
-    , cbneed
     ]
   ++ map fst freeArgs

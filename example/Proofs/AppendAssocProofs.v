@@ -4,9 +4,9 @@ From Generated Require Import Proofs.AppendAssoc.
 Require Import Coq.Logic.FunctionalExtensionality.
 
 (* This lemma can be generated from a QuickCheck property. *)
-Lemma append_nil : quickCheck (fun Shape Pos I => @prop_append_nil Shape Pos I Cbn).
+Lemma append_nil : quickCheck (fun Shape Pos => @prop_append_nil Shape Pos Cbn).
 Proof.
-  intros Shape Pos I a SA NF fxs.
+  intros Shape Pos a SA NF fxs.
   induction fxs using FreeList_ind with (P := fun xs => append1 Shape Pos a (pure nil) Cbn xs = pure xs); simpl.
   - reflexivity.
   - simpl; repeat apply f_equal. apply IHfxs1.
@@ -19,7 +19,6 @@ Qed.
 Lemma append1_assoc :
   forall (Shape : Type)
          (Pos : Shape -> Type)
-        `{Injectable Share.Shape Share.Pos Shape Pos}
          {a : Type}
          `{ShareableArgs Shape Pos a}
          (xs : List Shape Pos a)
@@ -27,7 +26,7 @@ Lemma append1_assoc :
       append1 Shape Pos a (append Shape Pos Cbn fys fzs) Cbn xs
       = append Shape Pos Cbn (append1 Shape Pos a fys Cbn xs) fzs.
 Proof.
-  intros Shape Pos I a SA xs fys fzs.
+  intros Shape Pos a SA xs fys fzs.
   induction xs.
   - reflexivity.
   - induction fxs.
@@ -38,9 +37,9 @@ Proof.
 Qed.
 
 (* Now we can prove the actual property. *)
-Theorem append_assocs: quickCheck (fun Shape Pos I => @prop_append_assoc Shape Pos I Cbn).
+Theorem append_assoc: quickCheck (fun Shape Pos => @prop_append_assoc Shape Pos Cbn).
 Proof.
-  intros Shape Pos I a SA NF fxs fys fzs.
+  intros Shape Pos a SA NF fxs fys fzs.
   induction fxs as [ | s pf IH ].
   - simpl. apply append1_assoc.
   - (*Inductive case: [fxs = impure s pf] with induction hypothesis [IH] *)

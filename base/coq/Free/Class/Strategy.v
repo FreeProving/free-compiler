@@ -1,18 +1,20 @@
-From Base Require Export Free.Instance.Share.
-From Base Require Import Free.Class.Injectable.
-From Base Require Import Free.Class.ShareableArgs.
 From Base Require Import Free.Monad.
 
 Class Strategy (Shape : Type) (Pos : Shape -> Type) :=
   {
-    share : forall {A : Type} `{ShareableArgs Shape Pos A},
-      Free Shape Pos A -> Free Shape Pos (Free Shape Pos A);
+    shareWith' : forall {A : Type},
+      Free Shape Pos A      (* The computation to share. *)
+        -> Free Shape Pos A (* The computation to share with deep sharing. *)
+        -> Free Shape Pos (Free Shape Pos A);
     call : forall {A : Type},
       Free Shape Pos A -> Free Shape Pos (Free Shape Pos A);
   }.
 
-(* A type synonym notation to make code more readable. *)
-Notation "'EvaluationStrategy'"
-:= (forall (Shape : Type) (Pos : Shape -> Type)
-           `{Injectable Share.Shape Share.Pos Shape Pos},
-           Strategy Shape Pos).
+(* Functions from [Strategy] lifted to [EvaluationStrategy]. *)
+Definition shareWith (Shape : Type) (Pos : Shape -> Type)
+                     (S : Strategy Shape Pos)
+                     {A : Type}
+                     (shareArgs : Strategy Shape Pos -> A -> Free Shape Pos A)
+                     (fx : Free Shape Pos A)
+ : Free Shape Pos (Free Shape Pos A)
+  := @shareWith' Shape Pos S A fx (fx >>= shareArgs S).

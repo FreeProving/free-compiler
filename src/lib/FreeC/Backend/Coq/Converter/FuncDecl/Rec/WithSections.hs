@@ -13,7 +13,7 @@ module FreeC.Backend.Coq.Converter.FuncDecl.Rec.WithSections
 import           Control.Monad
   ( forM, mapAndUnzipM, zipWithM )
 import           Control.Monad.Extra
-  ( mapMaybeM )
+  ( concatMapM, mapMaybeM )
 import           Data.List
   ( (\\), elemIndex, intercalate, nub )
 import           Data.Map.Strict                                      ( Map )
@@ -89,6 +89,10 @@ convertRecFuncDeclsWithSection constArgs decls = do
     sectionDecls
   -- Generate @Section@ sentence.
   section <- localEnv $ do
+    -- Generate a section identifier from the names of the original functions.
+    let funcNames  = map IR.funcDeclQName decls
+        funcIdents = mapMaybe IR.identFromQName funcNames
+    sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcIdents))
     -- Create a @Variable@ sentence for the type variables of the constant
     -- arguments.
     maybeTypeArgSentence <- generateConstTypeArgSentence usedTypeArgIdents
@@ -97,9 +101,8 @@ convertRecFuncDeclsWithSection constArgs decls = do
     usedTypeArgIdents' <- mapMaybeM
       (inEnv . lookupIdent IR.TypeScope . IR.UnQual . IR.Ident)
       usedTypeArgIdents
-    allEffects <- mapM (inEnv . lookupEffects . IR.funcDeclQName) decls
-    let effects      = nub $ concat allEffects
-        typedBinders = concatMap
+    effects <- nub <$> concatMapM (inEnv . lookupEffects) funcNames
+    let typedBinders = concatMap
           (flip Coq.Base.selectTypedBinders usedTypeArgIdents') effects
     -- Create a @Variable@ sentence for the constant arguments.
     -- No @Variable@ sentence is created if a constant argument is
@@ -107,11 +110,7 @@ convertRecFuncDeclsWithSection constArgs decls = do
     varSentences <- zipWithM generateConstArgVariable
       (map fst $ filter snd $ zip renamedConstArgs isConstArgUsed)
       (map fst $ filter snd $ zip constArgTypes isConstArgUsed)
-    -- Generate a section identifier from the names of the original functions
-    -- and convert the renamed functions as usual.
-    let funcNames  = map IR.funcDeclQName decls
-        funcIdents = mapMaybe IR.identFromQName funcNames
-    sectionIdent <- freshCoqIdent (intercalate "_" ("section" : funcIdents))
+    -- Convert the renamed functions as usual.
     (helperDecls', mainDecls') <- convertRecFuncDeclsWithHelpers' sectionDecls'
     return
       (Coq.SectionSentence

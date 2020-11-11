@@ -14,12 +14,10 @@ Require Import Coq.Program.Equality.
 
 Section Proofs_Maybe.
 
-  (* In the following proofs we use the [Maybe] monad in a call-by-name setting.
-
-     TODO remove [Injectable] constraint. *)
+  (* In the following proofs we use the [Maybe] monad in a call-by-name setting. *)
   Definition Shape   := Maybe.Shape.
   Definition Pos     := Maybe.Pos.
-  Context `{Injectable Share.Shape Share.Pos Shape Pos}.
+  Definition S       := @Cbn Shape Pos.
   Definition Partial := Maybe.Partial Shape Pos.
 
   (* In the [Maybe] monad there exists only one impure value. *)
@@ -135,7 +133,7 @@ Section Proofs_Maybe.
       destruct fy as [ y | ]. 2: dependent destruction HPureE2.
       autoIH; specialize (IH HPureE2) as IHy; simpl comp in IHy; clear IH.
       (* Do actual proof. *)
-      specialize (append_assocs _ _ _ _ _ N) as HAssoc; simpl in HAssoc.
+      specialize (append_assoc _ _ _ _ N) as HAssoc; simpl in HAssoc.
       rewrite <- HAssoc.
       destruct fstack as [ [ | fv1 fstack1 ] | ]. 3: dependent destruction HPureS.
       1,2: rewrite exec_append.

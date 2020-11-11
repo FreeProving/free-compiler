@@ -106,6 +106,4 @@ Instance NormalformInteger (Shape : Type) (Pos : Shape -> Type)
 
 Instance ShareableArgsInteger (Shape : Type) (Pos : Shape -> Type)
   : ShareableArgs Shape Pos (Integer Shape Pos)
- := {
-        shareArgs := pure
-    }.
+ := { shareArgs _ := pure }.

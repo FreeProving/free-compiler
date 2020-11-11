@@ -52,23 +52,23 @@ genericApply'
   -> [Coq.Term] -- ^ The actual arguments of the callee.
   -> Coq.Term
 genericApply' func explicitEffectArgs implicitEffectArgs implicitArgs
-  typedEffectArgs args | null implicitArgs = Coq.app func allExplicitArgs
-                       | otherwise = let (Coq.Qualid qualid) = func
-                                     in Coq.explicitApp qualid allImplicitArgs
+  typedEffectArgs args | null allImplicitArgs = Coq.app func allArgs
+                       | otherwise = let Coq.Qualid qualid = func
+                                     in Coq.explicitApp qualid allArgs
  where
   genericArgs :: [Coq.Term]
   genericArgs = map (Coq.Qualid . fst) Coq.Base.freeArgs
 
   allImplicitArgs :: [Coq.Term]
-  allImplicitArgs = genericArgs
+  allImplicitArgs = implicitEffectArgs ++ implicitArgs ++ typedEffectArgs
+
+  allArgs :: [Coq.Term]
+  allArgs = genericArgs
     ++ implicitEffectArgs
     ++ explicitEffectArgs
     ++ implicitArgs
     ++ typedEffectArgs
     ++ args
-
-  allExplicitArgs :: [Coq.Term]
-  allExplicitArgs = genericArgs ++ explicitEffectArgs ++ implicitArgs ++ args
 
 -- | Smart constructor for a @ForFree@ statement with a given type, property
 --   and @Free@ value.

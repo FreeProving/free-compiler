@@ -13,9 +13,8 @@ Require Import Coq.Program.Equality.
 Section Proofs.
 
   Definition Shape := Maybe.Shape.
-  Definition Pos := Maybe.Pos.
-  Context `{Injectable Share.Shape Share.Pos Shape Pos}.
-  Definition Part := Maybe.Partial Shape Pos.
+  Definition Pos   := Maybe.Pos.
+  Definition Part  := Maybe.Partial Shape Pos.
 
   (* If the stack is [Nothing] the result of any [exec] call on that stack will also be [Nothing]. *)
   Lemma exec_strict_on_stack_arg :
@@ -131,7 +130,7 @@ Section Proofs.
       rewrite def_exec_ADD...
       rewrite def_exec_Nil...
       reflexivity.
-  Qed. 
+  Qed.
 
   (* The theorem derived by the correctness QuickCheck property for comp_correct
      can now be proven with the more general lemma above and under the assumption that the
@@ -168,7 +167,7 @@ Section Proofs.
       + (* expr = Add fx fy *)
         intro fcode.
         rewrite def_comp_Add...
-        specialize (append_assocs _ _ _ _ _ N) as HAssoc; simpl in HAssoc.
+        specialize (append_assoc _ _ _ _ N) as HAssoc; simpl in HAssoc.
         rewrite <- HAssoc.
         rewrite def_append_Cons...
         rewrite def_append_Nil...
@@ -204,14 +203,14 @@ Section Proofs.
     simpl; intros N fexpr.
     rewrite def_comp'.
     rewrite compApp_comp_append_eq.
-    specialize (append_nil _ _ _ _ _ N) as HNil; simpl in HNil.
+    specialize (append_nil _ _ _ _ N) as HNil; simpl in HNil.
     rewrite HNil.
     reflexivity.
   Qed.
 
   (* The correctness of the compiler [comp'] is implied by the equivalence to
      the compiler [comp] and the correctness of [comp]. *)
-  Lemma comp'_correct : 
+  Lemma comp'_correct :
     forall `{Normalform Shape Pos (Op Shape Pos)}
            (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->

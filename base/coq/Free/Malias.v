@@ -5,6 +5,7 @@ From Base Require Import Free.Class.Injectable.
 From Base Require Import Free.Class.ShareableArgs.
 From Base Require Import Free.Class.Strategy.
 From Base Require Import Free.Instance.Comb.
+From Base Require Import Free.Instance.Share.
 From Base Require Import Free.Monad.
 
 (* An operator to model call-by-value evaluation *)
@@ -22,55 +23,46 @@ Section SecCbneed.
 
 Variable Shape : Type.
 Variable Pos : Shape -> Type.
+Context `{Injectable Share.Shape Share.Pos Shape Pos}.
 
 Notation "'Get''" := (Get Shape Pos).
 Notation "'Put''" := (Put Shape Pos).
 Notation "'BeginShare''" := (BeginShare Shape Pos).
 Notation "'EndShare''" := (EndShare Shape Pos).
 
-Definition cbneed {A : Type}
-                  `{Injectable Share.Shape Share.Pos Shape Pos}
-                  (shrArgs : A -> Free Shape Pos A)
-                  (p : Free Shape Pos A)
-  : Free Shape Pos (Free Shape Pos A) :=
-  Get' >>= fun '(i,j) =>
-  Put' (i+1,j) >>
-  pure (BeginShare' (i,j) >>
-      Put' (i,j+1) >>
-      p >>= fun x =>
-      shrArgs x >>= fun x' =>
-      Put' (i+1,j) >>
-      EndShare' (i,j) >>
-      pure x').
+Definition cbneed {A : Type} (fx : Free Shape Pos A)
+  : Free Shape Pos (Free Shape Pos A)
+ := Get' >>= fun '(i,j) =>
+    Put' (i+1,j) >>
+    pure (BeginShare' (i,j) >>
+          Put' (i,j+1) >>
+          fx >>= fun x =>
+          Put' (i+1,j) >>
+          EndShare' (i,j) >>
+          pure x).
 
 End SecCbneed.
 
 (* Strategy instances for different evaluation strategies *)
 
 (* Strategy instance for call-by-need evaluation. *)
-Instance Cbneed (Shape : Type) (Pos : Shape -> Type)
+Instance Cbneed {Shape : Type} {Pos : Shape -> Type}
                 `{I : Injectable Share.Shape Share.Pos Shape Pos}
  : Strategy Shape Pos | 1 := {
-    share A S := @cbneed Shape Pos A I (@shareArgs Shape Pos A S);
-    call A := @pure Shape Pos (Free Shape Pos A)
+    shareWith' A _ := @cbneed Shape Pos I A;
+    call       A   := @pure Shape Pos (Free Shape Pos A)
 }.
 
-(* Strategy instance for call-by-name evaluation.
-   The Share effect is not actually needed, but we need to
-   ensure it is there so cbn is compatible with share. *)
-Instance Cbn (Shape : Type) (Pos : Shape -> Type)
-             `{Injectable Share.Shape Share.Pos Shape Pos}
+(* Strategy instance for call-by-name evaluation. *)
+Instance Cbn {Shape : Type} {Pos : Shape -> Type}
  : Strategy Shape Pos | 2 := {
-    share A S := @cbn A Shape Pos;   (* share = pure *)
-    call A := @cbn A Shape Pos       (* call  = pure *)
+    shareWith' A fx _ := @cbn A Shape Pos fx; (* share = pure *)
+    call          A   := @cbn A Shape Pos        (* call  = pure *)
 }.
 
-(* Strategy instance for call-by-value evaluation.
-   The Share effect is not actually needed, but we need to
-   ensure it is there so cbv is compatible with share. *)
-Instance Cbv (Shape : Type) (Pos : Shape -> Type)
-             `{Injectable Share.Shape Share.Pos Shape Pos}
+(* Strategy instance for call-by-value evaluation. *)
+Instance Cbv {Shape : Type} {Pos : Shape -> Type}
  : Strategy Shape Pos | 2 := {
-    share A S := @cbv A Shape Pos;   (* share = pure *)
-    call A := @cbv A Shape Pos       (* call  = pure *)
+    shareWith' A fx _ := @cbv A Shape Pos fx; (* share = bind *)
+    call          A   := @cbv A Shape Pos     (* call  = bind *)
 }.

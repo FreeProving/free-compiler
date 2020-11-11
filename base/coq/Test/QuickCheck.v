@@ -11,7 +11,7 @@ Definition Property (Shape : Type) (Pos : Shape -> Type) := forall (handler : fo
 (* ShareableArgs instance for Property. *)
 Instance ShareableArgsProperty (Shape : Type) (Pos : Shape -> Type)
   : ShareableArgs Shape Pos (Property Shape Pos) := {
-    shareArgs := pure
+    shareArgs _ := pure
 }.
 
 (* * [Testable] type class *)
@@ -122,19 +122,19 @@ Instance HandleableForall (Shape : Type) (Pos : Shape -> Type)
 Definition quickCheck {A : Type} {T_A : Testable A} (x : A) : Prop
  := property x.
 
-(* Like quickCheck, but with a concrete handler as an additional argument.
-   The property's Shape and Pos arguments must be inferred or match
+(* Like [quickCheck], but with a concrete handler as an additional argument.
+   The property's [Shape] and [Pos] arguments must be inferred or match
    the effect stack determined by the handler. *)
 Definition quickCheckHandle {Shape : Type} {Pos : Shape -> Type} {A : Type} `{Handleable Shape Pos A}
  (x : A) handler : Prop := (toProperty x) handler.
 
-(* Like quickCheck, but with a universally quantified handler.
+(* Like [quickCheck], but with a universally quantified handler.
    Proving an equality with a universally quantified handler is
    equivalent to proving the same equality without the handler.
    Proving an inequality is impossible as there is no information
    about the return value or even return type of the handler.
 
-   As long as there are no properties associated with the Handler
+   As long as there are no properties associated with the handler
    class, it is not advised to use this function. *)
 Definition quickCheckQuantifyHandler {A : Type} {T_A : Testable A} (x : A) : Prop
  := property' x.

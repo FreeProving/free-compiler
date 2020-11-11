@@ -46,7 +46,7 @@ Section Proofs_PureCodes.
 
   Variable Shape : Type.
   Variable Pos   : Shape -> Type.
-  Context `{Injectable Share.Shape Share.Pos Shape Pos}.
+  Variable S     : Strategy Shape Pos.
   Variable Part  : Partial Shape Pos.
 
   (* If the code is pure and the first operation is pure if there is any, an

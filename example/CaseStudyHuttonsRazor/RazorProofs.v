@@ -63,7 +63,6 @@ Section Proofs.
   Variable Shape   : Type.
   Variable Pos     : Shape -> Type.
   Variable Partial : Partial Shape Pos.
-  Context `{I : Injectable Share.Shape Share.Pos Shape Pos}.
 
   (* If the code is pure and the first operation is pure if there is any, the
      effect of an impure stack will transfer to the result of an exec call with
@@ -190,7 +189,7 @@ Section Proofs.
       (* We use the lemma [exec_append] to transform the execution of appended pieces of code
          to multiple [exec] calls, where the resulting stack of the [exec] call on one piece of
          code is handed over as the initial stack of the [exec] call on the next piece of code. *)
-      do 2 rewrite (exec_append HUndefined).
+        do 2 rewrite (exec_append HUndefined).
       (* As [exec_append] has the precondition, that the execution of the first piece of code
          produces a (not necessarily recursively) pure stack, we gain three additional subgoals. *)
       + (* For the main goal, we can apply the induction hypotheses. *)
@@ -242,7 +241,7 @@ Section Proofs.
         reflexivity.
       + (* For an addition expression, we start with some simplification steps for the [append] function. *)
         intro fcode. simpl comp0.
-        specialize (append_assocs _ _ _ _ _ N) as HAssoc; simpl in HAssoc.
+        specialize (append_assoc _ _ _ _ N) as HAssoc; simpl in HAssoc.
         do 2 (rewrite <- HAssoc).
         simpl append.
         (* We use [replace] here to make this main proof simple and produce additional simple subgoals. *)
@@ -269,7 +268,7 @@ Section Proofs.
   Proof.
     simpl.
     intros N fexpr.
-    specialize (append_nil _ _ _ _ _ N) as HNil; simpl in HNil.
+    specialize (append_nil _ _ _ _ N) as HNil; simpl in HNil.
     rewrite <- HNil with (x := comp _ _ _ _).
     rewrite <- compApp_comp_append_eq.
     reflexivity.

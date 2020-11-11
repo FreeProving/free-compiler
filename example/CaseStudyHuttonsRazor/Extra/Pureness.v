@@ -101,7 +101,6 @@ Ltac eliminate_pureness_property_impure :=
 Section Lemmas.
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
-  Context `{Injectable Share.Shape Share.Pos Shape Pos}.
 
   (* If we apply [append] on two pieces of recursively pure code the result is recursively pure code. *)
   Lemma append_pure :

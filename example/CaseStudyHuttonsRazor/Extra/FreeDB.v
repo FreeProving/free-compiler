@@ -57,7 +57,7 @@ Section Rewrite_Functions.
 
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
-  Context `{Injectable Share.Shape Share.Pos Shape Pos}.
+  Variable S : Strategy Shape Pos.
   Variable Part : Partial Shape Pos.
 
   Lemma def_append_Nil :
@@ -182,7 +182,7 @@ Section Rewrite_Functions_Impure.
 
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
-  Context `{Injectable Share.Shape Share.Pos Shape Pos}.
+  Variable S : Strategy Shape Pos.
   Variable Part : Partial Shape Pos.
 
   Lemma def_append_imp_List1 :
@@ -285,9 +285,9 @@ Section Rewrite_Helper_Functions.
 
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
-  Context `{Injectable Share.Shape Share.Pos Shape Pos}.
+  Variable S : Strategy Shape Pos.
   Variable Part : Partial Shape Pos.
-Check append.
+
   Lemma def_append0 :
     forall (A : Type) `{ShareableArgs Shape Pos A}
            (fl1 fl2 : Free Shape Pos (List Shape Pos A)),

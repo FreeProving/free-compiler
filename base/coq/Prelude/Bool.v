@@ -50,6 +50,4 @@ Instance NormalformBool (Shape : Type) (Pos : Shape -> Type)
 
 Instance ShareableArgsBool (Shape : Type) (Pos : Shape -> Type)
   : ShareableArgs Shape Pos (Bool Shape Pos)
- := {
-        shareArgs := pure
-    }.
+ := { shareArgs _ := pure }.

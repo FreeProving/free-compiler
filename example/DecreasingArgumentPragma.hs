@@ -4,10 +4,11 @@
 -- See @doc\/CustomPragmas\/DecreasingArgumentPragma.md@ for details.
 module DecreasingArgumentsPragma where
 
-import           Data.List (map)
+import           Data.List ( map )
 
 data Rose a = Rose a [Rose a]
 
+-- TODO uncomment me!
 -- {-# FreeC mapRose DECREASES ON r #-}
 -- {-# FreeC mapRose DECREASES ON r #-}
 -- mapRose :: (a -> b) -> Rose a -> Rose b

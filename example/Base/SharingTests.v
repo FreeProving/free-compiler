@@ -24,35 +24,37 @@ Section SecData.
 
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
+  Variable S : Strategy Shape Pos.
+  Variable A : Type.
+  Context `{ShareableArgs Shape Pos A}.
+
   (* Infer Shape and Pos when tracing for convenience. *)
   Arguments trace {_} {_} {_} {_}.
 
   Notation "'ND'" := (Injectable ND.Shape ND.Pos Shape Pos).
   Notation "'Trace'" := (Traceable Shape Pos).
   Notation "'Maybe'" := (Injectable Maybe.Shape Maybe.Pos Shape Pos).
-  Notation "'Share'" := (Injectable Share.Shape Share.Pos Shape Pos).
-
 
   (* Non-deterministic integer. *)
-  Definition coin `{ND} `{I : Share} (S : Strategy Shape Pos)
+  Definition coin `{ND}
   := @call Shape Pos S _ (pure 0%Z) >>= fun c1 =>
      @call Shape Pos S _ (pure 1%Z) >>= fun c2 =>
      Choice Shape Pos c1 c2.
 
   (* Non-deterministic boolean value. *)
-  Definition coinB `{ND} `{I : Share} (S : Strategy Shape Pos)
+  Definition coinB `{ND}
   := @call Shape Pos S _ (True_ Shape Pos) >>= fun c1 =>
      @call Shape Pos S _ (False_ Shape Pos) >>= fun c2 =>
      Choice Shape Pos c1 c2.
 
   (* Non-deterministic partial integer. *)
-  Definition coinM `{ND} `{Maybe} `{I : Share} (S : Strategy Shape Pos)
+  Definition coinM `{ND} `{Maybe}
   := @call Shape Pos S _ (Nothing Shape Pos) >>= fun c1 =>
      @call Shape Pos S _ (Just Shape Pos 1%Z) >>= fun c2 =>
      Choice Shape Pos c1 c2.
 
   (* (0 ? 1, 2 ? 3) *)
-  Definition coinPair `{ND} `{I : Share} (S : Strategy Shape Pos)
+  Definition coinPair `{ND}
   : Free Shape Pos (Pair Shape Pos (Integer Shape Pos) (Integer Shape Pos))
   := @call Shape Pos S _ (pure 0%Z) >>= fun c1 =>
      @call Shape Pos S _ (pure 1%Z) >>= fun c2 =>
@@ -65,7 +67,7 @@ Section SecData.
      Pair_ Shape Pos c3 c6.
 
   (* [0 ? 1, 2 ? 3] *)
-  Definition coinList `{ND} `{I : Share} (S : Strategy Shape Pos)
+  Definition coinList `{ND}
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
   := @call Shape Pos S _ (pure 0%Z) >>= fun c1 =>
      @call Shape Pos S _ (pure 1%Z) >>= fun c2 =>
@@ -78,30 +80,30 @@ Section SecData.
      Cons Shape Pos c3 c8.
 
   (* Traced integer. *)
-  Definition traceOne `{Trace} `{I : Share} (S : Strategy Shape Pos)
+  Definition traceOne `{Trace}
   := @call Shape Pos S _ (pure 1%Z) >>= fun c1 =>
      trace "One" c1.
 
   (* Traced boolean values. *)
-  Definition traceTrue `{Trace} `{I : Share} (S : Strategy Shape Pos)
+  Definition traceTrue `{Trace}
   := @call Shape Pos S _ (True_ Shape Pos) >>= fun c1 =>
      trace "True" c1.
 
-  Definition traceFalse `{Trace} `{I : Share} (S : Strategy Shape Pos)
+  Definition traceFalse `{Trace}
   := @call Shape Pos S _ (False_ Shape Pos) >>= fun c1 =>
      trace "False" c1.
 
   (* Traced Maybe values *)
-  Definition traceNothing `{Trace} `{M : Maybe} `{I : Share} (S : Strategy Shape Pos)
+  Definition traceNothing `{Trace} `{M : Maybe}
   := @call Shape Pos S _ (@Nothing Shape Pos M (Integer Shape Pos)) >>= fun c1 =>
      trace "Nothing" c1.
 
-  Definition traceJust `{Trace} `{M : Maybe} `{I : Share} (S : Strategy Shape Pos)
+  Definition traceJust `{Trace} `{M : Maybe}
   := @call Shape Pos S _ (@Just Shape Pos M _ 1%Z) >>= fun c1 =>
      trace "Just 1" c1.
 
   (* (trace "0" 0, trace "1" 1) *)
-  Definition tracePair `{Trace} `{I : Share} (S : Strategy Shape Pos)
+  Definition tracePair `{Trace}
   : Free Shape Pos (Pair Shape Pos (Integer Shape Pos) (Integer Shape Pos))
   := @call Shape Pos S _ (pure 0%Z) >>= fun c1 =>
      @call Shape Pos S _ (pure 1%Z) >>= fun c2 =>
@@ -110,7 +112,7 @@ Section SecData.
      Pair_ Shape Pos c3 c4.
 
   (* [trace "0" 0, trace "1" 1] *)
-  Definition traceList `{Trace} `{I : Share} (S : Strategy Shape Pos)
+  Definition traceList `{Trace}
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
   := @call Shape Pos S _ (pure 0%Z) >>= fun c1 =>
      @call Shape Pos S _ (trace "0" c1) >>= fun c2 =>
@@ -121,7 +123,7 @@ Section SecData.
      (Cons Shape Pos c2 c6).
 
   (* [trace "1" 1, trace "2" 2, trace "3" 3] *)
-  Definition traceList3 `{Trace} `{I : Share} (S : Strategy Shape Pos)
+  Definition traceList3 `{Trace}
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
   := @call Shape Pos S _ (pure 1%Z) >>= fun c1 =>
      @call Shape Pos S _ (trace "1" c1) >>= fun c2 =>
@@ -139,26 +141,26 @@ Section SecData.
 End SecData.
 
 (* Arguments sentences for the data. *)
-Arguments coin {_} {_} {_} {_}.
-Arguments coinB {_} {_} {_} {_}.
-Arguments coinM {_} {_} {_} {_} {_}.
-Arguments coinPair {_} {_} {_} {_}.
-Arguments coinList {_} {_} {_} {_}.
-Arguments traceOne {_} {_} {_}.
-Arguments traceTrue {_} {_} {_}.
-Arguments traceFalse {_} {_} {_}.
-Arguments traceNothing {_} {_} {_} {_}.
-Arguments traceJust {_} {_} {_} {_}.
-Arguments tracePair {_} {_} {_}.
-Arguments traceList {_} {_} {_}.
-Arguments traceOne {_} {_} {_} {_}.
-Arguments traceTrue {_} {_} {_} {_}.
-Arguments traceFalse {_} {_} {_} {_}.
-Arguments traceNothing {_} {_} {_} {_} {_}.
-Arguments traceJust {_} {_} {_} {_} {_}.
-Arguments tracePair {_} {_} {_} {_}.
-Arguments traceList {_} {_} {_} {_}.
-Arguments traceList3 {_} {_} {_} {_}.
+Arguments coin {_} {_} _ {_}.
+Arguments coinB {_} {_} _ {_}.
+Arguments coinM {_} {_} _ {_} {_}.
+Arguments coinPair {_} {_} _ {_}.
+Arguments coinList {_} {_} _ {_}.
+Arguments traceOne {_} {_} _.
+Arguments traceTrue {_} {_} _.
+Arguments traceFalse {_} {_} _.
+Arguments traceNothing {_} {_} _ {_}.
+Arguments traceJust {_} {_} _ {_}.
+Arguments tracePair {_} {_} _.
+Arguments traceList {_} {_} _.
+Arguments traceOne {_} {_} _ {_}.
+Arguments traceTrue {_} {_} _ {_}.
+Arguments traceFalse {_} {_} _ {_}.
+Arguments traceNothing {_} {_} _ {_} {_}.
+Arguments traceJust {_} {_} _ {_} {_}.
+Arguments tracePair {_} {_} _ {_}.
+Arguments traceList {_} {_} _ {_}.
+Arguments traceList3 {_} {_} _ {_}.
 (* Test functions *)
 
 Section SecFunctions.
@@ -166,18 +168,16 @@ Section SecFunctions.
   (*Set Implicit Arguments.*)
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
+  Variable S : Strategy Shape Pos.
   Variable A : Type.
+  Context `{SA : ShareableArgs Shape Pos A}.
 
   Notation "'FreeA'" := (Free Shape Pos A).
-  Notation "'ShareArgs'" := (ShareableArgs Shape Pos A).
-  Notation "'Share'" := (Injectable Share.Shape Share.Pos Shape Pos).
   Notation "'Maybe'" := (Injectable Maybe.Shape Maybe.Pos Shape Pos).
 
   (* Simple sharing:
      let sx = fx in f sx sx *)
-  Definition doubleShared `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
-                        (f : FreeA -> FreeA -> FreeA)
-                        (fx : FreeA)
+  Definition doubleShared (f : FreeA -> FreeA -> FreeA) (fx : FreeA)
    : FreeA
   := @share Shape Pos S A SA fx >>= fun sx => f sx sx.
 
@@ -185,9 +185,7 @@ Section SecFunctions.
      let sx = fx
          sy = f sx sx
      in f sy sy *)
-  Definition doubleSharedNested `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
-                                (f : FreeA -> FreeA -> FreeA)
-                                (fx : FreeA)
+  Definition doubleSharedNested (f : FreeA -> FreeA -> FreeA) (fx : FreeA)
    : FreeA
   := @share Shape Pos S A SA fx >>= fun sx =>
      @share Shape Pos S A SA (f sx sx) >>= fun sy =>
@@ -197,9 +195,7 @@ Section SecFunctions.
          sy = f sx sx
          sz = fy
     in f sy sz *)
-  Definition doubleSharedClash `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
-                              (f : FreeA -> FreeA -> FreeA)
-                              (fx : FreeA) (fy : FreeA)
+  Definition doubleSharedClash (f : FreeA -> FreeA -> FreeA) (fx : FreeA) (fy : FreeA)
   : FreeA
   := @share Shape Pos S A SA fx >>= fun sx =>
      @call Shape Pos S A (f sx sx) >>= fun sy =>
@@ -214,10 +210,9 @@ Section SecFunctions.
      c2 = f sy c1
   in f sx c2
   *)
-  Definition doubleSharedRec `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
-                             (f : FreeA -> FreeA -> FreeA)
-                            (fx : FreeA) (fy : FreeA)
-                            (val : A)
+  Definition doubleSharedRec (f : FreeA -> FreeA -> FreeA)
+                             (fx : FreeA) (fy : FreeA)
+                             (val : A)
    : FreeA
   := @call Shape Pos S A (pure val) >>= fun sx =>
      @share Shape Pos S A SA (f sx fx) >>= fun sy =>
@@ -234,9 +229,8 @@ Section SecFunctions.
       c2 = fst sx
       in c1 + c2
   *)
-  Definition doubleDeepSharedPair `{I : Share} `{SA : ShareArgs} (S : Strategy Shape Pos)
-                        (f : FreeA -> FreeA -> FreeA)
-                        (fx : Free Shape Pos (Pair Shape Pos A A))
+  Definition doubleDeepSharedPair (f : FreeA -> FreeA -> FreeA)
+                                  (fx : Free Shape Pos (Pair Shape Pos A A))
    : FreeA
   := @share Shape Pos S (Pair Shape Pos A A) _ fx >>= fun sx =>
      @call Shape Pos S A (Tuple.fst Shape Pos sx) >>= fun c1 =>
@@ -251,9 +245,9 @@ Section SecFunctions.
       c2 = head sx
   in c1 + c2
   *)
-  Definition doubleDeepSharedList `{I : Share} `{SA : ShareArgs} (P : Partial Shape Pos) (S : Strategy Shape Pos)
-                        (f : FreeA -> FreeA -> FreeA)
-                        (fl : Free Shape Pos (List Shape Pos A))
+  Definition doubleDeepSharedList (P : Partial Shape Pos)
+                                  (f : FreeA -> FreeA -> FreeA)
+                                  (fl : Free Shape Pos (List Shape Pos A))
    : FreeA
   := @share Shape Pos S (List Shape Pos A) _ fl >>= fun sx =>
      @call Shape Pos S A (List.head Shape Pos P sx) >>= fun c1 =>
@@ -271,43 +265,33 @@ Section SecFunctions.
   *)
   (* fxs' can not be shared because the termination checker does not accept that definition
      as well-formed. But since xs0 is shared (in tails), its component fxs' is also automatically shared. *)
-  Fixpoint tails_0
-     `{Share}
-     (S : Strategy Shape Pos)
-     (xs0 : List Shape Pos A) {struct xs0}
+  Fixpoint tails_0 (xs0 : List Shape Pos A) {struct xs0}
    : Free Shape Pos (List Shape Pos (List Shape Pos A))
     := match xs0 with
        | List.nil          =>  Nil Shape Pos
-       | List.cons _ fxs' =>  @call Shape Pos S _ (fxs' >>= fun xs'0 => tails_0 S xs'0) >>= fun c1 =>
+       | List.cons _ fxs' =>  @call Shape Pos S _ (fxs' >>= fun xs'0 => tails_0 xs'0) >>= fun c1 =>
                               Cons Shape Pos fxs' c1
        end.
 
-  Definition tails
-    `{Share}
-    `{ShareArgs}
-    (S : Strategy Shape Pos)
-    (fxs : Free Shape Pos (List Shape Pos A))
+  Definition tails (fxs : Free Shape Pos (List Shape Pos A))
     : Free Shape Pos (List Shape Pos (List Shape Pos A))
    := @share Shape Pos S _ _ fxs >>= fun fxs0 =>
-      @call Shape Pos S _ (fxs0 >>= fun xs0 => tails_0 S xs0) >>= fun c1 =>
+      @call Shape Pos S _ (fxs0 >>= fun xs0 => tails_0 xs0) >>= fun c1 =>
         Cons Shape Pos fxs0 c1.
 
 End SecFunctions.
 
-Arguments doubleShared {_} {_} {_} {_} {_}.
-Arguments doubleSharedClash {_} {_} {_} {_} {_}.
-Arguments doubleSharedNested {_} {_} {_} {_} {_}.
-Arguments doubleSharedRec {_} {_} {_} {_} {_}.
-Arguments doubleDeepSharedPair {_} {_} {_} {_} {_}.
-Arguments doubleDeepSharedList {_} {_} {_} {_} {_}.
-Arguments tails {_} {_} {_} {_} {_}.
+Arguments doubleShared {_} {_} _ {_} {_}.
+Arguments doubleSharedClash {_} {_} _ {_} {_}.
+Arguments doubleSharedNested {_} {_} _ {_} {_}.
+Arguments doubleSharedRec {_} {_} _ {_} {_}.
+Arguments doubleDeepSharedPair {_} {_} _ {_} {_}.
+Arguments doubleDeepSharedList {_} {_} _ {_} {_}.
+Arguments tails {_} {_} _ {_} {_}.
 
 (* Some notations for convenience.
    Since we only provide the sharing instance and functions when the handlers
    are called, the arguments Shape and Pos can be inferred. *)
-Notation "'Cbneed_'" := (Cbneed _ _).
-Notation "'Cbn_'" := (Cbn _ _).
-Notation "'Cbv_'" := (Cbv _ _).
 Notation "'addInteger_'" := (addInteger _ _).
 Notation "'orBool_'" := (orBool _ _).
 
@@ -319,7 +303,7 @@ Notation "'orBool_'" := (orBool _ _).
 = 0+0 ? 0+1 ? 1+0 ? 1+1
 = 0 ? 1 ? 1 ? 2
 *)
-Example exAddNoSharingND : @handle _ _ _ (HandlerShareND _) (doubleShared  Cbn_ addInteger_ (coin Cbn_))
+Example exAddNoSharingND : @handle _ _ _ (HandlerShareND _) (doubleShared Cbn addInteger_ (coin Cbn))
                            = [0%Z;1%Z;1%Z;2%Z].
 Proof. constructor. Qed.
 
@@ -328,7 +312,7 @@ trace "One" 1 + trace "One" 1
 => The message should be logged twice and the result should be 2.
 *)
 Example exAddNoSharingTrace
-: @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbn_ addInteger_ (traceOne Cbn_))
+: @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbn addInteger_ (traceOne Cbn))
   = (2%Z,["One";"One"]).
 Proof. constructor. Qed.
 
@@ -339,7 +323,7 @@ Proof. constructor. Qed.
 = true ? true ? false
 *)
 Example exOrNDNoSharing
- : @handle _ _ _ (HandlerShareND _) (doubleShared Cbn_ orBool_ (coinB Cbn_)) = [true;true;false].
+ : @handle _ _ _ (HandlerShareND _) (doubleShared Cbn orBool_ (coinB Cbn)) = [true;true;false].
 Proof. constructor. Qed.
 
 (*
@@ -348,7 +332,7 @@ Proof. constructor. Qed.
    message should be logged only once.
 *)
 Example exOrTrueTracingNoSharing
- : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbn_ orBool_ (traceTrue Cbn_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbn orBool_ (traceTrue Cbn))
    = (true,["True"]).
 Proof. constructor. Qed.
 
@@ -358,7 +342,7 @@ Proof. constructor. Qed.
    should be logged twice.
 *)
 Example exOrFalseTracingNoSharing
- : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbn_ orBool_ (traceFalse Cbn_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbn orBool_ (traceFalse Cbn))
    = (false,["False";"False"]).
 Proof. constructor. Qed.
 
@@ -368,7 +352,7 @@ Proof. constructor. Qed.
    should be logged.
 *)
 Example exOrMixedTracingNoSharing
- : @handle _ _ _ (HandlerShareTrace _) (orBool_ (traceFalse Cbn_) (traceTrue Cbn_))
+ : @handle _ _ _ (HandlerShareTrace _) (orBool_ (traceFalse Cbn) (traceTrue Cbn))
    = (true,["False";"True"]).
 Proof. constructor. Qed.
 
@@ -377,7 +361,7 @@ Proof. constructor. Qed.
 = Nothing
 *)
 Example exNDMNoSharing
- : @handle _ _ _ (HandlerShareNDMaybe _) (doubleShared Cbn_ addInteger_ (coinM Cbn_)) = None.
+ : @handle _ _ _ (HandlerShareNDMaybe _) (doubleShared Cbn addInteger_ (coinM Cbn)) = None.
 Proof. constructor. Qed.
 
 (*
@@ -386,7 +370,7 @@ trace "Nothing" Nothing + trace "Nothing" Nothing
    only be logged once and the result should be Nothing (i.e. None in Coq).
 *)
 Example exTraceNothingNoSharing
- : @handle _ _ _ (HandlerMaybeShareTrace _) (doubleShared Cbn_ addInteger_ (traceNothing Cbn_))
+ : @handle _ _ _ (HandlerMaybeShareTrace _) (doubleShared Cbn addInteger_ (traceNothing Cbn))
    = (None,["Nothing"]).
 Proof. constructor. Qed.
 
@@ -396,7 +380,7 @@ trace "Just 1" (Just 1) + trace "Just 1" (Just 1)
    result should be Just 2 (Some 2 in Coq).
 *)
 Example exTraceJustNoSharing
- : @handle _ _ _ (HandlerMaybeShareTrace _) (doubleShared Cbn_ addInteger_ (traceJust Cbn_))
+ : @handle _ _ _ (HandlerMaybeShareTrace _) (doubleShared Cbn addInteger_ (traceJust Cbn))
    = (Some 2%Z,["Just 1";"Just 1"]).
 Proof. constructor. Qed.
 
@@ -409,14 +393,14 @@ in sx + sx
 = 0+0 ? 1+1
 = 0 ? 2
 *)
-Example exAddSharingND : @handle _ _ _ (HandlerShareND _) (doubleShared Cbneed_
-  addInteger_ (coin Cbneed_))
+Example exAddSharingND : @handle _ _ _ (HandlerShareND _) (doubleShared Cbneed
+  addInteger_ (coin Cbneed))
   = [0%Z;2%Z].
 Proof. constructor. Qed.
 
 (* Strict evaluation also leads to consistent choices. *)
-Example exAddSharingNDStrict : @handle _ _ _ (HandlerShareND _) (doubleShared Cbv_
-  addInteger_ (coin Cbv_))
+Example exAddSharingNDStrict : @handle _ _ _ (HandlerShareND _) (doubleShared Cbv
+  addInteger_ (coin Cbv))
   = [0%Z;2%Z].
 Proof. constructor. Qed.
 
@@ -426,13 +410,13 @@ in sx + sx
 => The message should be logged once and the result should be 2.
 *)
 Example exAddSharingTrace
- : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbneed_ addInteger_ (traceOne Cbneed_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbneed addInteger_ (traceOne Cbneed))
  = (2%Z,["One"]).
 Proof. constructor. Qed.
 
 (* Strict evaluation also leads to the message being logged only once. *)
 Example exAddSharingTraceStrict
- : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbv_ addInteger_ (traceOne Cbv_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbv addInteger_ (traceOne Cbv))
  = (2%Z,["One"]).
 Proof. constructor. Qed.
 
@@ -443,12 +427,12 @@ in sx or sx
 = true ? false
 *)
 Example exOrNDSharing
- : @handle _ _ _ (HandlerShareND _) (doubleShared Cbneed_ orBool_ (coinB Cbneed_)) = [true;false].
+ : @handle _ _ _ (HandlerShareND _) (doubleShared Cbneed orBool_ (coinB Cbneed)) = [true;false].
 Proof. constructor. Qed.
 
 (* Strict evaluation also leads to consistent choices. *)
 Example exOrNDSharingStrict
- : @handle _ _ _ (HandlerShareND _) (doubleShared Cbv_ orBool_ (coinB Cbv_)) = [true;false].
+ : @handle _ _ _ (HandlerShareND _) (doubleShared Cbv orBool_ (coinB Cbv)) = [true;false].
 Proof. constructor. Qed.
 
 (*
@@ -458,13 +442,13 @@ in sx or sx
    The message should be logged once and the result should be true.
 *)
 Example exOrTrueTraceSharing
- : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbneed_ orBool_ (traceTrue Cbneed_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbneed orBool_ (traceTrue Cbneed))
    = (true,["True"]).
 Proof. constructor. Qed.
 
 (* Strict evaluation also leads to the message being logged only once. *)
 Example exOrTrueTraceSharingStrict
- : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbv_ orBool_ (traceTrue Cbv_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbv orBool_ (traceTrue Cbv))
    = (true,["True"]).
 Proof. constructor. Qed.
 
@@ -475,7 +459,7 @@ in sx or sx
 only be logged once and the result should be false.
 *)
 Example exOrFalseTraceSharing
- : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbneed_ orBool_ (traceFalse Cbneed_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleShared Cbneed orBool_ (traceFalse Cbneed))
    = (false,["False"]).
 Proof. constructor. Qed.
 
@@ -485,7 +469,7 @@ in sx + sx
 = Nothing
 *)
 Example exNDMSharing
- : @handle _ _ _ (HandlerShareNDMaybe _) (doubleShared Cbneed_ addInteger_ (coinM Cbneed_))
+ : @handle _ _ _ (HandlerShareNDMaybe _) (doubleShared Cbneed addInteger_ (coinM Cbneed))
    = None.
 Proof. constructor. Qed.
 
@@ -496,7 +480,7 @@ in sx + sx
    due to >>=.
 *)
 Example exTraceNothingSharing
- : @handle _ _ _ (HandlerMaybeShareTrace _) (doubleShared Cbneed_ addInteger_ (traceNothing Cbneed_))
+ : @handle _ _ _ (HandlerMaybeShareTrace _) (doubleShared Cbneed addInteger_ (traceNothing Cbneed))
    = (None,["Nothing"]).
 Proof. constructor. Qed.
 
@@ -507,7 +491,7 @@ in sx + sx
    should be Some 2.
 *)
 Example exTraceJustSharing
- : @handle _ _ _ (HandlerMaybeShareTrace _) (doubleShared Cbneed_ addInteger_ (traceJust Cbneed_))
+ : @handle _ _ _ (HandlerMaybeShareTrace _) (doubleShared Cbneed addInteger_ (traceJust Cbneed))
    = (Some 2%Z,["Just 1"]).
 Proof. constructor. Qed.
 
@@ -520,9 +504,9 @@ in sy + sy
 = (0+0)+(0+0) ? (1+1)+(1+1)
 = 0 ? 4
 *)
-Example exAddNestedSharingND : @handle _ _ _ (HandlerShareND _) (doubleSharedNested Cbneed_
+Example exAddNestedSharingND : @handle _ _ _ (HandlerShareND _) (doubleSharedNested Cbneed
                                                           addInteger_
-                                                          (coin Cbneed_))
+                                                          (coin Cbneed))
                                = [0%Z;4%Z].
 Proof. constructor. Qed.
 
@@ -533,7 +517,7 @@ in sy + sy
 => The message should only be logged once and the result should be 4.
 *)
 Example exAddNestedSharingTrace
- : @handle _ _ _ (HandlerShareTrace _) (doubleSharedNested Cbneed_ addInteger_ (traceOne Cbneed_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleSharedNested Cbneed addInteger_ (traceOne Cbneed))
    = (4%Z,["One"]).
 Proof. constructor. Qed.
 
@@ -544,7 +528,7 @@ in sy or sy
 = true ? false
 *)
 Example exOrNestedSharingND
- : @handle _ _ _ (HandlerShareND _) (doubleSharedNested Cbneed_ orBool_ (coinB Cbneed_))
+ : @handle _ _ _ (HandlerShareND _) (doubleSharedNested Cbneed orBool_ (coinB Cbneed))
    = [true;false].
 Proof. constructor. Qed.
 
@@ -556,7 +540,7 @@ in sy or sy
    and the result should be true.
 *)
 Example exOrNestedTrueTracing
- : @handle _ _ _ (HandlerShareTrace _) (doubleSharedNested Cbneed_ orBool_ (traceTrue Cbneed_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleSharedNested Cbneed orBool_ (traceTrue Cbneed))
    = (true,["True"]).
 Proof. constructor. Qed.
 
@@ -568,7 +552,7 @@ in sy or sy
    and the result should be false.
 *)
 Example exOrNestedFalseTracing
- : @handle _ _ _ (HandlerShareTrace _) (doubleSharedNested Cbneed_ orBool_ (traceFalse Cbneed_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleSharedNested Cbneed orBool_ (traceFalse Cbneed))
    = (false, ["False"]).
 Proof. constructor. Qed.
 
@@ -583,7 +567,7 @@ in sy + sz
 = 0 ? 1 ? 2 ? 3
 *)
 Example exAddClashSharingND
- : @handle _ _ _ (HandlerShareND _) (doubleSharedClash Cbneed_ addInteger_ (coin Cbneed_) (coin Cbneed_))
+ : @handle _ _ _ (HandlerShareND _) (doubleSharedClash Cbneed addInteger_ (coin Cbneed) (coin Cbneed))
    = [0%Z;1%Z;2%Z;3%Z].
 Proof. constructor. Qed.
 
@@ -595,8 +579,8 @@ in sy + sz
 => The message should be logged twice and the result should be 3.
 *)
 Example exAddClashSharingTracing
- : @handle _ _ _ (HandlerShareTrace _) (doubleSharedClash Cbneed_ addInteger_
-                                  (traceOne Cbneed_) (traceOne Cbneed_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleSharedClash Cbneed addInteger_
+                                  (traceOne Cbneed) (traceOne Cbneed))
    = (3%Z,["One";"One"]).
 Proof. constructor. Qed.
 
@@ -610,7 +594,7 @@ in sy or sz
 = true ? true ? false
 *)
 Example exOrClashSharingND
- : @handle _ _ _ (HandlerShareND _) (doubleSharedClash Cbneed_ orBool_ (coinB Cbneed_) (coinB Cbneed_))
+ : @handle _ _ _ (HandlerShareND _) (doubleSharedClash Cbneed orBool_ (coinB Cbneed) (coinB Cbneed))
    = [true;true;false].
 Proof. constructor. Qed.
 
@@ -623,8 +607,8 @@ in sy or sz
    result should be true.
 *)
 Example exOrClashTrueTracing
- : @handle _ _ _ (HandlerShareTrace _) (doubleSharedClash Cbneed_ orBool_
-                                  (traceTrue Cbneed_) (traceTrue Cbneed_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleSharedClash Cbneed orBool_
+                                  (traceTrue Cbneed) (traceTrue Cbneed))
    = (true,["True"]).
 Proof. constructor. Qed.
 
@@ -638,8 +622,8 @@ in sy or sz
    be logged twice in total and the result should be false.
 *)
 Example exOrClashFalseTracing
- : @handle _ _ _ (HandlerShareTrace _) (doubleSharedClash Cbneed_ orBool_
-                                  (traceFalse Cbneed_) (traceFalse Cbneed_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleSharedClash Cbneed orBool_
+                                  (traceFalse Cbneed) (traceFalse Cbneed))
    = (false,["False";"False"]).
 Proof. constructor. Qed.
 
@@ -655,9 +639,9 @@ in sx + (sy + (sz + 1))
   ? (1 + (1+1 + ((1+1 + 1) + 1)))
 = 4 ? 5 ? 6 ? 7
 *)
-Example exAddRecSharingND : @handle _ _ _ (HandlerShareND _) (doubleSharedRec Cbneed_
+Example exAddRecSharingND : @handle _ _ _ (HandlerShareND _) (doubleSharedRec Cbneed
                                                     addInteger_
-                                                    (coin Cbneed_) (coin Cbneed_) 1%Z)
+                                                    (coin Cbneed) (coin Cbneed) 1%Z)
                             = [4%Z;5%Z;6%Z;7%Z].
 Proof. constructor. Qed.
 
@@ -672,8 +656,8 @@ in sx + (sy + (sz + 1))
    final value should be 1 + 2 + 3 + 1 = 7.
 *)
 Example exAddRecSharingTracing
- : @handle _ _ _ (HandlerShareTrace _) (doubleSharedRec Cbneed_ addInteger_
-                                (traceOne Cbneed_) (traceOne Cbneed_) 1%Z)
+ : @handle _ _ _ (HandlerShareTrace _) (doubleSharedRec Cbneed addInteger_
+                                (traceOne Cbneed) (traceOne Cbneed) 1%Z)
    = (7%Z,["One";"One"]).
 Proof. constructor. Qed.
 
@@ -685,7 +669,7 @@ in sx or (sy or (sz or true))
 = true (due to non-strictness)
 *)
 Example exOrRecSharingNDTrue
- : @handle _ _ _ (HandlerShareND _) (doubleSharedRec Cbneed_ orBool_ (coinB Cbneed_) (coinB Cbneed_) true)
+ : @handle _ _ _ (HandlerShareND _) (doubleSharedRec Cbneed orBool_ (coinB Cbneed) (coinB Cbneed) true)
    = [true].
 Proof. constructor. Qed.
 
@@ -708,7 +692,7 @@ in sx or (sy or (sz or false))
 = true ? true ? false
 *)
 Example exOrRecSharingNDFalse
- : @handle _ _ _ (HandlerShareND _) ((doubleSharedRec Cbneed_ orBool_ (coinB Cbneed_) (coinB Cbneed_) false))
+ : @handle _ _ _ (HandlerShareND _) ((doubleSharedRec Cbneed orBool_ (coinB Cbneed) (coinB Cbneed) false))
    = [true;true;false].
 Proof. constructor. Qed.
 
@@ -721,8 +705,8 @@ in sx or (sy or (sz or false))
    be logged once and the result should be true.
 *)
 Example exOrRecTrueTracing
- : @handle _ _ _ (HandlerShareTrace _) (doubleSharedRec Cbneed_ orBool_
-                                (traceTrue Cbneed_) (traceTrue Cbneed_) false)
+ : @handle _ _ _ (HandlerShareTrace _) (doubleSharedRec Cbneed orBool_
+                                (traceTrue Cbneed) (traceTrue Cbneed) false)
    = (true,["True"]).
 Proof. constructor. Qed.
 
@@ -736,8 +720,8 @@ in sx or (sy or (sz or false))
    be false.
 *)
 Example exOrRecFalseTracing
- : @handle _ _ _ (HandlerShareTrace _) (doubleSharedRec Cbneed_ orBool_
-                                (traceFalse Cbneed_) (traceFalse Cbneed_) false)
+ : @handle _ _ _ (HandlerShareTrace _) (doubleSharedRec Cbneed orBool_
+                                (traceFalse Cbneed) (traceFalse Cbneed) false)
    = (false,["False";"False"]).
 Proof. constructor. Qed.
 
@@ -752,7 +736,7 @@ in fst sx + fst sx
 = 0 ? 2
 *)
 Example exAddDeepPairND
- : @handle _ _ _ (HandlerShareND _) (doubleDeepSharedPair Cbneed_ addInteger_ (coinPair Cbneed_))
+ : @handle _ _ _ (HandlerShareND _) (doubleDeepSharedPair Cbneed addInteger_ (coinPair Cbneed))
   = [0%Z;2%Z].
 Proof. constructor. Qed.
 
@@ -763,7 +747,7 @@ in head sx + head sx
 *)
 Example exAddDeepListND
  : @handle _ _ _ (HandlerShareND _)
-  (doubleDeepSharedList (ND.Partial _ _) Cbneed_ addInteger_ (coinList Cbneed_))
+  (doubleDeepSharedList Cbneed (ND.Partial _ _) addInteger_ (coinList Cbneed))
  = [0%Z;2%Z].
 Proof. constructor. Qed.
 
@@ -775,7 +759,7 @@ in fst sx + fst sx
    should not be logged and the first should be shared and thus logged once.
 *)
 Example exAddDeepPairTrace
- : @handle _ _ _ (HandlerShareTrace _) (doubleDeepSharedPair Cbneed_ addInteger_ (tracePair Cbneed_))
+ : @handle _ _ _ (HandlerShareTrace _) (doubleDeepSharedPair Cbneed addInteger_ (tracePair Cbneed))
   = (0%Z, ["0"]).
 Proof. constructor. Qed.
 
@@ -790,32 +774,30 @@ in head sx + head sx
 *)
 Example exAddDeepListTrace
  : @handle _ _ _ (HandlerMaybeShareTrace _)
-   (doubleDeepSharedList (Maybe.Partial _ _)
-     Cbneed_ addInteger_ (traceList Cbneed_))
+   (doubleDeepSharedList Cbneed (Maybe.Partial _ _)
+      addInteger_ (traceList Cbneed))
   = (Some 0%Z, ["0"]).
 Proof. constructor. Qed.
-(* TODO Commented out due to sections bug making foldr uncompilable.
-        Uncomment later! 
+
 (*
   sumTails :: [Integer] -> Integer
   sumTails l = sum (map sum (tails l))
 *)
 Definition sumTails
   (Shape : Type) (Pos : Shape -> Type)
-  `{I : Injectable Share.Shape Share.Pos Shape Pos}
   (S : Strategy Shape Pos)
   (l : Free Shape Pos (List Shape Pos (Integer Shape Pos)))
   : Free Shape Pos (Integer Shape Pos)
- := List.sum Shape Pos
-      (List.map Shape Pos (pure (fun fxs => List.sum Shape Pos fxs))
-                     (tails S l)).
+ := List.sum Shape Pos S >>= fun f => f
+      (List.map Shape Pos S (pure (fun fxs => List.sum Shape Pos S >>= (fun g => g fxs)))
+                            (tails S l)).
 
 (* Evaluation of sumTails [trace "1" 1, trace "2" 2, trace "3" 3] *)
 (* = sum (map (sum [trace "1" 1, trace "2" 2, trace "3" 3] : [trace "2" 2, trace "3" 3] : [trace "3" 3] : [])) *)
 
 (* Call-by-need *)
 (* Due to sharing, each number should be logged only once. *)
-Example exSumTailsTracingCbneed : @handle _ _ _ (HandlerShareTrace _) (sumTails _ _ Cbneed_ (traceList3 Cbneed_))
+Example exSumTailsTracingCbneed : @handle _ _ _ (HandlerShareTrace _) (sumTails _ _ Cbneed (traceList3 Cbneed))
  = (14%Z,["1";"2";"3"]).
 Proof. constructor. Qed.
 
@@ -824,13 +806,13 @@ Proof. constructor. Qed.
    Only one of the lists in the result of tails contains 1, two contain 2,
    and three contain 3. Therefore, "1" should be logged once, "2" twice and
    "3" three times. *)
-Example exSumTailsTracingCbn : @handle _ _ _ (HandlerShareTrace _) (sumTails _ _ Cbn_ (traceList3 Cbn_))
+Example exSumTailsTracingCbn : @handle _ _ _ (HandlerShareTrace _) (sumTails _ _ Cbn (traceList3 Cbn))
  = (14%Z,["1";"2";"3";"2";"3";"3"]).
 Proof. constructor. Qed.
 
 (* Call-by-value *)
 (* The tracing effect is evaluated immediately, so we should only log each number once. *)
-Example exSumTailsTracingCbv : @handle _ _ _ (HandlerShareTrace _) (sumTails _ _ Cbv_ (traceList3 Cbv_))
+Example exSumTailsTracingCbv : @handle _ _ _ (HandlerShareTrace _) (sumTails _ _ Cbv (traceList3 Cbv))
  = (14%Z,["1";"2";"3"]).
 Proof. constructor. Qed.
 
@@ -845,7 +827,7 @@ Proof. constructor. Qed.
   = sum ([2,2] ? [3,3] ? [3,2] ? [4,3])
   = 4 ? 6 ? 5 ? 7
 *)
-Example exSumTailsNDCbneed : @handle _ _ _ (HandlerShareND _) (sumTails _ _ Cbneed_ (coinList Cbneed_))
+Example exSumTailsNDCbneed : @handle _ _ _ (HandlerShareND _) (sumTails _ _ Cbneed (coinList Cbneed))
  = [4%Z;6%Z;5%Z;7%Z].
 Proof. constructor. Qed.
 
@@ -858,14 +840,13 @@ Proof. constructor. Qed.
   = sum ([2,2] ? [3,2] ? [2,3] ? [3,3] ? [3,2] ? [3,3] ? [4,2] ? [4,3])
   = 4 ? 5 ? 5 ? 6 ? 5 ? 6 ? 6 ? 7
 *)
-Example exSumTailsNDCbn : @handle _ _ _ (HandlerShareND _) (sumTails _ _ Cbn_ (coinList Cbn_))
+Example exSumTailsNDCbn : @handle _ _ _ (HandlerShareND _) (sumTails _ _ Cbn (coinList Cbn))
  = [4%Z;5%Z;5%Z;6%Z;5%Z;6%Z;6%Z;7%Z].
 Proof. constructor. Qed.
 
 (* Call-by-value *)
 (* Because the non-determinism is evaluated immediately, the result should be
    the same as with call-by-need evaluation. *)
-Example exSumTailsNDCbv : @handle _ _ _ (HandlerShareND _) (sumTails _ _ Cbv_ (coinList Cbv_))
+Example exSumTailsNDCbv : @handle _ _ _ (HandlerShareND _) (sumTails _ _ Cbv (coinList Cbv))
  = [4%Z;6%Z;5%Z;7%Z].
 Proof. constructor. Qed.
-*)

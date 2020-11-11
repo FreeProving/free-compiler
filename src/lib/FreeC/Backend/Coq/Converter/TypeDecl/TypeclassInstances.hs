@@ -199,7 +199,7 @@ generateTypeclassInstances dataDecls = do
     -> String -- ^ The name of the typeclass.
     -> (StrippedType
         -> Coq.Qualid
-        -> Converter ([Coq.Binder], Coq.Binder, Coq.Term, Coq.Term))
+        -> Converter ([Coq.Binder], [Coq.Binder], Coq.Term, Coq.Term))
     -- ^ A function to get class-specific binders and return types.
     -> (TypeMap
         -> Coq.Qualid
@@ -237,7 +237,7 @@ generateTypeclassInstances dataDecls = do
       -> Converter (Coq.FixBody, Coq.Sentence)
     buildFixBodyAndInstance topLevelMap t recTypes = do
       -- Locally visible definitions are defined in a local environment.
-      (fixBody, typeLevelMap, binders, instanceRetType) <- localEnv $ do
+      (fixBody, typeLevelMap, instanceBinders, instanceRetType) <- localEnv $ do
         -- This map names necessary local functions and maps indirectly
         -- recursive types to the appropriate function names.
         typeLevelMap
@@ -246,16 +246,18 @@ generateTypeclassInstances dataDecls = do
         -- function.
         topLevelVar <- freshCoqQualid freshArgPrefix
         -- Compute class-specific binders and return types.
-        (binders, varBinder, retType, instanceRetType)
+        (implicitBinders, explicitBinders, retType, instanceRetType)
           <- getBindersAndReturnTypes t topLevelVar
         -- Build the implementation of the class function.
-        fixBody <- makeFixBody typeLevelMap topLevelVar t
-          (binders ++ [varBinder]) retType recTypes
-        return (fixBody, typeLevelMap, binders, instanceRetType)
+        let functionBinders = implicitBinders ++ explicitBinders
+        fixBody <- makeFixBody typeLevelMap topLevelVar t functionBinders
+          retType recTypes
+        return (fixBody, typeLevelMap, implicitBinders, instanceRetType)
       -- Build the class instance for the given type.
       -- The instance must be defined outside of a local environment so
       -- that the instance name does not clash with any other names.
-      instanceDefinition <- buildInstance typeLevelMap t binders instanceRetType
+      instanceDefinition
+        <- buildInstance typeLevelMap t instanceBinders instanceRetType
       return (fixBody, instanceDefinition)
 
     -- | Builds an instance for a specific type and typeclass.
@@ -320,13 +322,15 @@ generateTypeclassInstances dataDecls = do
       -- Create the body of the local function by matching on the type's
       -- constructors.
       letBody <- matchConstructors m var recType
-      (binders, varBinder, retType, _) <- getBindersAndReturnTypes recType var
-      let Just localFuncName = Map.lookup recType m
+      (implicitBinders, explicitBinders, retType, _)
+        <- getBindersAndReturnTypes recType var
+      let binders            = implicitBinders ++ explicitBinders
+          Just localFuncName = Map.lookup recType m
       return
         $ Coq.Let localFuncName [] Nothing
-        (Coq.Fix (Coq.FixOne (Coq.FixBody localFuncName
-                              (NonEmpty.fromList (binders ++ [varBinder]))
-                              Nothing (Just retType) letBody))) inBody
+        (Coq.Fix (Coq.FixOne
+                  (Coq.FixBody localFuncName (NonEmpty.fromList binders) Nothing
+                   (Just retType) letBody))) inBody
 
     -- | Matches on the constructors of a type.
     matchConstructors
@@ -375,16 +379,15 @@ generateTypeclassInstances dataDecls = do
     -> Coq.Qualid -- ^ The name of the argument of type @t@.
     -> Converter
     ( [Coq.Binder] -- Type variable binders and @Normalform@ constraints.
-    , Coq.Binder -- Binder for the argument of type @t@.
+    , [Coq.Binder] -- Binder for the argument of type @t@.
     , Coq.Term -- Return type of @nf'@.
     , Coq.Term -- Return type of the @Normalform@ instance.
     )
   nfBindersAndReturnType t varName = do
     (sourceType, sourceVars) <- toCoqType t
     -- The return types of the type variables' @Normalform@ instances.
-    let nTypes            = map
-          (\v -> Coq.explicitApp Coq.Base.nType
-           (shapeAndPos ++ Coq.Qualid v : [Coq.Underscore])) sourceVars
+    let nTypes            = map (\v -> genericApply Coq.Base.nType []
+                                 [Coq.Qualid v, Coq.Underscore] []) sourceVars
         -- Build a substitution to create the normalized type from the source
         -- type.
         targetTypeMap     = buildNFSubst (zip sourceVars nTypes)
@@ -397,10 +400,9 @@ generateTypeclassInstances dataDecls = do
         -- Create an explicit argument binder for the value to be normalized.
         topLevelVarBinder
           = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit varName sourceType
-        instanceRetType   = Coq.app (Coq.Qualid Coq.Base.normalform)
-          (shapeAndPos ++ [sourceType])
+        instanceRetType   = genericApply Coq.Base.normalform [] [] [sourceType]
         funcRetType       = applyFree targetType
-    return (binders, topLevelVarBinder, funcRetType, instanceRetType)
+    return (binders, [topLevelVarBinder], funcRetType, instanceRetType)
    where
     buildNFSubst :: [(Coq.Qualid, Coq.Term)] -> Map.Map Coq.Qualid Coq.Term
     buildNFSubst kvs = Map.insert Coq.Base.shape (Coq.Qualid Coq.Base.idShape)
@@ -457,23 +459,22 @@ generateTypeclassInstances dataDecls = do
     -- ^ The type @t@ for which we are defining an instance.
     -> Coq.Qualid -- ^ The name of the argument of type @t@.
     -> Converter
-    ( [Coq.Binder] -- Type variable binders and @ShareableArgs@ constraints.
-    , Coq.Binder -- Binder for the argument of type @t@.
+    ( [Coq.Binder] -- Binders to add to the type class and functions.
+    , [Coq.Binder] -- Binders to add to the function only.
     , Coq.Term -- Return type of @shareArgs@.
     , Coq.Term -- Return type of the @ShareableArgs@ instance.
     )
   shareArgsBindersAndReturnType t varName = do
     (coqType, vars) <- toCoqType t
-    let constraints
-          = Coq.Base.injectableBinder : map Coq.Base.shareableArgsBinder vars
-    let varBinder = [typeVarBinder vars | not (null vars)]
-    let binders = varBinder ++ constraints
-    let topLevelVarBinder
+    let constraints     = map Coq.Base.shareableArgsBinder vars
+        typeVarBinders  = [typeVarBinder vars | not (null vars)]
+        implicitBinders = typeVarBinders ++ constraints
+        varBinder
           = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit varName coqType
-    let instanceRetType = Coq.app (Coq.Qualid Coq.Base.shareableArgs)
-          (shapeAndPos ++ [coqType])
-    let funcRetType = applyFree coqType
-    return (binders, topLevelVarBinder, funcRetType, instanceRetType)
+        explicitBinders = [Coq.Base.strategyBinder, varBinder]
+        instanceRetType = genericApply Coq.Base.shareableArgs [] [] [coqType]
+        funcRetType     = applyFree coqType
+    return (implicitBinders, explicitBinders, funcRetType, instanceRetType)
 
   -- | Shares all arguments of the given constructor and reconstructs the
   --   value with the shared components.
@@ -491,12 +492,10 @@ generateTypeclassInstances dataDecls = do
     buildShareArgsValue' vals [] = generatePure
       (Coq.app (Coq.Qualid consName) (reverse vals))
     buildShareArgsValue' vals ((t, varName) : consVars) = do
-      let lhs = case Map.lookup t nameMap of
-            Just funcName -> Coq.app (Coq.Qualid Coq.Base.cbneed)
-              (shapeAndPos ++ [Coq.Qualid funcName, Coq.Qualid varName])
-            Nothing       -> Coq.app (Coq.Qualid Coq.Base.cbneed)
-              (shapeAndPos
-               ++ [Coq.Qualid Coq.Base.shareArgs, Coq.Qualid varName])
+      let funcName = Map.findWithDefault Coq.Base.shareArgs t nameMap
+          lhs
+            = genericApply Coq.Base.shareWith [Coq.Qualid Coq.Base.strategyArg]
+            [] [Coq.Qualid funcName, Coq.Qualid varName]
       generateBind lhs freshSharingArgPrefix Nothing
         (\val -> buildShareArgsValue' (val : vals) consVars)
 
@@ -623,10 +622,6 @@ generateTypeclassInstances dataDecls = do
   applyFree :: Coq.Term -> Coq.Term
   applyFree a = genericApply Coq.Base.free [] [] [a]
 
-  -- | @Shape@ and @Pos@ arguments as Coq terms.
-  shapeAndPos :: [Coq.Term]
-  shapeAndPos = [Coq.Qualid Coq.Base.shape, Coq.Qualid Coq.Base.pos]
-
   -- | Converts a type into a Coq type (a term) with fresh Coq
   --   identifiers for all underscores.
   --   Returns a pair of the result term and a list of the fresh variables.
@@ -640,9 +635,7 @@ generateTypeclassInstances dataDecls = do
   toCoqType (StrippedTypeCon con args) = do
     entry <- lookupEntryOrFail NoSrcSpan IR.TypeScope con
     (coqArgs, freshVars) <- mapAndUnzipM toCoqType args
-    return ( Coq.app (Coq.Qualid (entryIdent entry)) (shapeAndPos ++ coqArgs)
-           , concat freshVars
-           )
+    return (genericApply (entryIdent entry) [] [] coqArgs, concat freshVars)
 
   -- | Produces @n@ new Coq identifiers (Qualids) with the same prefix.
   freshQualids :: Int -> String -> Converter [Coq.Qualid]

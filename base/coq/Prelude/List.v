@@ -72,21 +72,18 @@ Section SecListShrArgs.
 Variable Shape : Type.
 Variable Pos : Shape -> Type.
 Variable A : Type.
+Context `{ShareableArgs Shape Pos A}.
 
-Fixpoint shareArgsList `{SA : ShareableArgs Shape Pos A}
-                       `{Injectable Share.Shape Share.Pos Shape Pos}
-                        (xs : List Shape Pos A)
-                        {struct xs}
+Fixpoint shareArgsList (S : Strategy Shape Pos) (xs : List Shape Pos A) {struct xs}
   : Free Shape Pos (List Shape Pos A)
  := match xs with
     | nil         => pure nil
-    | cons fy fys => cbneed Shape Pos (@shareArgs Shape Pos A SA) fy >>= fun sy =>
-                     cbneed Shape Pos shareArgsList fys >>= fun sys =>
+    | cons fy fys => share Shape Pos S fy >>= fun sy =>
+                     shareWith Shape Pos S shareArgsList fys >>= fun sys =>
                      pure (cons sy sys)
-                         end.
+    end.
 
-Global Instance ShareableArgsList `{Injectable Share.Shape Share.Pos Shape Pos}
-                           `{ShareableArgs Shape Pos A}
+Global Instance ShareableArgsList
   : ShareableArgs Shape Pos (List Shape Pos A)
  := { shareArgs := shareArgsList }.
 
