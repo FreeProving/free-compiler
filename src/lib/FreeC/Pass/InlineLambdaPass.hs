@@ -73,20 +73,20 @@ inlineLambdaExpr = mapSubterms inlineLambdaExpr'
 -- | Like 'inlineLambdaExpr', but does not inline lambda abstractions
 --   recursively.
 inlineLambdaExpr' :: IR.Expr -> IR.Expr
-inlineLambdaExpr' expr@(IR.Let {})
+inlineLambdaExpr' expr@IR.Let {}
   = let (substs, binds') = partitionEithers
           (map substLambdaOrBind (IR.letExprBinds expr))
         subst            = composeSubsts substs
         expr'            | null binds' = IR.letExprIn expr
                          | otherwise = expr { IR.letExprBinds = binds' }
     in applySubst subst expr'
-inlineLambdaExpr' expr             = expr
+inlineLambdaExpr' expr           = expr
 
 -- | Creates a substitution that inlines the lambda abstraction that is bound
 --   by the given binding or returns the binding unchanged if it does not bind
 --   a lambda abstraction.
 substLambdaOrBind :: IR.Bind -> Either (Subst IR.Expr) IR.Bind
 substLambdaOrBind bind = case IR.bindExpr bind of
-  expr@(IR.Lambda {}) -> Left
+  expr@IR.Lambda {} -> Left
     (singleSubst (IR.varPatQName (IR.bindVarPat bind)) expr)
-  _                   -> Right bind
+  _                 -> Right bind
