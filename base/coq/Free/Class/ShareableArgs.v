@@ -1,5 +1,5 @@
-From Base Require Import Free.Class.Strategy.
 From Base Require Import Free.Monad.
+From Base Require Import Free.Strategy.
 
 Class ShareableArgs (Shape : Type) (Pos : Shape -> Type) (A : Type) :=
   { shareArgs : Strategy Shape Pos -> A -> Free Shape Pos A }.
