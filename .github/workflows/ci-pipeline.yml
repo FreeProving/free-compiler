@@ -358,7 +358,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup Coq
-      run: echo "::add-path::/home/coq/.opam/$COMPILER/bin"
+      run: echo "/home/coq/.opam/$COMPILER/bin" >> $GITHUB_PATH
     - name: Build Coq base library
       run: ./tool/compile-coq.sh base/coq
     - name: Copy compiled base library to build directory
@@ -476,7 +476,7 @@ jobs:
         name: examples
         path: ./example
     - name: Setup Coq
-      run: echo "::add-path::/home/coq/.opam/$COMPILER/bin"
+      run: echo "/home/coq/.opam/$COMPILER/bin" >> $GITHUB_PATH
     - name: Compile (generated) Coq code
       run: ./tool/compile-coq.sh ./example
 
