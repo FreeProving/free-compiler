@@ -1,3 +1,4 @@
+-- | This module contains tests for "FreeC.Pass.FlattenExprPass".
 module FreeC.Pass.FlattenExprPassTests ( testFlattenExprPass ) where
 
 import           Test.Hspec
@@ -7,12 +8,9 @@ import           FreeC.Pass.FlattenExprPass
 import           FreeC.Test.Expectations
 import           FreeC.Test.Parser
 
+-- | Test group for "FreeC.Pass.FlattenExprPass" tests.
 testFlattenExprPass :: Spec
 testFlattenExprPass = describe "FreeC.Pass.FlattenExprPass" $ do
-  testFlattenExpr
-
-testFlattenExpr :: Spec
-testFlattenExpr = context "flattenExpr" $ do
   it "leaves variables unchanged" $ shouldSucceedWith $ do
     input <- parseTestExpr "f x y"
     output <- flattenExpr input
