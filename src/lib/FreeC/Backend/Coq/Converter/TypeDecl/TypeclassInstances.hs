@@ -294,8 +294,8 @@ generateTypeclassInstances dataDecls = do
       rhs <- generateBody m varName t recTypes
       return
         $ Coq.FixBody (fromJust (Map.lookup t m))
-        (NonEmpty.fromList (freeArgsBinders ++ binders)) Nothing (Just retType)
-        rhs
+        (NonEmpty.fromList (freeArgsBinders ++ binders))
+        (Just (Coq.StructOrder varName)) (Just retType) rhs
 
     -- | Creates the function body for a class function by creating local
     --   functions for all indirectly recursive types.
@@ -328,9 +328,10 @@ generateTypeclassInstances dataDecls = do
           Just localFuncName = Map.lookup recType m
       return
         $ Coq.Let localFuncName [] Nothing
-        (Coq.Fix (Coq.FixOne
-                  (Coq.FixBody localFuncName (NonEmpty.fromList binders) Nothing
-                   (Just retType) letBody))) inBody
+        (Coq.Fix
+         (Coq.FixOne (Coq.FixBody localFuncName (NonEmpty.fromList binders)
+                      (Just (Coq.StructOrder var)) (Just retType) letBody)))
+        inBody
 
     -- | Matches on the constructors of a type.
     matchConstructors

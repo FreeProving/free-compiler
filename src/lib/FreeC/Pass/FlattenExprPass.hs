@@ -134,8 +134,8 @@ buildLet e' typeArgs args = do
   --   No new binding is generated if the given expression is a variable
   --   already.
   buildBind :: IR.Expr -> Converter (Maybe IR.Bind, IR.Expr)
-  buildBind v@IR.Var {} = return (Nothing, v)
-  buildBind expr        = do
+  buildBind expr@IR.Var {} = return (Nothing, expr)
+  buildBind expr           = do
     varIdent <- freshHaskellIdent freshArgPrefix
     let srcSpan = IR.exprSrcSpan expr
         varPat  = IR.VarPat srcSpan varIdent Nothing False
