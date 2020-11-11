@@ -90,7 +90,7 @@ jobs:
       uses: actions/setup-haskell@v1.1.3
       with:
         ghc-version: '8.6.5'
-        cabal-version: '3.2'
+        cabal-version: '3.4'
     - name: Update Cabal Package List
       id: cabal-update
       run: cabal new-update
@@ -176,7 +176,7 @@ jobs:
       uses: actions/setup-haskell@v1.1.3
       with:
         ghc-version: '8.6.5'
-        cabal-version: '3.2'
+        cabal-version: '3.4'
     - name: Update Cabal Package List
       id: cabal-update
       run: cabal new-update
@@ -233,7 +233,7 @@ jobs:
       uses: actions/setup-haskell@v1.1.3
       with:
         ghc-version: '8.6.5'
-        cabal-version: '3.2'
+        cabal-version: '3.4'
     - name: Update Cabal Package List
       id: cabal-update
       run: cabal new-update
