@@ -9,7 +9,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
-version = 5
+version = 6
 module-name = 'Debug.Trace'
 library-name = 'Base'
 exported-types = [
@@ -29,6 +29,7 @@ exported-values = [
 #   agda-name       = 'trace'
 #   arity           = 2
 #   effects         = []
+#   strict-args     = [flase, false]
 #   needs-free-args = true
 
 ##############################################################################

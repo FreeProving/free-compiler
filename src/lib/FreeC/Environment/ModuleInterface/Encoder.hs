@@ -43,7 +43,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 5
+moduleInterfaceFileFormatVersion = 6
 
 instance Aeson.ToJSON IR.QName where
   toJSON = Aeson.toJSON . showPretty
@@ -122,6 +122,7 @@ encodeEntry entry
     , "coq-name" .= coqName
     , "agda-name" .= agdaName
     , "arity" .= arity
+    , "strict-args" .= strictArgs
     , "effects" .= effects
     , "needs-free-args" .= freeArgsNeeded
     , "encapsulates-effects" .= effectsEncapsulated
@@ -163,6 +164,9 @@ encodeEntry entry
   haskellType :: Aeson.Value
   haskellType = Aeson.toJSON (foldr (IR.FuncType NoSrcSpan)
                               (entryReturnType entry) (entryArgTypes entry))
+
+  strictArgs :: Aeson.Value
+  strictArgs = Aeson.toJSON (entryStrictArgs entry)
 
   typeSyn :: Aeson.Value
   typeSyn = Aeson.toJSON (entryTypeSyn entry)

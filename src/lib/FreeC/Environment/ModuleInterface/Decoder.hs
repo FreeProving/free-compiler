@@ -97,6 +97,8 @@
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq
 --       function.
 --     * @arity@ (@Integer@) the number of arguments expected by the function.
+--     * @strict-args@ (@Array@ of @Boolean@) whether the function is strict in
+--       in its arguments.
 --     * @effects@ (@Array@ of @String@) the effects contained in the function,
 --       i.e. which type classes need to be passed.
 --     * @needs-free-args@ (@Boolean@) whether the arguments of the @Free@
@@ -143,7 +145,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 5
+moduleInterfaceFileFormatVersion = 6
 
 -- | Parses an IR AST node from an Aeson string.
 parseAesonIR :: Parseable a => String -> Aeson.Parser a
@@ -278,6 +280,7 @@ instance Aeson.FromJSON ModuleInterface where
       arity <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       haskellType <- obj .: "haskell-type"
+      strictArgs <- obj .: "strict-args"
       effects <- obj .: "effects"
       freeArgsNeeded <- obj .: "needs-free-args"
       effectsEncapsulated <- obj .:? "encapsulates-effects" .!= False
@@ -291,7 +294,7 @@ instance Aeson.FromJSON ModuleInterface where
         , entryArity               = arity
         , entryTypeArgs            = typeArgs
         , entryArgTypes            = argTypes
-        , entryStrictArgs          = replicate arity False
+        , entryStrictArgs          = strictArgs
         , entryReturnType          = returnType
         , entryNeedsFreeArgs       = freeArgsNeeded
         , entryEncapsulatesEffects = effectsEncapsulated

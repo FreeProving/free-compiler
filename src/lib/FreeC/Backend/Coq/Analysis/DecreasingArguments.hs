@@ -282,10 +282,10 @@ extendDepthMap :: Int -> IR.Expr -> DepthMap -> DepthMap
 
 -- The bindings of @let@-expressions introduce variables at the same depth
 -- as the expressions on their right-hand sides.
-extendDepthMap _ (IR.Let _ binds _ _) depthMap
-  = let shadowed  = Set.fromList (map IR.declQName binds)
-        depthMap' = depthMap `Map.withoutKeys` shadowed
-    in extendBindDepths depthMap'
+extendDepthMap _ (IR.Let _ binds _ _) depthMap0
+  = let shadowed   = Set.fromList (map IR.declQName binds)
+        depthMap0' = depthMap0 `Map.withoutKeys` shadowed
+    in extendBindDepths depthMap0'
  where
   -- | Recursively extends the given depth map by the depths of variables
   --   declared by the @let@-bindings until the depths don't change anymore.

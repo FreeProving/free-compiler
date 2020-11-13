@@ -107,6 +107,8 @@ defineTypeDecl (IR.DataDecl srcSpan declIdent typeArgs conDecls) = do
 -- Function Declarations                                                     --
 -------------------------------------------------------------------------------
 -- | Inserts the given function declaration into the current environment.
+--
+--   The 'entryEffects' may be updated by the "FreeC.Pass.EffectAnalysisPass".
 defineFuncDecl :: IR.FuncDecl -> Converter ()
 defineFuncDecl funcDecl = do
   _ <- renameAndAddEntry FuncEntry
@@ -121,7 +123,7 @@ defineFuncDecl funcDecl = do
     , entryReturnType          = fromJust (IR.funcDeclReturnType funcDecl)
     , entryNeedsFreeArgs       = True
     , entryEncapsulatesEffects = False
-    , entryEffects             = [] -- may be updated by effect analysis pass
+    , entryEffects             = []
     , entryName                = IR.funcDeclQName funcDecl
     , entryIdent               = undefined -- filled by renamer
     , entryAgdaIdent           = undefined -- filled by renamer
