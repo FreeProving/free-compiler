@@ -1,12 +1,11 @@
 -- | This module contains a pass for inlining lambda abstractions that are
 --   bound by bindings of @let@-expressions into the @in@-expressions.
 --
---   The purpose of this pass is to avoid the generation of @call@ and @share@
---   operators for lambda abstractions. Since lambda abstractions are not
---   evaluated by any evaluation strategy until they are invoked, the inlining
---   does not change the semantics of the program. The inlining helps Coq's
---   termination checker sometimes if the lambda abstraction contains recursive
---   calls.
+--   The purpose of this pass is to avoid the generation of @share@ operators
+--   for lambda abstractions. Since lambda abstractions are not evaluated by
+--   any evaluation strategy until they are invoked, the inlining does not
+--   change the semantics of the program. The inlining helps Coq's termination
+--   checker sometimes if the lambda abstraction contains recursive calls.
 --
 --   = Example
 --

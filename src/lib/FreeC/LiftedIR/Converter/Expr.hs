@@ -353,45 +353,5 @@ liftBinds ((IR.Bind srcSpan varPat bindExpr) : bs) expr = localEnv $ do
   varPat' <- makeVarPat patSrcSpan (IR.varPatQName varPat) patType'
   shareType' <- mapM LIR.liftType' varPatType
   bindExpr' <- liftExpr bindExpr
-  let varName    = IR.varPatQName varPat
-      countExprs = expr : map IR.bindExpr bs
-      count      = sum $ map (countVarInExpr varName) countExprs
-      shareOp    | count > 1 = LIR.Share
-                 | otherwise = LIR.Call
-      shareExpr  = shareOp srcSpan bindExpr' shareType'
+  let shareExpr  = LIR.Share srcSpan bindExpr' shareType'
   return $ LIR.Bind srcSpan shareExpr (LIR.Lambda srcSpan [varPat'] expr')
-
--- | Counts the number of times the variable with the given qualified name
---   occurs in the given expression.
-countVarInExpr :: IR.QName -> IR.Expr -> Int
-countVarInExpr varName = countVarInExpr'
- where
-  countVarInExpr' :: IR.Expr -> Int
-  countVarInExpr' IR.Con {}                    = 0
-  countVarInExpr' (IR.Var _ varName' _)        | varName == varName' = 1
-                                               | otherwise = 0
-  countVarInExpr' (IR.App _ lhs rhs _)
-    = countVarInExpr' lhs + countVarInExpr' rhs
-  countVarInExpr' (IR.TypeAppExpr _ lhs _ _)   = countVarInExpr' lhs
-  countVarInExpr' (IR.If _ cond true false _)
-    = countVarInExpr' cond + countVarInExpr' true `max` countVarInExpr' false
-  countVarInExpr' (IR.Case _ expr alts _)      = countVarInExpr' expr
-    + maximum
-    (map (\(IR.Alt _ _ varPats rhs) -> countVarInBinds varPats rhs) alts)
-  countVarInExpr' IR.Undefined {}              = 0
-  countVarInExpr' IR.ErrorExpr {}              = 0
-  countVarInExpr' IR.Trace {}                  = 0
-  countVarInExpr' IR.IntLiteral {}             = 0
-  countVarInExpr' (IR.Lambda _ varPats expr _) = countVarInBinds varPats expr
-  countVarInExpr' (IR.Let _ binds expr _)
-    = let varPats = map IR.bindVarPat binds
-      in sum (map (countVarInBinds varPats . IR.bindExpr) binds)
-         + countVarInBinds varPats expr
-
-  -- | Returns the number of all occurrences of the variable with the given name
-  --   in the given expression.
-  --
-  --   Returns @0@ if the variable occurs in the given variable patterns.
-  countVarInBinds :: [IR.VarPat] -> IR.Expr -> Int
-  countVarInBinds varPats expr | varName `elem` map IR.varPatQName varPats = 0
-                               | otherwise = countVarInExpr' expr

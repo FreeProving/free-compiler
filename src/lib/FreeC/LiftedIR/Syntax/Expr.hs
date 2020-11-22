@@ -71,11 +71,6 @@ data Expr
           , exprShareArg  :: Expr
           , exprShareType :: Maybe Type
           }
-    -- | The @call@ operator.
-  | Call { exprSrcSpan  :: SrcSpan
-         , exprCallArg  :: Expr
-         , exprCallType :: Maybe Type
-         }
  deriving ( Eq, Show )
 
 -------------------------------------------------------------------------------

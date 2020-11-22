@@ -37,103 +37,103 @@ Section SecData.
 
   (* Non-deterministic integer. *)
   Definition coin `{ND}
-  := @call Shape Pos S _ (pure 0%Z) >>= fun c1 =>
-     @call Shape Pos S _ (pure 1%Z) >>= fun c2 =>
+  := @share Shape Pos S _ _ (pure 0%Z) >>= fun c1 =>
+     @share Shape Pos S _ _ (pure 1%Z) >>= fun c2 =>
      Choice Shape Pos c1 c2.
 
   (* Non-deterministic boolean value. *)
   Definition coinB `{ND}
-  := @call Shape Pos S _ (True_ Shape Pos) >>= fun c1 =>
-     @call Shape Pos S _ (False_ Shape Pos) >>= fun c2 =>
+  := @share Shape Pos S _ _ (True_ Shape Pos) >>= fun c1 =>
+     @share Shape Pos S _ _ (False_ Shape Pos) >>= fun c2 =>
      Choice Shape Pos c1 c2.
 
   (* Non-deterministic partial integer. *)
   Definition coinM `{ND} `{Maybe}
-  := @call Shape Pos S _ (Nothing Shape Pos) >>= fun c1 =>
-     @call Shape Pos S _ (Just Shape Pos 1%Z) >>= fun c2 =>
+  := @share Shape Pos S _ _ (Nothing Shape Pos) >>= fun c1 =>
+     @share Shape Pos S _ _ (Just Shape Pos 1%Z) >>= fun c2 =>
      Choice Shape Pos c1 c2.
 
   (* (0 ? 1, 2 ? 3) *)
   Definition coinPair `{ND}
   : Free Shape Pos (Pair Shape Pos (Integer Shape Pos) (Integer Shape Pos))
-  := @call Shape Pos S _ (pure 0%Z) >>= fun c1 =>
-     @call Shape Pos S _ (pure 1%Z) >>= fun c2 =>
-     @call Shape Pos S (Integer Shape Pos)
+  := @share Shape Pos S _ _ (pure 0%Z) >>= fun c1 =>
+     @share Shape Pos S _ _ (pure 1%Z) >>= fun c2 =>
+     @share Shape Pos S (Integer Shape Pos) _
           (Choice Shape Pos c1 c2) >>= fun c3 =>
-     @call Shape Pos S _ (pure 2%Z) >>= fun c4 =>
-     @call Shape Pos S _ (pure 3%Z) >>= fun c5 =>
-     @call Shape Pos S (Integer Shape Pos)
+     @share Shape Pos S _ _ (pure 2%Z) >>= fun c4 =>
+     @share Shape Pos S _ _ (pure 3%Z) >>= fun c5 =>
+     @share Shape Pos S (Integer Shape Pos) _
           (Choice Shape Pos c4 c5) >>= fun c6 =>
      Pair_ Shape Pos c3 c6.
 
   (* [0 ? 1, 2 ? 3] *)
   Definition coinList `{ND}
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
-  := @call Shape Pos S _ (pure 0%Z) >>= fun c1 =>
-     @call Shape Pos S _ (pure 1%Z) >>= fun c2 =>
-     @call Shape Pos S _ (Choice Shape Pos c1 c2) >>= fun c3 =>
-     @call Shape Pos S _ (pure 2%Z) >>= fun c4 =>
-     @call Shape Pos S _ (pure 3%Z) >>= fun c5 =>
-     @call Shape Pos S _ (Choice Shape Pos c4 c5) >>= fun c6 =>
-     @call Shape Pos S _ (Nil Shape Pos) >>= fun c7 =>
-     @call Shape Pos S _ (Cons Shape Pos c6 c7) >>= fun c8 =>
+  := @share Shape Pos S _ _ (pure 0%Z) >>= fun c1 =>
+     @share Shape Pos S _ _ (pure 1%Z) >>= fun c2 =>
+     @share Shape Pos S _ _ (Choice Shape Pos c1 c2) >>= fun c3 =>
+     @share Shape Pos S _ _ (pure 2%Z) >>= fun c4 =>
+     @share Shape Pos S _ _ (pure 3%Z) >>= fun c5 =>
+     @share Shape Pos S _ _ (Choice Shape Pos c4 c5) >>= fun c6 =>
+     @share Shape Pos S _ _ (Nil Shape Pos) >>= fun c7 =>
+     @share Shape Pos S _ _ (Cons Shape Pos c6 c7) >>= fun c8 =>
      Cons Shape Pos c3 c8.
 
   (* Traced integer. *)
   Definition traceOne `{Trace}
-  := @call Shape Pos S _ (pure 1%Z) >>= fun c1 =>
+  := @share Shape Pos S _ _ (pure 1%Z) >>= fun c1 =>
      trace "One" c1.
 
   (* Traced boolean values. *)
   Definition traceTrue `{Trace}
-  := @call Shape Pos S _ (True_ Shape Pos) >>= fun c1 =>
+  := @share Shape Pos S _ _ (True_ Shape Pos) >>= fun c1 =>
      trace "True" c1.
 
   Definition traceFalse `{Trace}
-  := @call Shape Pos S _ (False_ Shape Pos) >>= fun c1 =>
+  := @share Shape Pos S _ _ (False_ Shape Pos) >>= fun c1 =>
      trace "False" c1.
 
   (* Traced Maybe values *)
   Definition traceNothing `{Trace} `{M : Maybe}
-  := @call Shape Pos S _ (@Nothing Shape Pos M (Integer Shape Pos)) >>= fun c1 =>
+  := @share Shape Pos S _ _ (@Nothing Shape Pos M (Integer Shape Pos)) >>= fun c1 =>
      trace "Nothing" c1.
 
   Definition traceJust `{Trace} `{M : Maybe}
-  := @call Shape Pos S _ (@Just Shape Pos M _ 1%Z) >>= fun c1 =>
+  := @share Shape Pos S _ _ (@Just Shape Pos M _ 1%Z) >>= fun c1 =>
      trace "Just 1" c1.
 
   (* (trace "0" 0, trace "1" 1) *)
   Definition tracePair `{Trace}
   : Free Shape Pos (Pair Shape Pos (Integer Shape Pos) (Integer Shape Pos))
-  := @call Shape Pos S _ (pure 0%Z) >>= fun c1 =>
-     @call Shape Pos S _ (pure 1%Z) >>= fun c2 =>
-     @call Shape Pos S _ (trace "0" c1) >>= fun c3 =>
-     @call Shape Pos S _ (trace "1" c2) >>= fun c4 =>
+  := @share Shape Pos S _ _ (pure 0%Z) >>= fun c1 =>
+     @share Shape Pos S _ _ (pure 1%Z) >>= fun c2 =>
+     @share Shape Pos S _ _ (trace "0" c1) >>= fun c3 =>
+     @share Shape Pos S _ _ (trace "1" c2) >>= fun c4 =>
      Pair_ Shape Pos c3 c4.
 
   (* [trace "0" 0, trace "1" 1] *)
   Definition traceList `{Trace}
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
-  := @call Shape Pos S _ (pure 0%Z) >>= fun c1 =>
-     @call Shape Pos S _ (trace "0" c1) >>= fun c2 =>
-     @call Shape Pos S _ (pure 1%Z) >>= fun c3 =>
-     @call Shape Pos S _ (trace "1" c3) >>= fun c4 =>
-     @call Shape Pos S _ (Nil Shape Pos) >>= fun c5 =>
-     @call Shape Pos S _ (Cons Shape Pos c4 c5) >>= fun c6 =>
+  := @share Shape Pos S _ _ (pure 0%Z) >>= fun c1 =>
+     @share Shape Pos S _ _ (trace "0" c1) >>= fun c2 =>
+     @share Shape Pos S _ _ (pure 1%Z) >>= fun c3 =>
+     @share Shape Pos S _ _ (trace "1" c3) >>= fun c4 =>
+     @share Shape Pos S _ _ (Nil Shape Pos) >>= fun c5 =>
+     @share Shape Pos S _ _ (Cons Shape Pos c4 c5) >>= fun c6 =>
      (Cons Shape Pos c2 c6).
 
   (* [trace "1" 1, trace "2" 2, trace "3" 3] *)
   Definition traceList3 `{Trace}
   : Free Shape Pos (List Shape Pos (Integer Shape Pos))
-  := @call Shape Pos S _ (pure 1%Z) >>= fun c1 =>
-     @call Shape Pos S _ (trace "1" c1) >>= fun c2 =>
-     @call Shape Pos S _ (pure 2%Z) >>= fun c3 =>
-     @call Shape Pos S _ (trace "2" c3) >>= fun c4 =>
-     @call Shape Pos S _ (pure 3%Z) >>= fun c5 =>
-     @call Shape Pos S _ (trace "3" c5) >>= fun c6 =>
-     @call Shape Pos S _ (Nil Shape Pos) >>= fun c7 =>
-     @call Shape Pos S _ (Cons Shape Pos c6 c7) >>= fun c8 =>
-     @call Shape Pos S _ (Cons Shape Pos c4 c8) >>= fun c9 =>
+  := @share Shape Pos S _ _ (pure 1%Z) >>= fun c1 =>
+     @share Shape Pos S _ _ (trace "1" c1) >>= fun c2 =>
+     @share Shape Pos S _ _ (pure 2%Z) >>= fun c3 =>
+     @share Shape Pos S _ _ (trace "2" c3) >>= fun c4 =>
+     @share Shape Pos S _ _ (pure 3%Z) >>= fun c5 =>
+     @share Shape Pos S _ _ (trace "3" c5) >>= fun c6 =>
+     @share Shape Pos S _ _ (Nil Shape Pos) >>= fun c7 =>
+     @share Shape Pos S _ _ (Cons Shape Pos c6 c7) >>= fun c8 =>
+     @share Shape Pos S _ _ (Cons Shape Pos c4 c8) >>= fun c9 =>
      (Cons Shape Pos c2 c9).
 
 
@@ -170,7 +170,7 @@ Section SecFunctions.
   Variable Pos : Shape -> Type.
   Variable S : Strategy Shape Pos.
   Variable A : Type.
-  Context `{SA : ShareableArgs Shape Pos A}.
+  Context `{ShareableArgs Shape Pos A}.
 
   Notation "'FreeA'" := (Free Shape Pos A).
   Notation "'Maybe'" := (Injectable Maybe.Shape Maybe.Pos Shape Pos).
@@ -179,7 +179,7 @@ Section SecFunctions.
      let sx = fx in f sx sx *)
   Definition doubleShared (f : FreeA -> FreeA -> FreeA) (fx : FreeA)
    : FreeA
-  := @share Shape Pos S A SA fx >>= fun sx => f sx sx.
+  := @share Shape Pos S A _ fx >>= fun sx => f sx sx.
 
   (* Nested sharing:
      let sx = fx
@@ -187,8 +187,8 @@ Section SecFunctions.
      in f sy sy *)
   Definition doubleSharedNested (f : FreeA -> FreeA -> FreeA) (fx : FreeA)
    : FreeA
-  := @share Shape Pos S A SA fx >>= fun sx =>
-     @share Shape Pos S A SA (f sx sx) >>= fun sy =>
+  := @share Shape Pos S A _ fx >>= fun sx =>
+     @share Shape Pos S A _ (f sx sx) >>= fun sy =>
     f sy sy.
 
   (* let sx = fx
@@ -197,9 +197,9 @@ Section SecFunctions.
     in f sy sz *)
   Definition doubleSharedClash (f : FreeA -> FreeA -> FreeA) (fx : FreeA) (fy : FreeA)
   : FreeA
-  := @share Shape Pos S A SA fx >>= fun sx =>
-     @call Shape Pos S A (f sx sx) >>= fun sy =>
-     @call Shape Pos S A fy >>= fun sz =>
+  := @share Shape Pos S A _ fx >>= fun sx =>
+     @share Shape Pos S A _ (f sx sx) >>= fun sy =>
+     @share Shape Pos S A _ fy >>= fun sz =>
      f sy sz.
 
   (*
@@ -214,11 +214,11 @@ Section SecFunctions.
                              (fx : FreeA) (fy : FreeA)
                              (val : A)
    : FreeA
-  := @call Shape Pos S A (pure val) >>= fun sx =>
-     @share Shape Pos S A SA (f sx fx) >>= fun sy =>
-     @share Shape Pos S A SA (f sy fy) >>= fun sz =>
-     @call Shape Pos S A (f sz sx) >>= fun c1 =>
-     @call Shape Pos S A (f sy c1) >>= fun c2 =>
+  := @share Shape Pos S A _ (pure val) >>= fun sx =>
+     @share Shape Pos S A _ (f sx fx) >>= fun sy =>
+     @share Shape Pos S A _ (f sy fy) >>= fun sz =>
+     @share Shape Pos S A _ (f sz sx) >>= fun c1 =>
+     @share Shape Pos S A _ (f sy c1) >>= fun c2 =>
      f sx c2.
 
   (* Deep sharing. *)
@@ -233,8 +233,8 @@ Section SecFunctions.
                                   (fx : Free Shape Pos (Pair Shape Pos A A))
    : FreeA
   := @share Shape Pos S (Pair Shape Pos A A) _ fx >>= fun sx =>
-     @call Shape Pos S A (Tuple.fst Shape Pos sx) >>= fun c1 =>
-     @call Shape Pos S A (Tuple.fst Shape Pos sx) >>= fun c2 =>
+     @share Shape Pos S A _ (Tuple.fst Shape Pos sx) >>= fun c1 =>
+     @share Shape Pos S A _ (Tuple.fst Shape Pos sx) >>= fun c2 =>
       f c1 c2.
 
   (*
@@ -250,8 +250,8 @@ Section SecFunctions.
                                   (fl : Free Shape Pos (List Shape Pos A))
    : FreeA
   := @share Shape Pos S (List Shape Pos A) _ fl >>= fun sx =>
-     @call Shape Pos S A (List.head Shape Pos P sx) >>= fun c1 =>
-     @call Shape Pos S A (List.head Shape Pos P sx) >>= fun c2 =>
+     @share Shape Pos S A _ (List.head Shape Pos P sx) >>= fun c1 =>
+     @share Shape Pos S A _ (List.head Shape Pos P sx) >>= fun c2 =>
               f c1 c2.
 
 (* Recursive functions *)
@@ -269,14 +269,14 @@ Section SecFunctions.
    : Free Shape Pos (List Shape Pos (List Shape Pos A))
     := match xs0 with
        | List.nil          =>  Nil Shape Pos
-       | List.cons _ fxs' =>  @call Shape Pos S _ (fxs' >>= fun xs'0 => tails_0 xs'0) >>= fun c1 =>
+       | List.cons _ fxs' =>  @share Shape Pos S _ _ (fxs' >>= fun xs'0 => tails_0 xs'0) >>= fun c1 =>
                               Cons Shape Pos fxs' c1
        end.
 
   Definition tails (fxs : Free Shape Pos (List Shape Pos A))
     : Free Shape Pos (List Shape Pos (List Shape Pos A))
    := @share Shape Pos S _ _ fxs >>= fun fxs0 =>
-      @call Shape Pos S _ (fxs0 >>= fun xs0 => tails_0 xs0) >>= fun c1 =>
+      @share Shape Pos S _ _ (fxs0 >>= fun xs0 => tails_0 xs0) >>= fun c1 =>
         Cons Shape Pos fxs0 c1.
 
 End SecFunctions.

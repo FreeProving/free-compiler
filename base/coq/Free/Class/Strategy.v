@@ -5,9 +5,7 @@ Class Strategy (Shape : Type) (Pos : Shape -> Type) :=
     shareWith' : forall {A : Type},
       Free Shape Pos A      (* The computation to share. *)
         -> Free Shape Pos A (* The computation to share with deep sharing. *)
-        -> Free Shape Pos (Free Shape Pos A);
-    call : forall {A : Type},
-      Free Shape Pos A -> Free Shape Pos (Free Shape Pos A);
+        -> Free Shape Pos (Free Shape Pos A)
   }.
 
 (* Functions from [Strategy] lifted to [EvaluationStrategy]. *)

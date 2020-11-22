@@ -223,8 +223,8 @@ transformRecFuncDecl
 --   is removed.
 --
 --   The purpose of this transformation is to prevent applications of @share@
---   and @call@ to be generated within helper functions for subterms of the
---   decreasing since they interfere with Coq's termination checker.
+--   to be generated within helper functions for subterms of the decreasing
+--   since they interfere with Coq's termination checker.
 eliminateAliases :: IR.FuncDecl -> DecArgIndex -> IR.FuncDecl
 eliminateAliases helperDecl decArgIndex
   = let decArg = IR.varPatQName (IR.funcDeclArgs helperDecl !! decArgIndex)

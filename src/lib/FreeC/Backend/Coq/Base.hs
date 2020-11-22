@@ -44,7 +44,6 @@ module FreeC.Backend.Coq.Base
   , implicitArg
   , share
   , shareWith
-  , call
     -- * Effect Selection
   , selectExplicitArgs
   , selectImplicitArgs
@@ -227,10 +226,6 @@ share = Coq.bare "share"
 shareWith :: Coq.Qualid
 shareWith = Coq.bare "shareWith"
 
--- | The Coq identifier for the @call@ operator.
-call :: Coq.Qualid
-call = Coq.bare "call"
-
 -------------------------------------------------------------------------------
 -- Handling                                                                  --
 -------------------------------------------------------------------------------
@@ -350,6 +345,5 @@ reservedIdents
     , nType
     , share
     , shareWith
-    , call
     ]
   ++ map fst freeArgs

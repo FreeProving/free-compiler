@@ -48,21 +48,15 @@ End SecCbneed.
 (* Strategy instance for call-by-need evaluation. *)
 Instance Cbneed {Shape : Type} {Pos : Shape -> Type}
                 `{I : Injectable Share.Shape Share.Pos Shape Pos}
- : Strategy Shape Pos | 1 := {
-    shareWith' A _ := @cbneed Shape Pos I A;
-    call       A   := @pure Shape Pos (Free Shape Pos A)
-}.
+  : Strategy Shape Pos | 1
+ := { shareWith' A _ := @cbneed Shape Pos I A }.
 
 (* Strategy instance for call-by-name evaluation. *)
 Instance Cbn {Shape : Type} {Pos : Shape -> Type}
- : Strategy Shape Pos | 2 := {
-    shareWith' A fx _ := @cbn A Shape Pos fx; (* share = pure *)
-    call          A   := @cbn A Shape Pos        (* call  = pure *)
-}.
+  : Strategy Shape Pos | 2
+ := { shareWith' A fx _ := @cbn A Shape Pos fx }.
 
 (* Strategy instance for call-by-value evaluation. *)
 Instance Cbv {Shape : Type} {Pos : Shape -> Type}
- : Strategy Shape Pos | 2 := {
-    shareWith' A fx _ := @cbv A Shape Pos fx; (* share = bind *)
-    call          A   := @cbv A Shape Pos     (* call  = bind *)
-}.
+  : Strategy Shape Pos | 2
+ := { shareWith' A fx _ := @cbv A Shape Pos fx }.
