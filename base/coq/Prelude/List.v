@@ -1,6 +1,5 @@
 From Base Require Import Free.
 From Base Require Import Free.Instance.Identity.
-From Base Require Import Free.Malias.
 
 Require Import Coq.Program.Equality.
 

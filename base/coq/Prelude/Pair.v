@@ -1,6 +1,5 @@
 From Base Require Import Free.
 From Base Require Import Free.Instance.Identity.
-From Base Require Import Free.Malias.
 
 From Base Require Import Prelude.Bool.
 
@@ -54,7 +53,7 @@ End SecNFPair.
 
 (* ShareableArgs instance for Pair *)
 Instance ShareableArgsPair (Shape : Type) (Pos : Shape -> Type)
-                           
+
                            (A B : Type)
                            `{ShareableArgs Shape Pos A}
                            `{ShareableArgs Shape Pos B}
