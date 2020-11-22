@@ -203,7 +203,6 @@ library freec-internal
                       , FreeC.Pass.PragmaPass
                       , FreeC.Pass.QualifierPass
                       , FreeC.Pass.ResolverPass
-                      , FreeC.Pass.SharingAnalysisPass
                       , FreeC.Pass.TypeInferencePass
                       , FreeC.Pass.TypeSignaturePass
                       , FreeC.Pipeline
@@ -286,7 +285,6 @@ test-suite freec-unit-tests
                     , FreeC.Pass.KindCheckPassTests
                     , FreeC.Pass.LetSortPassTests
                     , FreeC.Pass.ResolverPassTests
-                    , FreeC.Pass.SharingAnalysisPassTests
                     , FreeC.Pass.TypeInferencePassTests
                     , FreeC.PipelineTests
                     , FreeC.Test.Arbitrary
