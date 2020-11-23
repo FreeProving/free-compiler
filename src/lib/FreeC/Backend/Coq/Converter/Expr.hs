@@ -2,7 +2,7 @@
 module FreeC.Backend.Coq.Converter.Expr where
 
 import           Control.Monad                    ( (>=>) )
-import           Data.Maybe                       ( maybeToList )
+import           Data.Maybe                       ( fromMaybe )
 
 import qualified FreeC.Backend.Coq.Base           as Coq.Base
 import           FreeC.Backend.Coq.Converter.Free
@@ -76,8 +76,8 @@ convertLiftedExpr (LIR.Share _ arg argType) = do
   argType' <- mapM convertLiftedType argType
   return
     $ genericApply' (Coq.Qualid Coq.Base.share)
-    [Coq.Qualid Coq.Base.strategyArg] [] (maybeToList argType')
-    [Coq.Base.implicitArg] [arg']
+    [Coq.Qualid Coq.Base.strategyArg] []
+    [fromMaybe Coq.Base.implicitArg argType'] [Coq.Base.implicitArg] [arg']
 
 -- | Converts a Haskell expression to Coq.
 convertExpr :: IR.Expr -> Converter Coq.Term
