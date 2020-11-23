@@ -27,6 +27,9 @@ module FreeC.Backend.Coq.Base
   , traceable
   , traceableArg
   , trace
+    -- * Non-Determinism
+  , nonDet
+  , nonDetArg
     -- * Modules
   , qualifiedSmartConstructorModule
     -- * Sharing
@@ -177,6 +180,22 @@ trace :: Coq.Qualid
 trace = Coq.bare "trace"
 
 -------------------------------------------------------------------------------
+-- Non-Determinism                                                           --
+-------------------------------------------------------------------------------
+-- | The Coq identifier for the @NonDet@ type class.
+nonDet :: Coq.Qualid
+nonDet = Coq.bare "NonDet"
+
+-- | The Coq identifier for the argument of the @NonDet@ type class.
+nonDetArg :: Coq.Qualid
+nonDetArg = Coq.bare "ND"
+
+-- | The Coq binder for the @NonDet@ type class.
+nonDetBinder :: Coq.Binder
+nonDetBinder = Coq.typedBinder' Coq.Ungeneralizable Coq.Explicit nonDetArg
+  $ Coq.app (Coq.Qualid nonDet) [Coq.Qualid shape, Coq.Qualid pos]
+
+-------------------------------------------------------------------------------
 -- Modules                                                                   --
 -------------------------------------------------------------------------------
 -- | The name of the local module, where qualified smart constructor notations
@@ -260,6 +279,7 @@ selectExplicitArgs :: Effect -> [Coq.Term]
 selectExplicitArgs Partiality = [Coq.Qualid partialArg]
 selectExplicitArgs Sharing    = [Coq.Qualid strategyArg]
 selectExplicitArgs Tracing    = [Coq.Qualid traceableArg]
+selectExplicitArgs NonDet     = [Coq.Qualid nonDetArg]
 selectExplicitArgs Normalform = []
 
 -- | Selects the correct implicit function arguments for the given effect.
@@ -267,6 +287,7 @@ selectImplicitArgs :: Effect -> [Coq.Term]
 selectImplicitArgs Partiality = []
 selectImplicitArgs Sharing    = []
 selectImplicitArgs Tracing    = []
+selectImplicitArgs NonDet     = []
 selectImplicitArgs Normalform = []
 
 -- | Like 'selectImplicitArgs' but the arguments have to be inserted after
@@ -275,6 +296,7 @@ selectTypedImplicitArgs :: Effect -> Int -> [Coq.Term]
 selectTypedImplicitArgs Partiality = const []
 selectTypedImplicitArgs Sharing    = flip replicate implicitArg
 selectTypedImplicitArgs Tracing    = const []
+selectTypedImplicitArgs NonDet     = const []
 selectTypedImplicitArgs Normalform = flip replicate implicitArg
 
 -- | Selects the correct binder for the given effect.
@@ -282,6 +304,7 @@ selectBinders :: Effect -> [Coq.Binder]
 selectBinders Partiality = [partialBinder]
 selectBinders Sharing    = [strategyBinder]
 selectBinders Tracing    = [tracableBinder]
+selectBinders NonDet     = [nonDetBinder]
 selectBinders Normalform = []
 
 -- | Like 'selectBinders' but the binders are dependent on the type variables
@@ -290,6 +313,7 @@ selectTypedBinders :: Effect -> [Coq.Qualid] -> [Coq.Binder]
 selectTypedBinders Partiality = const []
 selectTypedBinders Sharing    = map shareableArgsBinder
 selectTypedBinders Tracing    = const []
+selectTypedBinders NonDet     = const []
 selectTypedBinders Normalform = map normalformBinder
 
 -------------------------------------------------------------------------------
@@ -332,6 +356,9 @@ reservedIdents
     , traceable
     , traceableArg
     , trace
+      -- * Non-Determinism
+    , nonDet
+    , nonDetArg
       -- Notations
     , Coq.Bare qualifiedSmartConstructorModule
       -- Sharing

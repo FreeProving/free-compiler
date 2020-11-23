@@ -1,0 +1,40 @@
+# This configuration file contains the `(?)` and `fail` operations for
+# non-determinism.
+
+##############################################################################
+# Metadata                                                                   #
+##############################################################################
+
+version = 6
+module-name = 'FreeC.NonDet'
+library-name = 'Base'
+exported-types = [
+  ]
+exported-values = [
+    'FreeC.NonDet.(?)',
+    'FreeC.NonDet.fail',
+  ]
+
+##############################################################################
+# Effects                                                                    #
+##############################################################################
+
+[[functions]]
+  haskell-type    = 'a -> a -> a'
+  haskell-name    = 'FreeC.NonDet.(?)'
+  coq-name        = 'choice'
+  agda-name       = 'choice'
+  arity           = 2
+  effects         = ['NonDet']
+  strict-args     = [false, false]
+  needs-free-args = true
+
+[[functions]]
+  haskell-type    = 'a'
+  haskell-name    = 'FreeC.NonDet.fail'
+  coq-name        = 'fail'
+  agda-name       = 'fail'
+  arity           = 2
+  effects         = ['NonDet']
+  strict-args     = []
+  needs-free-args = true

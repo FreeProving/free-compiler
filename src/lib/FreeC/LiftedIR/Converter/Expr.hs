@@ -353,5 +353,5 @@ liftBinds ((IR.Bind srcSpan varPat bindExpr) : bs) expr = localEnv $ do
   varPat' <- makeVarPat patSrcSpan (IR.varPatQName varPat) patType'
   shareType' <- mapM LIR.liftType' varPatType
   bindExpr' <- liftExpr bindExpr
-  let shareExpr  = LIR.Share srcSpan bindExpr' shareType'
+  let shareExpr = LIR.Share srcSpan bindExpr' shareType'
   return $ LIR.Bind srcSpan shareExpr (LIR.Lambda srcSpan [varPat'] expr')
