@@ -14,13 +14,12 @@ import           FreeC.Monad.Reporter
 
 -- | Converts a Parsec 'Parsec.SourcePos' to a 'SrcSpan'.
 instance ConvertibleSrcSpan Parsec.SourcePos where
-  convertSrcSpan srcPos = SrcSpan
-    { srcSpanFilename    = Parsec.sourceName srcPos
+  convertSrcSpan srcFileMap srcPos = SrcSpan
+    { srcSpanFile        = lookupSrcFile (Parsec.sourceName srcPos) srcFileMap
     , srcSpanStartLine   = Parsec.sourceLine srcPos
     , srcSpanStartColumn = Parsec.sourceColumn srcPos
     , srcSpanEndLine     = Parsec.sourceLine srcPos
     , srcSpanEndColumn   = Parsec.sourceColumn srcPos
-    , srcSpanCodeLines   = []
     }
 
 -- | Converts a 'Parsec.ParseError' to an error 'Message'.
@@ -28,7 +27,7 @@ instance ConvertibleSrcSpan Parsec.SourcePos where
 --   The error message can quote source code from the given source files.
 parsecErrorToMessage :: SrcFileMap -> Parsec.ParseError -> Message
 parsecErrorToMessage srcFiles parseError = Message
-  (addSourceCode srcFiles (convertSrcSpan (Parsec.errorPos parseError))) Error
+  (convertSrcSpan srcFiles (Parsec.errorPos parseError)) Error
   (Parsec.showErrorMessages msgOr msgUnknown msgExpecting msgUnExpected
    msgEndOfInput (Parsec.errorMessages parseError))
  where

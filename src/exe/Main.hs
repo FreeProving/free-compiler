@@ -152,12 +152,12 @@ convertInputModuleWith :: FrontendSimplifier decls
 convertInputModuleWith simplifier converter inputModule = do
   let modName = IR.modName inputModule
       srcSpan = IR.modSrcSpan inputModule
-  if hasSrcSpanFilename srcSpan
+  if hasSrcSpanFile srcSpan
     then putDebug
       $ "Compiling "
       ++ showPretty modName
       ++ " ("
-      ++ srcSpanFilename srcSpan
+      ++ srcFileName (srcSpanFile srcSpan)
       ++ ")"
     else putDebug $ "Compiling " ++ showPretty modName
   reportApp $ do
