@@ -1,7 +1,7 @@
 module Base.Strategy where
 
-import           Data.List       ( head, tails )
-import           Data.Tuple      ( fst, snd )
+import           Data.List       ( append, sum )
+import           Data.Maybe
 import           Test.QuickCheck
 
 import           FreeC.NonDet
@@ -143,3 +143,40 @@ prop_partial_non_det_cbn = partial_non_det === undefined
 
 prop_partial_non_det_cbneed :: Property
 prop_partial_non_det_cbneed = partial_non_det === undefined
+
+-------------------------------------------------------------------------------
+-- Deep Sharing Test Functions                                               --
+-------------------------------------------------------------------------------
+-- In the 'add_tracing' and 'add_non_det' examples, sharing is introduced
+-- explicitly using a @let@-binding. This example demonstrates, that the
+-- arguments of functions are shared automatically.
+double :: Integer -> Integer
+double x = x + x
+
+prop_double_cbv :: Property
+prop_double_cbv = double (trace "x" 1) === trace "x" 2
+
+prop_double_cbn :: Property
+prop_double_cbn = double (trace "x" 1) === trace "x" (trace "x" 2)
+
+prop_double_cbneed :: Property
+prop_double_cbneed = double (trace "x" 1) === trace "x" 2
+
+-- Since the compiler transforms every application (including constructor
+-- applications) into a flat form where all arguments are only variables,
+-- sharing is also applied deeply within data structures.
+double_maybe :: Maybe Integer -> Maybe Integer
+double_maybe Nothing  = Nothing
+double_maybe (Just x) = Just (x + x)
+
+prop_double_maybe_cbv :: Property
+prop_double_maybe_cbv = double_maybe (trace "mx" (Just (trace "x" 1)))
+  === trace "mx" (trace "x" (Just 2))
+
+prop_double_maybe_cbn :: Property
+prop_double_maybe_cbn = double_maybe (trace "mx" (Just (trace "x" 1)))
+  === trace "mx" (trace "x" (trace "x" (Just 2)))
+
+prop_double_maybe_cbneed :: Property
+prop_double_maybe_cbneed = double_maybe (trace "mx" (Just (trace "x" 1)))
+  === trace "mx" (trace "x" (Just 2))

@@ -93,3 +93,24 @@ Proof. constructor. Qed.
 
 Example partial_non_det_cbneed : quickCheckHandle (@prop_partial_non_det_cbneed _ _ Cbneed (Maybe.Partial _ _) _) HandlerShareNDMaybe.
 Proof. constructor. Qed.
+
+(* Proofs for Deep Sharing Test Functions *)
+
+Example double_cbv : quickCheckHandle (@prop_double_cbv _ _ Cbv _) HandlerTrace.
+Proof. constructor. Qed.
+
+Example double_cbn : quickCheckHandle (@prop_double_cbn _ _ Cbn _) HandlerTrace.
+Proof. constructor. Qed.
+
+Example double_cbneed : quickCheckHandle (@prop_double_cbneed _ _ Cbneed _) HandlerShareTrace.
+Proof. constructor. Qed.
+
+
+Example double_maybe_cbv : quickCheckHandle (@prop_double_maybe_cbv _ _ Cbv _) HandlerTrace.
+Proof. constructor. Qed.
+
+Example double_maybe_cbn : quickCheckHandle (@prop_double_maybe_cbn _ _ Cbn _) HandlerTrace.
+Proof. constructor. Qed.
+
+Example double_maybe_cbneed : quickCheckHandle (@prop_double_maybe_cbneed _ _ Cbneed _) HandlerShareTrace.
+Proof. constructor. Qed.
