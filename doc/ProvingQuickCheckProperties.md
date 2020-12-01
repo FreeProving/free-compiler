@@ -149,12 +149,13 @@ ghci ./example/Proofs/ReverseInvolutive.hs
 This happens since the `Arbitrary` instance for lists considers total values only and never yields lists of the form
 `x : ⊥`.
 We can prove that `reverse` is not involutive in a partial setting by instantiating `prop_reverse_involutive` with the `Maybe` monad and negating the property returned by `quickCheck`.
+Furthermore, we have to use `quickCheck'` instead of `quickCheck` because we don't want the `Shape` and `Position` to be universally quantified.
 
 ```coq
 From Base Require Import Free.Instance.Maybe.
 
 Example partial_reverse_non_involutive:
-  ~quickCheck (@prop_reverse_involutive Maybe.Shape Maybe.Pos).
+  ~quickCheck' (@prop_reverse_involutive Maybe.Shape Maybe.Pos).
 Proof.
   (* FILL IN HERE *)
 Qed.
@@ -166,7 +167,7 @@ Similarly, we can prove that `reverse` is its own inverse in a total setting by 
 From Base Require Import Free.Instance.Identity.
 
 Theorem total_reverse_involutive:
-  quickCheck (@prop_reverse_involutive Identity.Shape Identity.Pos).
+  quickCheck' (@prop_reverse_involutive Identity.Shape Identity.Pos).
 Proof.
   (* FILL IN HERE *)
 Qed.

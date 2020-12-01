@@ -70,7 +70,7 @@ Proof.
   - (* fb1 = impure _ _, fb2 = impure _ _ *) contradiction Hpure.
 Qed.
 
-Lemma null_rev : quickCheck (fun Shape Pos => @prop_null_rev Shape Pos Cbn).
+Lemma null_rev : quickCheck (withStrategy Cbn prop_null_rev).
 Proof.
   intros Shape Pos a SA fxs Hnull.
   destruct fxs as [ xs |  ].
@@ -82,10 +82,10 @@ Proof.
     contradiction Hnull.
 Qed.
 
-Lemma append_nil : quickCheck (fun Shape Pos => @prop_append_nil Shape Pos Cbn).
+Lemma append_nil : quickCheck (withStrategy Cbn prop_append_nil).
 Proof.
   intros Shape Pos a SA NF fxs.
-  induction fxs using FreeList_ind with (P := fun xs => append1 Shape Pos a (pure nil) Cbn xs = pure xs); simpl.
+  induction fxs using FreeList_ind with (P := fun xs => append1 Shape Pos a (pure nil) cbn xs = pure xs); simpl.
   - reflexivity.
   - simpl; repeat apply f_equal. apply IHfxs1.
   - apply IHfxs.
@@ -99,8 +99,8 @@ Lemma append1_assoc :
          `{ShareableArgs Shape Pos a}
          (xs : List Shape Pos a)
          (fys fzs : Free Shape Pos (List Shape Pos a)),
-      append1 Shape Pos a (append Shape Pos Cbn fys fzs) Cbn xs
-      = append Shape Pos Cbn (append1 Shape Pos a fys Cbn xs) fzs.
+      append1 Shape Pos a (append Shape Pos cbn fys fzs) cbn xs
+      = append Shape Pos cbn (append1 Shape Pos a fys cbn xs) fzs.
 Proof.
   intros Shape Pos a SA xs fys fzs.
   induction xs.
@@ -112,7 +112,7 @@ Proof.
       simplify H as IH. apply IH.
 Qed.
 
-Lemma append_assoc : quickCheck (fun Shape Pos => @prop_append_assoc Shape Pos Cbn).
+Lemma append_assoc : quickCheck (withStrategy Cbn prop_append_assoc).
 Proof.
   intros Shape Pos a SA NF fxs fys fzs.
   induction fxs as [ | s pf IH ].
@@ -135,7 +135,7 @@ Theorem prop_isEmpty_theorem : forall (Shape : Type)
   {a : Type} `{SA : ShareableArgs Shape Pos a} `{NF : Normalform Shape Pos a}
   (total_a : Free Shape Pos a -> Prop)
   (qi : Free Shape Pos (QueueI Shape Pos a)),
-  total_queue Shape Pos total_a qi -> quickCheck (@prop_isEmpty Shape Pos Cbn a SA NF qi).
+  total_queue Shape Pos total_a qi -> quickCheck' (@prop_isEmpty Shape Pos cbn a SA NF qi).
 Proof.
   intros Shape Pos a SA NF total_a fqi Htotal Hinv.
   destruct fqi as [qi | ].
@@ -149,7 +149,7 @@ Proof.
         destruct Hinv as [Hnull | Hcontra].
         -- (* null Shape Pos fys *)
            apply (null_rev Shape Pos a SA) in Hnull.
-           symmetry. unfold isEmpty. apply pure_bool_toProperty in Hnull. apply Hnull.
+           symmetry. unfold isEmpty. apply pure_bool_property in Hnull. apply Hnull.
         -- (* False_ Shape Pos *)
            discriminate Hcontra.
       * (* xs = Cons fx fxs' *)
@@ -161,7 +161,7 @@ Proof.
 Qed.
 
 (* In fact we do not need the totality constraint in this case. *)
-Theorem prop_isEmpty_theorem' : quickCheck (fun Shape Pos => @prop_isEmpty Shape Pos Cbn).
+Theorem prop_isEmpty_theorem' : quickCheck (withStrategy Cbn prop_isEmpty).
 Proof.
   intros Shape Pos a SA NF fqi Hinv.
   destruct fqi as [qi | ].
@@ -175,7 +175,7 @@ Proof.
         destruct Hinv as [Hnull | Hcontra].
         -- (* null Shape Pos fys *)
            apply (null_rev Shape Pos a SA) in Hnull.
-           symmetry. unfold isEmpty. apply pure_bool_toProperty in Hnull. apply Hnull.
+           symmetry. unfold isEmpty. apply pure_bool_property in Hnull. apply Hnull.
         -- (* False_ Shape Pos *)
            discriminate Hcontra.
       * (* xs = Cons fx fxs' *)
@@ -186,14 +186,14 @@ Proof.
       -- (* null Shape Pos fys *)
          apply f_equal, functional_extensionality. intros x.
          apply (null_rev Shape Pos a SA) in Hnull.
-         destruct (reverse Shape Pos Cbn fys) as [[| y ys'] |].
+         simpl in Hnull. destruct (reverse Shape Pos cbn fys) as [[| y ys'] |].
          ++ (* reverse Shape Pos fys = Nil Shape Pos *)
             specialize (append_nil Shape Pos a SA NF) as appNil.
             simpl in appNil. unfold isEmpty. rewrite appNil. reflexivity.
          ++ (* reverse Shape Pos fys = Cons Shape Pos y ys' *)
-            simpl in Hnull. discriminate Hnull.
+            discriminate Hnull.
          ++ (* reverse Shape Pos fys = impure _ _*)
-            simpl in Hnull. contradiction Hnull.
+            contradiction Hnull.
       -- (* impure _ _ = True_ Shape Pos *)
          contradiction Hcontra.
   - (* fqi = impure _ _ *)
@@ -201,7 +201,7 @@ Proof.
 Qed.
 
 (* In order to prove [prop_add] no totality constraint is necessary. *)
-Theorem prop_add_theorem : quickCheck (fun Shape Pos => @prop_add Shape Pos Cbn).
+Theorem prop_add_theorem : quickCheck (withStrategy Cbn prop_add).
 Proof.
   intros Shape Pos a SA NF fx fqi.
   induction fqi as [ [f1 f2] | eq ]; simpl.
@@ -210,13 +210,13 @@ Proof.
       * specialize (append_nil Shape Pos a SA NF) as appNil. simpl in appNil.
         rewrite appNil. reflexivity.
       * apply (append_assoc Shape Pos _ SA NF (pure (cons fy fys))
-          (reverse Shape Pos Cbn f2) (singleton Shape Pos fx)).
+          (reverse Shape Pos cbn f2) (singleton Shape Pos fx)).
     + unfold add. simpl. repeat apply f_equal. extensionality p.
       induction (pf p) as [fys |]; simpl.
       * destruct fys; simpl.
         -- specialize (append_nil Shape Pos a SA NF) as appNil. simpl in appNil. rewrite appNil.
            reflexivity.
-        -- do 2 apply f_equal. apply (append_assoc Shape Pos _ SA NF f0 (reverse Shape Pos Cbn f2) (singleton Shape Pos fx)).
+        -- do 2 apply f_equal. apply (append_assoc Shape Pos _ SA NF f0 (reverse Shape Pos cbn f2) (singleton Shape Pos fx)).
       * repeat apply f_equal.
         extensionality p1.
         apply H.
@@ -227,7 +227,7 @@ Qed.
 
 (* We have to add a totality constraint to [prop_front]. *)
 Theorem prop_front_theorem : forall Shape Pos P a NF SA total_a qi,
-  total_queue Shape Pos total_a qi -> quickCheck (@prop_front Shape Pos Cbn P a SA NF qi).
+  total_queue Shape Pos total_a qi -> quickCheck' (@prop_front Shape Pos cbn P a SA NF qi).
 Proof.
   intros Shape Pos P a total_a SA NF fqi Htotal HinvNempty.
   apply is_pure_true_and in HinvNempty.
@@ -243,14 +243,14 @@ Qed.
 
 (* Since the compiler is now adding vanishing type arguments automatically,
    the [prop_inv_empty] can be proven without a problem. *)
-Theorem prop_inv_empty_theorem : quickCheck (fun Shape Pos => @prop_inv_empty Shape Pos Cbn).
+   Theorem prop_inv_empty_theorem : quickCheck (withStrategy Cbn prop_inv_empty).
 Proof.
   intros Shape Pos I t0. simpl. reflexivity.
 Qed.
 
 (* Proving [prop_inv_add] requires a totality constraint.
    Otherwise we get stuck in the case admitted below. *)
-Theorem prop_inv_add_theorem : quickCheck (fun Shape Pos => @prop_inv_add Shape Pos Cbn).
+   Theorem prop_inv_add_theorem : quickCheck (withStrategy Cbn prop_inv_add).
 Proof.
   intros Shape Pos a SA fx fq H. destruct fq as [[ff fb] |].
   - (* fq = Pair_ Shape Pos ff fb *)
@@ -274,7 +274,7 @@ Abort.
 (* To add the totality constraint we have to introduce all arguments of [prop_inv_add]
    first. However, we do not have to repeat the type annotations here. *)
 Theorem prop_inv_add_theorem : forall Shape Pos a SA total_a x q,
-  total_queue Shape Pos total_a q -> quickCheck (@prop_inv_add Shape Pos Cbn a SA x q).
+  total_queue Shape Pos total_a q -> quickCheck' (@prop_inv_add Shape Pos cbn a SA x q).
 Proof.
   intros Shape Pos a SA total_a fx fq Htotal H.
   destruct Htotal as [ff fb HtotalF HtotalB]. (* fq = Pair_ ff fb *)

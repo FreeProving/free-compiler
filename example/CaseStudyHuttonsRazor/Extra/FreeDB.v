@@ -24,19 +24,19 @@ Notation "'Just_'" := (Just _ _)
   (at level 9).
 Notation "'Nothing_'" := (Nothing _ _)
   (at level 9).
-Notation "'append_'" := (append _ _ Cbn)
+Notation "'append_'" := (append _ _ cbn)
   (at level 9).
 Notation "'addInteger_'" := (addInteger _ _)
   (at level 9).
-Notation "'eval_'" := (eval _ _ Cbn)
+Notation "'eval_'" := (eval _ _ cbn)
   (at level 9).
-Notation "'exec_'" := (exec _ _ Cbn)
+Notation "'exec_'" := (exec _ _ cbn)
   (at level 9).
-Notation "'comp_'" := (comp _ _ Cbn)
+Notation "'comp_'" := (comp _ _ cbn)
   (at level 9).
-Notation "'compApp_'" := (compApp _ _ Cbn)
+Notation "'compApp_'" := (compApp _ _ cbn)
   (at level 9).
-Notation "'comp'_'" := (comp' _ _ Cbn)
+Notation "'comp'_'" := (comp' _ _ cbn)
   (at level 9).
 
 (* Database for general rewriting rules to make the goal look pretty. *)
@@ -291,7 +291,7 @@ Section Rewrite_Helper_Functions.
   Lemma def_append0 :
     forall (A : Type) `{ShareableArgs Shape Pos A}
            (fl1 fl2 : Free Shape Pos (List Shape Pos A)),
-        append0 Shape Pos A fl2 Cbn fl1
+        append0 Shape Pos A fl2 cbn fl1
         = append_ fl1 fl2.
   Proof. trivial. Qed.
 
@@ -299,33 +299,33 @@ Section Rewrite_Helper_Functions.
     forall (A : Type) `{ShareableArgs Shape Pos A}
            (l1 : List Shape Pos A)
            (fl2 : Free Shape Pos (List Shape Pos A)),
-        append1 Shape Pos A fl2 Cbn l1
+        append1 Shape Pos A fl2 cbn l1
         = append_ (pure l1) fl2.
   Proof. trivial. Qed.
 
   Lemma def_eval0 :
     forall (expr : Expr Shape Pos),
-        eval0 Shape Pos Cbn expr
+        eval0 Shape Pos cbn expr
         = eval_ (pure expr).
   Proof. trivial. Qed.
 
   Lemma def_exec0 :
     forall (code : Code Shape Pos)
            (fstack : Free Shape Pos (Stack Shape Pos)),
-        exec0 Shape Pos Cbn Part code fstack
+        exec0 Shape Pos cbn Part code fstack
         = exec_ Part (pure code) fstack.
   Proof. trivial. Qed.
 
   Lemma def_comp0 :
     forall (expr : Expr Shape Pos),
-        comp0 Shape Pos Cbn expr
+        comp0 Shape Pos cbn expr
         = comp_ (pure expr).
   Proof. trivial. Qed.
 
   Lemma def_compApp0 :
     forall (expr : Expr Shape Pos)
            (fcode : Free Shape Pos (Code Shape Pos)),
-        compApp0 Shape Pos Cbn expr fcode
+        compApp0 Shape Pos cbn expr fcode
         = compApp_ (pure expr) fcode.
   Proof. trivial. Qed.
 

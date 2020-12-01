@@ -138,7 +138,7 @@ Section Proofs.
   Lemma comp_correct :
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
-        quickCheck (prop_comp_correct Shape Pos Cbn Part fexpr).
+        quickCheck' (prop_comp_correct Shape Pos cbn Part fexpr).
   Proof.
     simpl; intros fexpr HPure.
     apply (comp_correct' fexpr HPure Nil_ recPureStack_nil).
@@ -198,7 +198,7 @@ Section Proofs.
  (* With the equivalence lemma above the proof of the main equivalence theorem is simple. *)
  Lemma comp_comp'_eq :
   forall `{Normalform Shape Pos (Op Shape Pos)},
-    quickCheck (prop_comp_comp'_eq Shape Pos Cbn).
+    quickCheck' (prop_comp_comp'_eq Shape Pos cbn).
   Proof with pretty.
     simpl; intros N fexpr.
     rewrite def_comp'.
@@ -214,7 +214,7 @@ Section Proofs.
     forall `{Normalform Shape Pos (Op Shape Pos)}
            (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
-        quickCheck (prop_comp'_correct Shape Pos Cbn Part fexpr).
+        quickCheck' (prop_comp'_correct Shape Pos cbn Part fexpr).
   Proof.
     simpl.
     intros N fexpr HPure.

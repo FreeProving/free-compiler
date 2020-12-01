@@ -6,14 +6,14 @@ Require Import Coq.Logic.FunctionalExtensionality.
 (* The first QuickCheck property holds for any [Partial] instance. Therefore
    its proof differs only in that way from proofs about functions that do not
    return an error, that an [Partial] instance for [Shape] and [Pos] is given. *)
-Lemma cons_unconsE : quickCheck (fun Shape Pos => @prop_cons_unconsE Shape Pos Cbn).
+Lemma cons_unconsE : quickCheck (withStrategy Cbn prop_cons_unconsE).
 Proof.
   intros Shape Pos Partial A SA NF fx fxs.
   reflexivity.
 Qed.
 
 (* The second QuickCheck property holds provably for the [Maybe] instance of [Partial]. *)
-Lemma unconsE_fst_Maybe : quickCheck (@prop_unconsE_fst Maybe.Shape Maybe.Pos Cbn (Maybe.Partial _ _)).
+Lemma unconsE_fst_Maybe : quickCheck' (@prop_unconsE_fst Maybe.Shape Maybe.Pos cbn (Maybe.Partial _ _)).
 Proof.
   intros A SA NF fxs.
   simpl.
@@ -28,7 +28,7 @@ Qed.
 (* But the second QuickCheck property doesn't hold for the [Error] instance of
    [Partial] as [unconsE] and [head] have different error messages on an empty
    list. *)
-Lemma unconsE_fst_Error : not (quickCheck (@prop_unconsE_fst (Error.Shape string) Error.Pos Cbn (Error.Partial _ _))).
+Lemma unconsE_fst_Error : not (quickCheck' (@prop_unconsE_fst (Error.Shape string) Error.Pos cbn (Error.Partial _ _))).
 Proof.
   intro H.
   specialize (H bool _ _ (Nil _ _)).

@@ -2,7 +2,7 @@
    [RazorProofs] under different preconditions. Notice that this proof contains
    complex impure cases that are not easy to solve with the default tactics and
    require to deal with lemmas on the [>>=] operator. *)
-   
+
 From Base Require Import Free Free.Instance.Maybe Free.Instance.Error Prelude Test.QuickCheck.
 From Razor.Extra Require Import Tactic Pureness.
 From Generated Require Import Razor.
@@ -56,8 +56,8 @@ Section Proofs_PureCodes.
   Lemma exec_strict_on_stack_arg_nil :
     forall (sStack  : Shape)
            (pfStack : Pos sStack -> Free Shape Pos (Stack Shape Pos)),
-        exec Shape Pos Cbn Partial (Nil Shape Pos) (impure sStack pfStack)
-        = impure sStack (fun p => exec Shape Pos Cbn Partial (Nil Shape Pos) (pfStack p)).
+        exec Shape Pos cbn Partial (Nil Shape Pos) (impure sStack pfStack)
+        = impure sStack (fun p => exec Shape Pos cbn Partial (Nil Shape Pos) (pfStack p)).
   Proof.
     intros sStack pfStack.
     reflexivity.
@@ -68,8 +68,8 @@ Section Proofs_PureCodes.
            (fcode : Free Shape Pos (Code Shape Pos))
            (sStack  : Shape)
            (pfStack : Pos sStack -> Free Shape Pos (Stack Shape Pos)),
-        exec Shape Pos Cbn Partial (Cons Shape Pos (pure op) fcode) (impure sStack pfStack)
-        = impure sStack (fun p => exec Shape Pos Cbn Partial (Cons Shape Pos (pure op) fcode) (pfStack p)).
+        exec Shape Pos cbn Partial (Cons Shape Pos (pure op) fcode) (impure sStack pfStack)
+        = impure sStack (fun p => exec Shape Pos cbn Partial (Cons Shape Pos (pure op) fcode) (pfStack p)).
   Proof.
     intros op fcode sStack pfStack.
     destruct op as [ fn | ].
@@ -87,7 +87,7 @@ Section Proofs_PureCodes.
 
   Lemma bind_assoc :
     forall (A B C : Type)
-           (fx : Free Shape Pos A) 
+           (fx : Free Shape Pos A)
            (f : A -> Free Shape Pos B)
            (g : B -> Free Shape Pos C),
         (fx >>= f) >>= g
@@ -126,8 +126,8 @@ Section Proofs_PureCodes.
     forall (fcode2 : Free Shape Pos (Code Shape Pos)),
     RecPureCode fcode2 ->
     forall (fstack        : Free Shape Pos (Stack Shape Pos)),
-        exec Shape Pos Cbn Partial (append Shape Pos Cbn fcode1 fcode2) fstack
-        = exec Shape Pos Cbn Partial fcode2 (exec Shape Pos Cbn Partial fcode1 fstack).
+        exec Shape Pos cbn Partial (append Shape Pos cbn fcode1 fcode2) fstack
+        = exec Shape Pos cbn Partial fcode2 (exec Shape Pos cbn Partial fcode1 fstack).
   Proof.
     intros HUndefined1 HUndefined2 fcode1 HPure1 fcode2 HPure2.
     (* As we now that both pieces of code are recursively pure we, we can
@@ -226,7 +226,7 @@ Section Proofs_PureCodes.
            we need to destruct the second piece of code. *)
         simpl. destruct code2 as [ | [ [ fn2 | ] | ] fcode2' ]. 4: dependent destruction HPure2.
         * (* code2 = [] *)
-          simpl. f_equal. extensionality p. 
+          simpl. f_equal. extensionality p.
           rewrite bind_assoc.
           f_equal. extensionality s.
           rewrite match_stack.
@@ -237,12 +237,12 @@ Section Proofs_PureCodes.
           rewrite bind_pure.
           reflexivity.
         * (* code2 = (PUSH fn2 : fcode2') *)
-          simpl. f_equal. extensionality p. 
+          simpl. f_equal. extensionality p.
           rewrite bind_assoc.
           f_equal. extensionality s.
           rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ _ c (Cons _ _ _ (pure s))).
           destruct s as [ | fv2 fstack2 ].
-          { rewrite HUndefined1. 
+          { rewrite HUndefined1.
             simpl. f_equal. extensionality p2.
             specialize (HUndefined2 p2).
             destruct HUndefined2. }
@@ -250,11 +250,11 @@ Section Proofs_PureCodes.
           rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ _ c (Cons _ _ _ (pure s))).
           reflexivity.
         * (* code2 = (ADD : fcode2')*)
-          simpl. f_equal. extensionality p. 
+          simpl. f_equal. extensionality p.
           rewrite bind_assoc.
           f_equal. extensionality s.
           destruct s as [ | fv2 fstack2 ].
-          { rewrite HUndefined1. 
+          { rewrite HUndefined1.
             simpl. f_equal. extensionality p2.
             specialize (HUndefined2 p2).
             destruct HUndefined2. }
@@ -265,7 +265,7 @@ Section Proofs_PureCodes.
            we need to destruct the second piece of code. *)
         simpl. destruct code2 as [ | [ [ fn2 | ] | ] fcode2' ]. 4: dependent destruction HPure2.
         * (* code2 = [] *)
-          simpl. f_equal. extensionality p. 
+          simpl. f_equal. extensionality p.
           rewrite match_stack.
           rewrite bind_pure.
           f_equal. extensionality s.
@@ -282,14 +282,14 @@ Section Proofs_PureCodes.
           rewrite bind_assoc.
           f_equal. extensionality s.
           destruct s as [ | fv1 fstack1 ].
-          { rewrite HUndefined1. 
+          { rewrite HUndefined1.
             simpl. f_equal. extensionality p2.
             specialize (HUndefined2 p2).
             destruct HUndefined2. }
           rewrite bind_assoc.
           f_equal. extensionality s1.
           destruct s1 as [  | fv2 fstack2 ].
-          { rewrite HUndefined1. 
+          { rewrite HUndefined1.
             simpl. f_equal. extensionality p2.
             specialize (HUndefined2 p2).
             destruct HUndefined2. }
@@ -297,18 +297,18 @@ Section Proofs_PureCodes.
           rewrite match_stack with (f := fun s => fcode2' >>= fun c => exec0 _ _ _ _ c (Cons _ _ _ (pure s))).
           reflexivity.
         * (* code2 = (ADD : fcode2') *)
-          simpl. f_equal. extensionality p. 
+          simpl. f_equal. extensionality p.
           rewrite bind_assoc.
           f_equal. extensionality s.
           destruct s as [ | fv1 fstack1 ].
-          { rewrite HUndefined1. 
+          { rewrite HUndefined1.
             simpl. f_equal. extensionality p2.
             specialize (HUndefined2 p2).
             destruct HUndefined2. }
           rewrite bind_assoc.
           f_equal. extensionality s1.
           destruct s1 as [ | fv2 fstack2 ].
-          { rewrite HUndefined1. 
+          { rewrite HUndefined1.
             simpl. f_equal. extensionality p2.
             specialize (HUndefined2 p2).
             destruct HUndefined2. }

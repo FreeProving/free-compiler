@@ -70,8 +70,8 @@ Section Proofs.
   Lemma exec_strict_on_stack_arg_nil :
     forall (sStack  : Shape)
            (pfStack : Pos sStack -> Free Shape Pos (Stack Shape Pos)),
-        exec Shape Pos Cbn Partial (Nil Shape Pos) (impure sStack pfStack)
-        = impure sStack (fun p => exec Shape Pos Cbn Partial (Nil Shape Pos) (pfStack p)).
+        exec Shape Pos cbn Partial (Nil Shape Pos) (impure sStack pfStack)
+        = impure sStack (fun p => exec Shape Pos cbn Partial (Nil Shape Pos) (pfStack p)).
   Proof.
     intros sStack pfStack.
     reflexivity.
@@ -82,8 +82,8 @@ Section Proofs.
            (fcode : Free Shape Pos (Code Shape Pos))
            (sStack  : Shape)
            (pfStack : Pos sStack -> Free Shape Pos (Stack Shape Pos)),
-        exec Shape Pos Cbn Partial (Cons Shape Pos (pure op) fcode) (impure sStack pfStack)
-        = impure sStack (fun p => exec Shape Pos Cbn Partial (Cons Shape Pos (pure op) fcode) (pfStack p)).
+        exec Shape Pos cbn Partial (Cons Shape Pos (pure op) fcode) (impure sStack pfStack)
+        = impure sStack (fun p => exec Shape Pos cbn Partial (Cons Shape Pos (pure op) fcode) (pfStack p)).
   Proof.
     intros op fcode sStack pfStack.
     destruct op as [ fn | ].
@@ -99,9 +99,9 @@ Section Proofs.
     UndefinedIsImpure Partial ->
     forall (fcode1 fcode2 : Free Shape Pos (Code Shape Pos))
            (fstack        : Free Shape Pos (Stack Shape Pos)),
-    (exists (stack' : Stack Shape Pos), exec Shape Pos Cbn Partial fcode1 fstack = pure stack') ->
-        exec Shape Pos Cbn Partial (append Shape Pos Cbn fcode1 fcode2) fstack
-        = exec Shape Pos Cbn Partial fcode2 (exec Shape Pos Cbn Partial fcode1 fstack).
+    (exists (stack' : Stack Shape Pos), exec Shape Pos cbn Partial fcode1 fstack = pure stack') ->
+        exec Shape Pos cbn Partial (append Shape Pos cbn fcode1 fcode2) fstack
+        = exec Shape Pos cbn Partial fcode2 (exec Shape Pos cbn Partial fcode1 fstack).
   Proof.
     intros HUndefined fcode1 fcode2.
     (* Destruct the monadic layer of the first piece of code. *)
@@ -165,8 +165,8 @@ Section Proofs.
     RecPureExpr fexpr ->
     forall (fstack : Free Shape Pos (Stack Shape Pos)),
     RecPureStack fstack ->
-        exec Shape Pos Cbn Partial (comp Shape Pos Cbn fexpr) fstack
-        = Cons Shape Pos (eval Shape Pos Cbn fexpr) fstack.
+        exec Shape Pos cbn Partial (comp Shape Pos cbn fexpr) fstack
+        = Cons Shape Pos (eval Shape Pos cbn fexpr) fstack.
   Proof.
     intros HUndefined fexpr HPureE.
     (* The given expression is pure. *)
@@ -198,14 +198,14 @@ Section Proofs.
         simpl exec at 2. rewrite (IHy HPureE2 _ (recPureStack_cons _ _ HPureS)).
         reflexivity.
       (* The three remaining subgoals can be proven each by using an induction hypothesis. *)
-      + exists (cons (eval Shape Pos Cbn (pure x)) fstack).
+      + exists (cons (eval Shape Pos cbn (pure x)) fstack).
         clear IHfy. autoIH. apply (IH HPureE1 _ HPureS).
-      + exists (cons (eval Shape Pos Cbn (pure y)) (exec Shape Pos Cbn Partial (comp Shape Pos Cbn (pure x)) fstack)).
+      + exists (cons (eval Shape Pos cbn (pure y)) (exec Shape Pos cbn Partial (comp Shape Pos cbn (pure x)) fstack)).
         autoIH. rename IH into IHy.
         autoIH. rename IH into IHx.
         simpl in IHx. rewrite (IHx HPureE1 _ HPureS).
         apply (IHy HPureE2 _ (recPureStack_cons _ _ HPureS)).
-      + exists (cons (eval Shape Pos Cbn (pure x)) fstack).
+      + exists (cons (eval Shape Pos cbn (pure x)) fstack).
         clear IHfy. autoIH. apply (IH HPureE1 _ HPureS).
   Qed.
 
@@ -216,7 +216,7 @@ Section Proofs.
     UndefinedIsImpure Partial ->
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
-        quickCheck (prop_comp_correct Shape Pos Cbn Partial fexpr).
+        quickCheck' (prop_comp_correct Shape Pos cbn Partial fexpr).
   Proof.
     simpl.
     intros HUndefined fexpr HPure.
@@ -229,8 +229,8 @@ Section Proofs.
     forall `{Normalform Shape Pos (Op Shape Pos)}
            (fexpr : Free Shape Pos (Expr Shape Pos))
            (fcode : Free Shape Pos (Code Shape Pos)),
-        compApp Shape Pos Cbn fexpr fcode
-        = append Shape Pos Cbn (comp Shape Pos Cbn fexpr) fcode.
+        compApp Shape Pos cbn fexpr fcode
+        = append Shape Pos cbn (comp Shape Pos cbn fexpr) fcode.
   Proof.
     intros N fexpr.
     (* We start with an induction over the monadic expression. *)
@@ -245,10 +245,10 @@ Section Proofs.
         do 2 (rewrite <- HAssoc).
         simpl append.
         (* We use [replace] here to make this main proof simple and produce additional simple subgoals. *)
-        replace (append Shape Pos Cbn _ (Cons Shape Pos (ADD Shape Pos) fcode))
-          with (compApp Shape Pos Cbn fy (Cons Shape Pos (ADD Shape Pos) fcode)).
-        replace (append Shape Pos Cbn _ (compApp Shape Pos Cbn fy (Cons Shape Pos (ADD Shape Pos) fcode)))
-          with (compApp Shape Pos Cbn fx (compApp Shape Pos Cbn fy (Cons Shape Pos (ADD Shape Pos) fcode))).
+        replace (append Shape Pos cbn _ (Cons Shape Pos (ADD Shape Pos) fcode))
+          with (compApp Shape Pos cbn fy (Cons Shape Pos (ADD Shape Pos) fcode)).
+        replace (append Shape Pos cbn _ (compApp Shape Pos cbn fy (Cons Shape Pos (ADD Shape Pos) fcode)))
+          with (compApp Shape Pos cbn fx (compApp Shape Pos cbn fy (Cons Shape Pos (ADD Shape Pos) fcode))).
         reflexivity.
         (* Prove subgoals that were introduced by the [replace] tactic by induction. *)
         * inductFree fx as [ x | s pf IHpf ].
@@ -264,7 +264,7 @@ Section Proofs.
   (* With the equivalence lemma above the proof of the main equivalence theorem is simple. *)
   Theorem comp_comp'_eq :
     forall `{Normalform Shape Pos (Op Shape Pos)},
-      quickCheck (prop_comp_comp'_eq Shape Pos Cbn).
+      quickCheck' (prop_comp_comp'_eq Shape Pos cbn).
   Proof.
     simpl.
     intros N fexpr.
@@ -281,7 +281,7 @@ Section Proofs.
     UndefinedIsImpure Partial ->
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
-        quickCheck (prop_comp'_correct Shape Pos Cbn Partial fexpr).
+        quickCheck' (prop_comp'_correct Shape Pos cbn Partial fexpr).
   Proof.
     simpl.
     intros N HUndefined fexpr HPure.

@@ -107,7 +107,7 @@ Section Lemmas.
     forall (fcode1 fcode2 : Free Shape Pos (Code Shape Pos)),
     RecPureCode fcode1 ->
     RecPureCode fcode2 ->
-        RecPureCode (append Shape Pos Cbn fcode1 fcode2).
+        RecPureCode (append Shape Pos cbn fcode1 fcode2).
   Proof.
     intros fcode1 fcode2 HPure1 HPure2.
     (* The first piece of code is pure. *)
@@ -127,7 +127,7 @@ Section Lemmas.
   Lemma comp_pure :
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
-        RecPureCode (comp Shape Pos Cbn fexpr).
+        RecPureCode (comp Shape Pos cbn fexpr).
   Proof.
     intros fexpr HPure.
     (* The given expression is pure. *)

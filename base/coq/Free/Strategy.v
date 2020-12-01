@@ -15,13 +15,29 @@ From Base Require Export Free.Strategy.CallByValue.
    opposed to type classes which are open.
    The closedness aids Coq's termination checker. *)
 Inductive Strategy (Shape : Type) (Pos : Shape -> Type) : Type
-  := Cbn : Strategy Shape Pos
-   | Cbneed `{Injectable Share.Shape Share.Pos Shape Pos} : Strategy Shape Pos
-   | Cbv : Strategy Shape Pos.
+  := cbn : Strategy Shape Pos
+   | cbneed `{Injectable Share.Shape Share.Pos Shape Pos} : Strategy Shape Pos
+   | cbv : Strategy Shape Pos.
 
-Arguments Cbn    {Shape} {Pos}.
-Arguments Cbneed {Shape} {Pos} {_}.
-Arguments Cbv    {Shape} {Pos}.
+Arguments cbn    {Shape} {Pos}.
+Arguments cbneed {Shape} {Pos} {_}.
+Arguments cbv    {Shape} {Pos}.
+
+(* Smart constructors with explicit arguments for [Shape] and [Pos].
+   These are intended to be used in conjunction with
+   [Test.QuickCheck.withStrategy] such that the implicit arguments don't
+   have to be made explicit with [@] (which would require extra parenteses). *)
+Definition Cbn    (Shape : Type) (Pos : Shape -> Type) : Strategy Shape Pos := cbn.
+Definition Cbneed (Shape : Type) (Pos : Shape -> Type)
+                  `{Injectable Share.Shape Share.Pos Shape Pos}
+                  : Strategy Shape Pos := cbneed.
+Definition Cbv    (Shape : Type) (Pos : Shape -> Type) : Strategy Shape Pos := cbv.
+
+(* Allow Coq to expand the definition of the smart constructor when simplifying
+   terms. *)
+Arguments Cbn    Shape Pos /.
+Arguments Cbneed Shape Pos {_} /.
+Arguments Cbv    Shape Pos /.
 
 Definition shareWith (Shape : Type) (Pos : Shape -> Type)
                      (S : Strategy Shape Pos)
@@ -30,7 +46,7 @@ Definition shareWith (Shape : Type) (Pos : Shape -> Type)
                      (fx : Free Shape Pos A)
  : Free Shape Pos (Free Shape Pos A)
   := match S with
-     | Cbn    => callByName Shape Pos fx
-     | Cbneed => callByNeed Shape Pos (shareArgs S) fx
-     | Cbv    => callByValue Shape Pos fx
+     | cbn    => callByName Shape Pos fx
+     | cbneed => callByNeed Shape Pos (shareArgs S) fx
+     | cbv    => callByValue Shape Pos fx
      end.

@@ -236,10 +236,10 @@ Fixpoint list_is_impure (Shape : Type) (Pos : Shape -> Type)
    Only the effect stack is changed, but since the result only contains pure
    values, the effect stack is irrelevant. *)
 Example rootEffectTracing : eqTracedList (evalTracing rootTracedList)
-                                         (@handle _ _ _ (HandlerTrace _) rootTracedList).
+                                         (@handle _ _ _ (HandlerTrace _) _ rootTracedList).
 Proof. repeat (split || reflexivity). Qed.
 
-Example rootEffectND : eqNDList (evalND rootNDList) (@handle _ _ _ (HandlerND _) rootNDList).
+Example rootEffectND : eqNDList (evalND rootNDList) (@handle _ _ _ (HandlerND _) _ rootNDList).
 Proof. repeat (split || reflexivity). Qed.
 
 (* Handling tracing in a list without normalization causes
@@ -260,29 +260,29 @@ Proof. easy. Qed.
 
 (* [true, trace "compoment effect" false]
    --> ([true,false],["component effect"]*)
-Example componentEffectTracing : @handle _ _ _ (HandlerTrace _) traceList =
+Example componentEffectTracing : @handle _ _ _ (HandlerTrace _) _ traceList =
   ((List.cons (True_ IdS IdP) (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP))),
    ["component effect"%string]).
 Proof. constructor. Qed.
 
 (* [true, coin] --> [[true,true], [true,false]] *)
-Example componentEffectND : @handle _ _ _ (HandlerND _) coinList
+Example componentEffectND : @handle _ _ _ (HandlerND _) _ coinList
  = [(List.cons (True_ IdS IdP) (Cons IdS IdP (True_ IdS IdP) (Nil IdS IdP)));
     (List.cons (True_ IdS IdP) (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)))].
 Proof. constructor. Qed.
 
 (* [true, undefined] --> undefined with the Maybe instance of Partial *)
-Example componentEffectPartial : @handle _ _ _ (HandlerMaybe _) (partialList Maybe.Partial)
+Example componentEffectPartial : @handle _ _ _ (HandlerMaybe _) _ (partialList Maybe.Partial)
  = None.
 Proof. constructor. Qed.
 
 (* [true, undefined] --> undefined with the Error instance of Partial *)
-Example componentEffectPartialError : @handle _ _ _ (HandlerError _) (partialList Error.Partial)
+Example componentEffectPartialError : @handle _ _ _ (HandlerError _) _ (partialList Error.Partial)
  = inr "undefined".
 Proof. constructor. Qed.
 
 (* [true, false ? undefined] --> undefined with the ND instance of Partial *)
-Example componentEffectPartialND : @handle _ _ _ (HandlerNDMaybe _) (partialCoinList Maybe.Partial)
+Example componentEffectPartialND : @handle _ _ _ (HandlerNDMaybe _) _ (partialCoinList Maybe.Partial)
  = None.
 Proof. constructor. Qed.
 
@@ -290,13 +290,13 @@ Proof. constructor. Qed.
 
 (* Non-strictness should be preserved, so no tracing should occur.
    head _ _ Maybe.Partial [true, trace "component effect" false] --> (true,[]) *)
-Example nonStrictnessNoTracing : @handle _ _ _ (HandlerMaybeTrace _) (List.head _ _ Maybe.Partial traceList)
+Example nonStrictnessNoTracing : @handle _ _ _ (HandlerMaybeTrace _) _ (List.head _ _ Maybe.Partial traceList)
  = (Some true, []).
 Proof. constructor. Qed.
 
 (* Non-strictness should be preserved, so no non-determinism should occur.
    head [true,coin] --> [true] *)
-Example nonStrictnessNoND : @handle _ _ _ (HandlerNDMaybe _) (List.head _ _ Maybe.Partial coinList)
+Example nonStrictnessNoND : @handle _ _ _ (HandlerNDMaybe _) _ (List.head _ _ Maybe.Partial coinList)
  = Some [true].
 Proof. constructor. Qed.
 
@@ -304,7 +304,7 @@ Proof. constructor. Qed.
    head [true,undefined] --> true *)
 (* Since Maybe is still handled, the actual result should be Some true. *)
 Example nonStrictnessPartiality : @handle _ _ _ (HandlerMaybe _)
-                                    (List.head _ _ Maybe.Partial
+                                    _ (List.head _ _ Maybe.Partial
                                       (partialList Maybe.Partial))
  = Some true.
 Proof. constructor. Qed.
@@ -312,7 +312,7 @@ Proof. constructor. Qed.
 (* head _ _ Maybe.Partial [true, false ? undefined] --> true *)
 (* Since non-determinism and Maybe are still handled, the actual
    result should be Some [true]. *)
-Example nonStrictnessNDPartiality : @handle _ _ _ (HandlerNDMaybe _)
+Example nonStrictnessNDPartiality : @handle _ _ _ (HandlerNDMaybe _) _
                                     (List.head _ _ Maybe.Partial
                                       (partialCoinList Maybe.Partial))
  = Some [true].
@@ -321,7 +321,7 @@ Proof. constructor. Qed.
 (* head _ _ Error.Partial [true, false ? undefined] --> true *)
 (* Since non-determinism and Error are still handled, the actual
    result should be inl [true]. *)
-Example nonStrictnessNDPartialityError : @handle _ _ _ (HandlerNDError _)
+Example nonStrictnessNDPartialityError : @handle _ _ _ (HandlerNDError _) _
                                     (List.head _ _ Error.Partial
                                       (partialCoinList Error.Partial))
  = inl [true].
@@ -331,14 +331,14 @@ Proof. constructor. Qed.
 
 (* trace "root effect" [true, trace "component effect" false]
    --> ([true,false], ["root effect", "component effect"])*)
-Example rootAndComponentEffectTracing : @handle _ _ _ (HandlerTrace _) tracedTraceList
+Example rootAndComponentEffectTracing : @handle _ _ _ (HandlerTrace _) _ tracedTraceList
  = (List.cons (True_ IdS IdP)
               (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)),
     ["root effect"%string; "component effect"%string]).
 Proof. constructor. Qed.
 
 (* [] ? [true, coin] --> [[], [true,true], [true,false]] *)
-Example rootAndComponentEffectND : @handle _ _ _ (HandlerND _) NDCoinList
+Example rootAndComponentEffectND : @handle _ _ _ (HandlerND _) _ NDCoinList
  = [List.nil;
    (List.cons (True_ IdS IdP) (Cons IdS IdP (True_ IdS IdP) (Nil IdS IdP)));
    (List.cons (True_ IdS IdP) (Cons IdS IdP (False_ IdS IdP) (Nil IdS IdP)))].
@@ -350,13 +350,13 @@ Proof. constructor. Qed.
    head _ _ Maybe.Partial (trace "root effect" [true, trace "component effect" false])
    --> (true, ["root effect") *)
 Example nonStrictnessRootAndComponentTracing
- : @handle _ _ _ (HandlerMaybeTrace _) (List.head _ _ Maybe.Partial tracedTraceList)
+ : @handle _ _ _ (HandlerMaybeTrace _) _ (List.head _ _ Maybe.Partial tracedTraceList)
  = (Some true, ["root effect"%string]).
 Proof. constructor. Qed.
 
 (* ([] ? [true, coin]) --> undefined *)
 Example nonStrictnessRootAndComponentND
- : @handle _ _ _ (HandlerNDMaybe _) (List.head _ _ Maybe.Partial NDCoinList)
+ : @handle _ _ _ (HandlerNDMaybe _) _ (List.head _ _ Maybe.Partial NDCoinList)
  = None.
 Proof. constructor. Qed.
 
@@ -364,7 +364,7 @@ Proof. constructor. Qed.
 
 (* [[true,trace "component effect" false]]
    --> ([[true,false]],["component effect"]) *)
-Example deepEffectTracing : @handle _ _ _ (HandlerTrace _) deepTraceList
+Example deepEffectTracing : @handle _ _ _ (HandlerTrace _) _ deepTraceList
  = (List.cons ((Cons IdS IdP (True_ IdS IdP)
                                  (Cons IdS IdP (False_ IdS IdP)
                                                (Nil IdS IdP))))
@@ -373,7 +373,7 @@ Example deepEffectTracing : @handle _ _ _ (HandlerTrace _) deepTraceList
 Proof. constructor. Qed.
 
 (* [[true, true ? false]] --> [[[true,true]],[[true,false]]] *)
-Example deepEffectND : @handle _ _ _ (HandlerND _) deepCoinList
+Example deepEffectND : @handle _ _ _ (HandlerND _) _ deepCoinList
  = [List.cons ((Cons IdS IdP (True_ IdS IdP)
                                   (Cons IdS IdP (True_ IdS IdP)
                                                 (Nil IdS IdP))))
