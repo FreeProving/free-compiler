@@ -11,16 +11,32 @@ import           FreeC.NonDet
 -- Trivial Test Functions                                                    --
 -------------------------------------------------------------------------------
 
--- The boolean property `True` is always satisfied. However, the equivalent
--- property `id True` cannot be proved because the application of `id`
+-- The boolean property @True@ is always satisfied. However, the equivalent
+-- property @id True@ cannot be proved because the application of @id@
 -- introduces sharing syntax and the QuickCheck extension considers impure
 -- values as false by default. A handler that eliminates the sharing syntax
--- must be used to prove this property.
+-- must be used to prove this property. As a consequence the property is not
+-- effect generic.
 prop_true :: Bool
 prop_true = True
 
 prop_id_true :: Bool
 prop_id_true = id True
+
+-- The property that @(===)@ is reflexive is trivial to prove.
+-- However, the same property doe snot hold for @(==)@ because @n@ could
+-- be impure and the default handler interprets impure properties as false.
+-- In case of sharing impure syntax is introduced by sharing itself.
+-- In theory it would be possible to prove the property with a different
+-- handler that interprets impure properties differently. However, in case of
+-- call-by-need, the even this simple property is extremely difficult to prove
+-- due to the overhead of the sharing infrastructure.
+-- Thus, all properties below do not have any parameters.
+prop_eq_refl :: a -> Property
+prop_eq_refl x = x === x
+
+prop_eq_refl_int :: Integer -> Bool
+prop_eq_refl_int n = let n' = n in n' == n'
 
 -------------------------------------------------------------------------------
 -- Tracing Test Functions                                                    --

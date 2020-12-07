@@ -113,6 +113,9 @@ Definition withSharing
   : A Shape Pos
  := prop Shape Pos cbneed.
 
+Arguments withStrategy {A} S prop Shape Pos /.
+Arguments withSharing  {A}   prop Shape Pos /.
+
 (* * Constructing QuickCheck Properties *)
 Section SecQuickCheck.
   Variable Shape : Type.

@@ -1,4 +1,4 @@
-From Base Require Import Free Free.Handlers Free.Instance.Maybe Free.Instance.Share Prelude Test.QuickCheck.
+From Base Require Import Free Free.Handlers Free.Instance.Maybe Free.Instance.ND Free.Instance.Share Prelude Test.QuickCheck.
 From Generated Require Import Base.Strategy.
 
 Require Import Coq.Logic.FunctionalExtensionality.
@@ -17,7 +17,7 @@ Proof. constructor. Qed.
 Example example_id_true_cbn: quickCheck (withStrategy Cbn prop_id_true).
 Proof. constructor. Qed.
 
-Example example_id_true_cbneed_no_hander: ~ quickCheck (withSharing prop_id_true).
+Example counter_example_id_true_cbneed_no_hander: ~ quickCheck (withSharing prop_id_true).
 Proof.
   unfold quickCheck. simpl. intros H.
   specialize (H Share.Shape Share.Pos Inject_refl). apply H.
@@ -25,6 +25,21 @@ Qed.
 
 Example example_id_true_cbneed: quickCheckHandle (@prop_id_true _ _ cbneed) HandlerShare.
 Proof. constructor. Qed.
+
+(* The property [x === x] holds trivially. *)
+Example example_eq_refl : quickCheck prop_eq_refl.
+Proof. constructor. Qed.
+
+(* However, the property [n == n] does not hold because the property would
+   be impure if the value [n] is impure. In case of the call-by-name and
+   call-by-value strategies, it would suffice to add a totality constraint
+   for [n]. However in case of call-by-need, impure syntax is introduced by
+   sharing itself. *)
+Example counter_example_eq_refl_int: ~ quickCheck prop_eq_refl_int.
+Proof.
+  unfold quickCheck. simpl. intros H.
+  specialize (H Maybe.Shape Maybe.Pos cbn (Nothing _ _)). apply H.
+Qed.
 
 (* Proofs for Tracing Test Functions *)
 
