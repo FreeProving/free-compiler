@@ -1,8 +1,5 @@
-From Base Require Import Free Handlers.
+From Base Require Import Free Free.Handlers Free.Instance.Share.
 From Base Require Import Prelude.
-
-From Base Require Import Free.Instance.Comb.
-From Base Require Import Free.Instance.Maybe.
 
 (* QuickCheck properties are implemented as Coq propositions
    that are parameterized over a handler. The handler is used
@@ -108,6 +105,16 @@ Definition withStrategy
   (Shape : Type) (Pos : Shape -> Type)
   : A Shape Pos
  := prop Shape Pos (S Shape Pos).
+
+(* The [withStrategy] function cannot be used with [Cbneed] because of
+   the [Injectable] constraint. Thus, we need this specialized version
+   that also quantifies the [Injectable] constraint. *)
+Definition withSharing
+  {A    : forall Shape Pos, Type}
+  (prop : forall Shape Pos (S : Strategy Shape Pos), A Shape Pos)
+  (Shape : Type) (Pos : Shape -> Type) `{Injectable Share.Shape Share.Pos Shape Pos}
+  : A Shape Pos
+ := prop Shape Pos cbneed.
 
 (* * Constructing QuickCheck Properties *)
 Section SecQuickCheck.

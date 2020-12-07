@@ -1,10 +1,25 @@
 module Base.Strategy where
 
-import           Data.List       ( append, sum )
+import           Data.Function   (id)
+import           Data.List       (append, sum)
 import           Data.Maybe
 import           Test.QuickCheck
 
 import           FreeC.NonDet
+
+-------------------------------------------------------------------------------
+-- Trivial Test Functions                                                    --
+-------------------------------------------------------------------------------
+
+-- The boolean property `True` is always satisfied. However, the equivalent
+-- property `id True` cannot be proved because the application of `id`
+-- introduces sharing syntax and the QuickCheck extension considers impure
+-- values as false.
+prop_true :: Bool
+prop_true = True
+
+prop_id_true :: Bool
+prop_id_true = id True
 
 -------------------------------------------------------------------------------
 -- Tracing Test Functions                                                    --

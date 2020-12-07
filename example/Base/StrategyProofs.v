@@ -1,5 +1,24 @@
-From Base Require Import Free Free.Handlers Free.Instance.Maybe Prelude Test.QuickCheck.
+From Base Require Import Free Free.Handlers Free.Instance.Maybe Free.Instance.Share Prelude Test.QuickCheck.
 From Generated Require Import Base.Strategy.
+
+Require Import Coq.Logic.FunctionalExtensionality.
+
+(* Proofs for Trivial Test Functions *)
+
+Example example_true: quickCheck prop_true.
+Proof. constructor. Qed.
+
+Example example_id_true_cbv: quickCheck (withStrategy Cbv prop_id_true).
+Proof. constructor. Qed.
+
+Example example_id_true_cbn: quickCheck (withStrategy Cbn prop_id_true).
+Proof. constructor. Qed.
+
+Example example_id_true_cbneed: ~ quickCheck (withSharing prop_id_true).
+Proof.
+  unfold quickCheck. simpl. intros H.
+  specialize (H Share.Shape Share.Pos Inject_refl). apply H.
+Qed.
 
 (* Proofs for Tracing Test Functions *)
 
