@@ -5,7 +5,7 @@ From Base Require Import Prelude.
    that are parameterized over a handler. The handler is used
    when comparing values with [(===)] and [(=/=)]. *)
 Definition Property (Shape : Type) (Pos : Shape -> Type) : Type
- := (forall (A : Type), Handler Shape Pos A) -> Prop.
+ := Handler Shape Pos -> Prop.
 
 (* [ShareableArgs] instance for [Property]. *)
 Instance ShareableArgsProperty (Shape : Type) (Pos : Shape -> Type)
@@ -51,10 +51,7 @@ Instance TestableForall
 Instance TestableFree (Shape : Type) (Pos : Shape -> Type)
                       (A : Type) (T_A : Testable Shape Pos A)
   : Testable Shape Pos (Free Shape Pos A)
- := { property fp handler := match fp with
-                             | pure p => property p handler
-                             | impure s pf => False
-                             end }.
+ := { property fp handler := handleProp (fp >>= fun p => pure (property p handler)) }.
 
 (* [quickCheck :: Testable a => a -> IO ()]
 
@@ -88,7 +85,7 @@ Definition quickCheckHandle
   {Shape} {Pos : Shape -> Type}
   {A : Type} {T_A : Testable Shape Pos A}
   (prop : A)
-  (handler : forall (A : Type), Handler Shape Pos A)
+  (handler : Handler Shape Pos)
   : Prop
  := property prop handler.
 
@@ -170,9 +167,8 @@ End SecQuickCheck.
 Lemma pure_bool_property:
   forall (Shape : Type)
          (Pos : Shape -> Type)
-         (fb : Free Shape Pos (Bool Shape Pos))
-         (handler : forall (A : Type), Handler Shape Pos A),
-  property fb handler <-> fb = True_ Shape Pos.
+         (fb : Free Shape Pos (Bool Shape Pos)),
+  property fb (NoHandler Shape Pos) <-> fb = True_ Shape Pos.
 Proof.
   simpl. intros Shape Pos fb. split; intros H.
   - (* -> *) destruct fb as [b |].

@@ -14,7 +14,8 @@ import           FreeC.NonDet
 -- The boolean property `True` is always satisfied. However, the equivalent
 -- property `id True` cannot be proved because the application of `id`
 -- introduces sharing syntax and the QuickCheck extension considers impure
--- values as false.
+-- values as false by default. A handler that eliminates the sharing syntax
+-- must be used to prove this property.
 prop_true :: Bool
 prop_true = True
 

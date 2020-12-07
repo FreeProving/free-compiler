@@ -96,7 +96,7 @@ Arguments ndMap {_} {_} {_}.
 
 (* true : ([] ? [true ? false])
    --> [ [true], [true, true], [true, false] ] *)
-Example nondeterministic_list : (@handle _ _ _ (HandlerND _)) _ ndList
+Example nondeterministic_list : (@handle _ _ HandlerND _) _ ndList
   = [ myCons (pure true) (MyNil IdS IdP)
     ; myCons (pure true) (MyCons IdS IdP (pure true) (MyNil IdS IdP))
     ; myCons (pure true) (MyCons IdS IdP (pure false) (MyNil IdS IdP))
@@ -105,7 +105,7 @@ Proof. trivial. Qed.
 
 (* (foo baz) ? (foo (bar (foo baz)))
    --> [ foo baz, foo (bar (foo baz)) ] *)
-Example nondeterministic_foo : (@handle _ _ _ (HandlerND _)) _ ndFoo
+Example nondeterministic_foo : (@handle _ _ HandlerND _) _ ndFoo
   = [ foo (Bar0 IdS IdP (Foo0 IdS IdP (Baz IdS IdP)))
     ; foo (Baz IdS IdP)
     ].
@@ -114,7 +114,7 @@ Proof. trivial. Qed.
 (* branch (true ? false) (leaf : ([] ? [leaf]))
    --> [ branch true leaf, branch true [leaf, leaf]
        , branch false leaf, branch false [leaf, leaf] ] *)
-Example nondeterministic_tree : (@handle _ _ _ (HandlerND _)) _ ndTree
+Example nondeterministic_tree : (@handle _ _ HandlerND _) _ ndTree
   = [ branch (pure true) (Cons IdS IdP (Leaf IdS IdP) (Nil IdS IdP))
     ; branch (pure true) (Cons IdS IdP (Leaf IdS IdP)
         (Cons IdS IdP (Leaf IdS IdP) (Nil IdS IdP)))
@@ -128,7 +128,7 @@ Proof. trivial. Qed.
    --> [ [true -> true]                , [true -> true, true -> false]
        , [true -> true, false -> false], [false -> true]
        , [false -> true, true -> false], [false -> true, false -> false] ] *)
-Example nondeterministic_map : (@handle _ _ _ (HandlerND _)) _ ndMap
+Example nondeterministic_map : (@handle _ _ HandlerND _) _ ndMap
  = [ entry (pure true) (pure true) (Empty IdS IdP)
    ; entry (pure true) (pure true)
       (Entry0 IdS IdP (pure true) (pure false) (Empty IdS IdP))
@@ -148,7 +148,7 @@ Proof. trivial. Qed.
    --> true || true ? false || false
    --> true ? false *)
 Example deepSharingNDList
-: (@handle _ _ _ (HandlerShareND _)) _ (doubleDisjunctionHead _ _ cbneed (ND.Partial _ _) ndList2)
+: (@handle _ _ HandlerShareND _) _ (doubleDisjunctionHead _ _ cbneed (ND.Partial _ _) ndList2)
 = [true;false].
 Proof. trivial. Qed.
 
@@ -157,7 +157,7 @@ Proof. trivial. Qed.
    --> true || true ? false || false
    --> true ? false *)
 Example deepSharingNDTree
-: (@handle _ _ _ (HandlerShareND _)) _ (doubleDisjunctionRoot _ _ cbneed (ND.Partial _ _) ndTree)
+: (@handle _ _ HandlerShareND _) _ (doubleDisjunctionRoot _ _ cbneed (ND.Partial _ _) ndTree)
 = [true;false].
 Proof. trivial. Qed.
 
@@ -166,7 +166,7 @@ Proof. trivial. Qed.
    --> true || true ? false || false
    --> true ? false *)
 Example deepSharingNDTree2
-: (@handle _ _ _ (HandlerShareND _)) _ (doubleDisjunctionHeadRoot _ _ cbneed (ND.Partial _ _) ndTree2)
+: (@handle _ _ HandlerShareND _) _ (doubleDisjunctionHeadRoot _ _ cbneed (ND.Partial _ _) ndTree2)
 = [true;false].
 Proof. trivial. Qed.
 
@@ -175,6 +175,6 @@ Proof. trivial. Qed.
    --> true || true ? false || false
    --> true ? false *)
 Example deepSharingNDMap
-: (@handle _ _ _ (HandlerShareND _)) _ (doubleDisjunctionMap _ _ cbneed (ND.Partial _ _) ndMap)
+: (@handle _ _ HandlerShareND _) _ (doubleDisjunctionMap _ _ cbneed (ND.Partial _ _) ndMap)
 = [true;false].
 Proof. trivial. Qed.

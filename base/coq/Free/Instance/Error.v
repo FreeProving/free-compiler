@@ -23,28 +23,35 @@ Module Error.
                           {E A : Type}
                           `{Injectable (Shape E) Pos Shape' Pos'}
                           (msg : E) : Free Shape' Pos' A :=
-      impure (injS msg) (fun p : Pos' (injS msg) => 
+      impure (injS msg) (fun p : Pos' (injS msg) =>
                           (fun x : Void => match x with end) (injP p)).
   End Monad.
 
   (* Handler for the error monad. *)
   Module Import Handler.
-    (* Helper definitions and handler for the error effect with a string message. *)
-    Definition SError (Shape' : Type) := Comb.Shape (Shape string) Shape'.
-    Definition PError {Shape' : Type} (Pos' : Shape' -> Type)
-      := Comb.Pos (@Pos string) Pos'.
+  Section SecErrorHandler.
+    Context {Shape' : Type}.
+    Context {Pos'   : Shape' -> Type}.
+
+    Notation "'FreeComb'" := (Free (Comb.Shape (Shape string) Shape') (Comb.Pos Pos Pos')).
+    Notation "'Free''" := (Free Shape' Pos').
 
     (* The result is either a value of type A or an error message of type E. *)
-    Fixpoint runError {Shape' : Type}
-                      {Pos' : Shape' -> Type}
-                      {A : Type}
-                      (fm : Free (SError Shape') (PError Pos') A)
-     : Free Shape' Pos' (A + string)
-    := match fm with
-       | pure x => pure (inl x)
-       | impure (inl s) _  => pure (inr s)
-       | impure (inr s) pf => impure s (fun p => runError (pf p))
-       end.
+    Fixpoint runError {A : Type} (fx : FreeComb A) : Free' (A + string)
+     := match fx with
+        | pure x => pure (inl x)
+        | impure (inl s) _  => pure (inr s)
+        | impure (inr s) pf => impure s (fun p => runError (pf p))
+        end.
+
+    (* When proving properties about partial computations, consider failed
+       constructions of properties as false. *)
+    Definition runErrorProp (fx : FreeComb Prop) : Free' Prop
+     := runError fx >>= fun ex => match ex with
+                                  | inl x => pure x
+                                  | inr _ => pure False
+                                  end.
+  End SecErrorHandler.
   End Handler.
 
   (* Partial instance for the error monad. *)

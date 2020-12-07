@@ -5,6 +5,9 @@ Require Import Coq.Logic.FunctionalExtensionality.
 
 (* Proofs for Trivial Test Functions *)
 
+(* The property [True] holds trivially. However, when we consider the
+   equivalent property [id True], we have to handle the sharing syntax
+   since the impure values would be considered [False] otrherwise. *)
 Example example_true: quickCheck prop_true.
 Proof. constructor. Qed.
 
@@ -14,11 +17,14 @@ Proof. constructor. Qed.
 Example example_id_true_cbn: quickCheck (withStrategy Cbn prop_id_true).
 Proof. constructor. Qed.
 
-Example example_id_true_cbneed: ~ quickCheck (withSharing prop_id_true).
+Example example_id_true_cbneed_no_hander: ~ quickCheck (withSharing prop_id_true).
 Proof.
   unfold quickCheck. simpl. intros H.
   specialize (H Share.Shape Share.Pos Inject_refl). apply H.
 Qed.
+
+Example example_id_true_cbneed: quickCheckHandle (@prop_id_true _ _ cbneed) HandlerShare.
+Proof. constructor. Qed.
 
 (* Proofs for Tracing Test Functions *)
 
@@ -85,33 +91,33 @@ Proof. constructor. Qed.
 (* Proofs for Non-Determinism Test Functions *)
 
 Example add_non_det_cbv : quickCheckHandle (@prop_add_non_det_cbv _ _ cbv _) HandlerND.
-Proof. constructor. Qed.
+Proof. simpl; auto. Qed.
 
 Example add_non_det_cbn : quickCheckHandle (@prop_add_non_det_cbn _ _ cbn _) HandlerND.
-Proof. constructor. Qed.
+Proof. simpl; auto. Qed.
 
 Example add_non_det_cbneed : quickCheckHandle (@prop_add_non_det_cbneed _ _ cbneed _) HandlerShareND.
-Proof. constructor. Qed.
+Proof. simpl; auto. Qed.
 
 
 Example or_true_false_non_det_cbv : quickCheckHandle (@prop_or_true_false_non_det_cbv _ _ cbv _) HandlerND.
-Proof. constructor. Qed.
+Proof. simpl; auto. Qed.
 
 Example or_true_false_non_det_cbn : quickCheckHandle (@prop_or_true_false_non_det_cbn _ _ cbn _) HandlerND.
-Proof. constructor. Qed.
+Proof. simpl; auto. Qed.
 
 Example or_true_false_non_det_cbneed : quickCheckHandle (@prop_or_true_false_non_det_cbneed _ _ cbneed _) HandlerShareND.
-Proof. constructor. Qed.
+Proof. simpl; auto. Qed.
 
 
 Example partial_non_det_cbv : quickCheckHandle (@prop_partial_non_det_cbv _ _ cbv (Maybe.Partial _ _) _) HandlerNDMaybe.
-Proof. constructor. Qed.
+Proof. simpl; auto. Qed.
 
 Example partial_non_det_cbn : quickCheckHandle (@prop_partial_non_det_cbn _ _ cbn (Maybe.Partial _ _) _) HandlerNDMaybe.
-Proof. constructor. Qed.
+Proof. simpl; auto. Qed.
 
 Example partial_non_det_cbneed : quickCheckHandle (@prop_partial_non_det_cbneed _ _ cbneed (Maybe.Partial _ _) _) HandlerShareNDMaybe.
-Proof. constructor. Qed.
+Proof. simpl; auto. Qed.
 
 (* Proofs for Deep Sharing Test Functions *)
 
