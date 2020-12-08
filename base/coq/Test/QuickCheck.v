@@ -129,17 +129,12 @@ Section SecQuickCheck.
      class instance for [Bool] is accessable from Haskell. *)
   Definition boolProp (fb : Free' Bool')
     : Free' Property'
-   := pure (fun handler => property fb handler).
+   := pure (property fb).
 
   (* [(==>) :: Bool -> Property -> Property] *)
   Definition preProp (fb : Free' Bool') (fp : Free' Property')
     : Free' Property'
    := pure (fun handler => property fb handler -> property fp handler).
-
-  (* Version of [preProp] that allows arbitrary preconditions. *)
-  Definition preProp' (fx : Free' Property') (fy : Free' Property')
-    : Free' Property'
-   := pure (fun handler => property fx handler -> property fy handler).
 
   (* [(===) :: a -> a -> Property] *)
   Definition eqProp (A : Type) `{Normalform Shape Pos A} (fx : Free' A) (fy : Free' A)

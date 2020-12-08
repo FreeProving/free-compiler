@@ -1,7 +1,7 @@
 module Base.Strategy where
 
-import           Data.Function   (id)
-import           Data.List       (append, sum)
+import           Data.Function   ( id )
+import           Data.List       ( append, sum )
 import           Data.Maybe
 import           Test.QuickCheck
 
@@ -10,7 +10,6 @@ import           FreeC.NonDet
 -------------------------------------------------------------------------------
 -- Trivial Test Functions                                                    --
 -------------------------------------------------------------------------------
-
 -- The boolean property @True@ is always satisfied. However, the equivalent
 -- property @id True@ cannot be proved because the application of @id@
 -- introduces sharing syntax and the QuickCheck extension considers impure
@@ -36,7 +35,8 @@ prop_eq_refl :: a -> Property
 prop_eq_refl x = x === x
 
 prop_eq_refl_int :: Integer -> Bool
-prop_eq_refl_int n = let n' = n in n' == n'
+prop_eq_refl_int n = let n' = n
+                     in n' == n'
 
 -------------------------------------------------------------------------------
 -- Tracing Test Functions                                                    --

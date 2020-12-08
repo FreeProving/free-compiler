@@ -5,7 +5,7 @@ Require Import Coq.Logic.FunctionalExtensionality.
 
 (* Proofs for Trivial Test Functions *)
 
-(* The property [True] holds trivially. However, when we consider the
+(* The property [True] holds trivially. However, when we consider the 
    equivalent property [id True], we have to handle the sharing syntax
    since the impure values would be considered [False] otrherwise. *)
 Example example_true: quickCheck prop_true.

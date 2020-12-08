@@ -356,7 +356,7 @@ reservedIdents
     , traceable
     , traceableArg
     , trace
-      -- * Non-Determinism
+      -- Non-Determinism
     , nonDet
     , nonDetArg
       -- Notations
