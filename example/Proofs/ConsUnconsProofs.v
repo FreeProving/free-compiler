@@ -6,32 +6,32 @@ Require Import Coq.Logic.FunctionalExtensionality.
 (* The first QuickCheck property holds for any [Partial] instance. Therefore
    its proof differs only in that way from proofs about functions that do not
    return an error, that an [Partial] instance for [Shape] and [Pos] is given. *)
-Lemma cons_unconsE : quickCheck prop_cons_unconsE.
+Lemma cons_unconsE : quickCheck (withStrategy Cbn prop_cons_unconsE).
 Proof.
-  intros Shape Pos Partial A NF fx fxs.
+  intros Shape Pos Partial A SA NF fx fxs.
   reflexivity.
 Qed.
 
 (* The second QuickCheck property holds provably for the [Maybe] instance of [Partial]. *)
-Lemma unconsE_fst_Maybe : quickCheck
-  (@prop_unconsE_fst Maybe.Shape Maybe.Pos (Maybe.Partial Maybe.Shape Maybe.Pos)).
+Lemma unconsE_fst_Maybe : quickCheck' (@prop_unconsE_fst Maybe.Shape Maybe.Pos cbn (Maybe.Partial _ _)).
 Proof.
-  intros A NF fxs.
+  intros A SA NF fxs.
   simpl.
   destruct fxs as [ xs | s pf ].
   - destruct xs as [ | fx1 fxs1 ].
     + simpl. unfold Nothing. f_equal. extensionality p. destruct p.
     + reflexivity.
-  - simpl. f_equal. extensionality p. destruct p.
+  - simpl. f_equal. extensionality p. destruct s.
+    + destruct p.
 Qed.
 
 (* But the second QuickCheck property doesn't hold for the [Error] instance of
    [Partial] as [unconsE] and [head] have different error messages on an empty
    list. *)
-Lemma unconsE_fst_Error : not (quickCheck (@prop_unconsE_fst (Error.Shape string) Error.Pos (Error.Partial (Error.Shape string) Error.Pos))).
+Lemma unconsE_fst_Error : not (quickCheck' (@prop_unconsE_fst (Error.Shape string) Error.Pos cbn (Error.Partial _ _))).
 Proof.
   intro H.
-  specialize (H bool _ (Nil _ _)).
+  specialize (H bool _ _ (Nil _ _)).
   discriminate H.
 Qed.
 

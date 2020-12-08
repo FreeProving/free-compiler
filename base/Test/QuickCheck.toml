@@ -7,7 +7,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
-version = 4
+version = 6
 module-name = 'Test.QuickCheck'
 library-name = 'Base'
 exported-types = [
@@ -38,62 +38,74 @@ exported-values = [
 ##############################################################################
 
 [[functions]]
-  haskell-type    = 'Prelude.Bool -> Test.QuickCheck.Property'
-  haskell-name    = 'Test.QuickCheck.property'
-  coq-name        = 'boolProp'
-  agda-name       = 'boolProp'
-  arity           = 1
-  effects         = []
-  needs-free-args = true
+  haskell-type         = 'Prelude.Bool -> Test.QuickCheck.Property'
+  haskell-name         = 'Test.QuickCheck.property'
+  coq-name             = 'boolProp'
+  agda-name            = 'boolProp'
+  arity                = 1
+  strict-args          = [false]
+  effects              = []
+  needs-free-args      = true
+  encapsulates-effects = true
 
 ##############################################################################
 # Operators                                                                  #
 ##############################################################################
 
 [[functions]]
-  haskell-type    = 'Prelude.Bool -> Test.QuickCheck.Property -> Test.QuickCheck.Property'
-  haskell-name    = 'Test.QuickCheck.(==>)'
-  coq-name        = 'preProp'
-  agda-name       = 'preProp'
-  arity           = 2
-  effects         = []
-  needs-free-args = true
+  haskell-type         = 'Prelude.Bool -> Test.QuickCheck.Property -> Test.QuickCheck.Property'
+  haskell-name         = 'Test.QuickCheck.(==>)'
+  coq-name             = 'preProp'
+  agda-name            = 'preProp'
+  arity                = 2
+  strict-args          = [false, false]
+  effects              = []
+  needs-free-args      = true
+  encapsulates-effects = true
 
 [[functions]]
-  haskell-type    = 'a -> a -> Test.QuickCheck.Property'
-  haskell-name    = 'Test.QuickCheck.(===)'
-  coq-name        = 'eqProp'
-  agda-name       = 'eqProp'
-  arity           = 2
-  effects         = ['Normalform']
-  needs-free-args = true
+  haskell-type         = 'a -> a -> Test.QuickCheck.Property'
+  haskell-name         = 'Test.QuickCheck.(===)'
+  coq-name             = 'eqProp'
+  agda-name            = 'eqProp'
+  arity                = 2
+  strict-args          = [false, false]
+  effects              = ['Normalform']
+  needs-free-args      = true
+  encapsulates-effects = true
 
 [[functions]]
-  haskell-type    = 'a -> a -> Test.QuickCheck.Property'
-  haskell-name    = 'Test.QuickCheck.(=/=)'
-  coq-name        = 'neqProp'
-  agda-name        = 'neqProp'
-  arity           = 2
-  effects         = ['Normalform']
-  needs-free-args = true
+  haskell-type         = 'a -> a -> Test.QuickCheck.Property'
+  haskell-name         = 'Test.QuickCheck.(=/=)'
+  coq-name             = 'neqProp'
+  agda-name            = 'neqProp'
+  arity                = 2
+  strict-args          = [false, false]
+  effects              = ['Normalform']
+  needs-free-args      = true
+  encapsulates-effects = true
 
 [[functions]]
-  haskell-type    = 'Test.QuickCheck.Property -> Test.QuickCheck.Property -> Test.QuickCheck.Property'
-  haskell-name    = 'Test.QuickCheck.(.&&.)'
-  coq-name        = 'conjProp'
-  agda-name       = 'conjProp'
-  arity           = 2
-  effects         = []
-  needs-free-args = true
+  haskell-type         = 'Test.QuickCheck.Property -> Test.QuickCheck.Property -> Test.QuickCheck.Property'
+  haskell-name         = 'Test.QuickCheck.(.&&.)'
+  coq-name             = 'conjProp'
+  agda-name            = 'conjProp'
+  arity                = 2
+  strict-args          = [false, false]
+  effects              = []
+  needs-free-args      = true
+  encapsulates-effects = true
 
 [[functions]]
-  haskell-type    = 'Test.QuickCheck.Property -> Test.QuickCheck.Property -> Test.QuickCheck.Property'
-  haskell-name    = 'Test.QuickCheck.(.||.)'
-  coq-name        = 'disjProp'
-  agda-name       = 'disjProp'
-  arity           = 2
-  effects         = []
-  needs-free-args = true
+  haskell-type         = 'Test.QuickCheck.Property -> Test.QuickCheck.Property -> Test.QuickCheck.Property'
+  haskell-name         = 'Test.QuickCheck.(.||.)'
+  coq-name             = 'disjProp'
+  agda-name            = 'disjProp'
+  arity                = 2
+  strict-args          = [false, false]
+  effects              = []
+  needs-free-args      = true
+  encapsulates-effects = true
 
 ##############################################################################
 # Imported from `Prelude`                                                    #

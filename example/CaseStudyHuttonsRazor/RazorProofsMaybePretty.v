@@ -13,13 +13,13 @@ Require Import Coq.Program.Equality.
 Section Proofs.
 
   Definition Shape := Maybe.Shape.
-  Definition Pos := Maybe.Pos.
-  Definition Part := Maybe.Partial Shape Pos.
+  Definition Pos   := Maybe.Pos.
+  Definition Part  := Maybe.Partial Shape Pos.
 
   (* If the stack is [Nothing] the result of any [exec] call on that stack will also be [Nothing]. *)
   Lemma exec_strict_on_stack_arg :
     forall (fcode  : Free Shape Pos (Code Shape Pos)),
-      exec Part fcode Nothing = Nothing.
+      exec_ Part fcode Nothing_ = Nothing_.
   Proof with (autodef).
     intro fcode.
     destruct fcode as [ [ | [ [ fn | ] | sOp pfOp ] fcode1 ] | sCode pfCode ]...
@@ -33,8 +33,8 @@ Section Proofs.
     forall (fcode1 : Free Shape Pos (Code Shape Pos)),
     forall (fcode2 : Free Shape Pos (Code Shape Pos)),
     forall (fstack        : Free Shape Pos (Stack Shape Pos)),
-        exec Part (append fcode1 fcode2) fstack
-        = exec Part fcode2 (exec Part fcode1 fstack).
+        exec_ Part (append_ fcode1 fcode2) fstack
+        = exec_ Part fcode2 (exec_ Part fcode1 fstack).
   Proof with (unfold Code; unfold Stack; pretty; try reflexivity ).
     intros fcode1 fcode2.
     (* Destruct the monadic layer of the first piece of code. *)
@@ -101,8 +101,8 @@ Section Proofs.
     RecPureExpr fexpr ->
     forall (fstack : Free Shape Pos (Stack Shape Pos)),
     RecPureStack fstack ->
-        exec Part (comp fexpr) fstack
-        = Cons_ (eval fexpr) fstack.
+        exec_ Part (comp_ fexpr) fstack
+        = Cons_ (eval_ fexpr) fstack.
   Proof with (pretty).
     intros fexpr HPureE.
     destruct fexpr as [ expr | ]; try eliminate_pureness_property_impure...
@@ -130,7 +130,7 @@ Section Proofs.
       rewrite def_exec_ADD...
       rewrite def_exec_Nil...
       reflexivity.
-  Qed. 
+  Qed.
 
   (* The theorem derived by the correctness QuickCheck property for comp_correct
      can now be proven with the more general lemma above and under the assumption that the
@@ -138,7 +138,7 @@ Section Proofs.
   Lemma comp_correct :
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
-        quickCheck (prop_comp_correct Shape Pos Part fexpr).
+        quickCheck' (prop_comp_correct Shape Pos cbn Part fexpr).
   Proof.
     simpl; intros fexpr HPure.
     apply (comp_correct' fexpr HPure Nil_ recPureStack_nil).
@@ -150,8 +150,8 @@ Section Proofs.
     forall `{Normalform Shape Pos (Op Shape Pos)}
            (fexpr : Free Shape Pos (Expr Shape Pos))
            (fcode : Free Shape Pos (Code Shape Pos)),
-        compApp fexpr fcode
-        = append (comp fexpr) fcode.
+        compApp_ fexpr fcode
+        = append_ (comp_ fexpr) fcode.
   Proof with pretty.
     intros N fexpr.
     destruct fexpr as [ expr | ]...
@@ -167,7 +167,7 @@ Section Proofs.
       + (* expr = Add fx fy *)
         intro fcode.
         rewrite def_comp_Add...
-        specialize (append_assocs _ _ _ N) as HAssoc; simpl in HAssoc.
+        specialize (append_assoc _ _ _ _ N) as HAssoc; simpl in HAssoc.
         rewrite <- HAssoc.
         rewrite def_append_Cons...
         rewrite def_append_Nil...
@@ -198,23 +198,23 @@ Section Proofs.
  (* With the equivalence lemma above the proof of the main equivalence theorem is simple. *)
  Lemma comp_comp'_eq :
   forall `{Normalform Shape Pos (Op Shape Pos)},
-    quickCheck (prop_comp_comp'_eq Shape Pos).
+    quickCheck' (prop_comp_comp'_eq Shape Pos cbn).
   Proof with pretty.
     simpl; intros N fexpr.
     rewrite def_comp'.
     rewrite compApp_comp_append_eq.
-    specialize (append_nil _ _ _ N) as HNil; simpl in HNil.
+    specialize (append_nil _ _ _ _ N) as HNil; simpl in HNil.
     rewrite HNil.
     reflexivity.
   Qed.
 
   (* The correctness of the compiler [comp'] is implied by the equivalence to
      the compiler [comp] and the correctness of [comp]. *)
-  Lemma comp'_correct : 
+  Lemma comp'_correct :
     forall `{Normalform Shape Pos (Op Shape Pos)}
            (fexpr : Free Shape Pos (Expr Shape Pos)),
     RecPureExpr fexpr ->
-        quickCheck (prop_comp'_correct Shape Pos Part fexpr).
+        quickCheck' (prop_comp'_correct Shape Pos cbn Part fexpr).
   Proof.
     simpl.
     intros N fexpr HPure.

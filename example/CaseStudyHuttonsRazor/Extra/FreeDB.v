@@ -20,15 +20,24 @@ Notation "'PUSH_' fv":= (PUSH _ _ fv)
   (at level 10, fv at level 9).
 Notation "'ADD_'":= (ADD _ _)
   (at level 9).
-Arguments Just {Shape'} {Pos'} {H} {A}.
-Arguments Nothing {Shape'} {Pos'} {H} {A}.
-Arguments append {Shape} {Pos} {a}.
-Arguments addInteger {Shape} {Pos}.
-Arguments eval {Shape} {Pos}.
-Arguments exec {Shape} {Pos}.
-Arguments comp {Shape} {Pos}.
-Arguments compApp {Shape} {Pos}.
-Arguments comp' {Shape} {Pos}.
+Notation "'Just_'" := (Just _ _)
+  (at level 9).
+Notation "'Nothing_'" := (Nothing _ _)
+  (at level 9).
+Notation "'append_'" := (append _ _ cbn)
+  (at level 9).
+Notation "'addInteger_'" := (addInteger _ _)
+  (at level 9).
+Notation "'eval_'" := (eval _ _ cbn)
+  (at level 9).
+Notation "'exec_'" := (exec _ _ cbn)
+  (at level 9).
+Notation "'comp_'" := (comp _ _ cbn)
+  (at level 9).
+Notation "'compApp_'" := (compApp _ _ cbn)
+  (at level 9).
+Notation "'comp'_'" := (comp' _ _ cbn)
+  (at level 9).
 
 (* Database for general rewriting rules to make the goal look pretty. *)
 Create HintDb prettyDB.
@@ -48,40 +57,41 @@ Section Rewrite_Functions.
 
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
+  Variable S : Strategy Shape Pos.
   Variable Part : Partial Shape Pos.
 
   Lemma def_append_Nil :
-    forall (A : Type)
+    forall (A : Type) `{ShareableArgs Shape Pos A}
            (fys : Free Shape Pos (List Shape Pos A)),
-        append Nil_ fys = fys.
+        append_ Nil_ fys = fys.
     Proof.
       reflexivity.
     Qed.
 
   Lemma def_append_Cons :
-    forall (A : Type)
+    forall (A : Type) `{ShareableArgs Shape Pos A}
            (fx : Free Shape Pos A)
            (fxs fys : Free Shape Pos (List Shape Pos A)),
-        append (Cons_ fx fxs) fys = Cons_ fx (append fxs fys).
+        append_ (Cons_ fx fxs) fys = Cons_ fx (append_ fxs fys).
     Proof.
       reflexivity.
     Qed.
 
   Lemma def_eval_Val :
     forall (fn : Free Shape Pos (Integer Shape Pos)),
-        eval (Val_ fn)
+        eval_ (Val_ fn)
         = fn.
   Proof. trivial. Qed.
 
   Lemma def_eval_Add :
     forall (fx fy : Free Shape Pos (Expr Shape Pos)),
-        eval (Add0_ fx fy)
-        = addInteger (eval fx) (eval fy).
+        eval_ (Add0_ fx fy)
+        = addInteger_ (eval_ fx) (eval_ fy).
   Proof. trivial. Qed.
 
   Lemma def_exec_Nil :
     forall (stack : Stack Shape Pos),
-        exec Part Nil_ (pure stack)
+        exec_ Part Nil_ (pure stack)
         = pure stack.
   Proof.
     destruct stack; reflexivity.
@@ -91,8 +101,8 @@ Section Rewrite_Functions.
     forall (fn : Free Shape Pos (Integer Shape Pos))
            (fcode : Free Shape Pos (Code Shape Pos))
            (stack : Stack Shape Pos),
-        exec Part (Cons_ (PUSH_ fn) fcode) (pure stack)
-        = exec Part fcode (Cons_ fn (pure stack)).
+        exec_ Part (Cons_ (PUSH_ fn) fcode) (pure stack)
+        = exec_ Part fcode (Cons_ fn (pure stack)).
   Proof.
     destruct stack; reflexivity.
   Qed.
@@ -101,53 +111,53 @@ Section Rewrite_Functions.
     forall (fcode : Free Shape Pos (Code Shape Pos))
            (fv1 fv2 : Free Shape Pos (Integer Shape Pos))
            (fstack : Free Shape Pos (Stack Shape Pos)),
-        exec Part (Cons_ ADD_ fcode) (Cons_ fv1 (Cons_ fv2 fstack))
-        = exec Part fcode (Cons_ (addInteger fv2 fv1) fstack).
+        exec_ Part (Cons_ ADD_ fcode) (Cons_ fv1 (Cons_ fv2 fstack))
+        = exec_ Part fcode (Cons_ (addInteger_ fv2 fv1) fstack).
   Proof. trivial. Qed.
 
   Lemma def_exec_ADD_0 :
     forall (fcode : Free Shape Pos (Code Shape Pos)),
-        exec Part (Cons_ ADD_ fcode) Nil_
+        exec_ Part (Cons_ ADD_ fcode) Nil_
         = undefined.
   Proof. trivial. Qed.
 
   Lemma def_exec_ADD_1 :
     forall (fcode : Free Shape Pos (Code Shape Pos))
            (fv1 : Free Shape Pos (Integer Shape Pos)),
-        exec Part (Cons_ ADD_ fcode) (Cons_ fv1 Nil_)
+        exec_ Part (Cons_ ADD_ fcode) (Cons_ fv1 Nil_)
         = undefined.
   Proof. trivial. Qed.
 
   Lemma def_comp_Val :
     forall (fn : Free Shape Pos (Integer Shape Pos)),
-        comp (Val_ fn)
+        comp_ (Val_ fn)
         = Cons_ (PUSH_ fn) Nil_.
   Proof. trivial. Qed.
 
   Lemma def_comp_Add :
     forall (fx fy : Free Shape Pos (Expr Shape Pos)),
-        comp (Add0_ fx fy)
-        = append (append (comp fx) (comp fy)) (Cons_ ADD_ Nil_).
+        comp_ (Add0_ fx fy)
+        = append_ (append_ (comp_ fx) (comp_ fy)) (Cons_ ADD_ Nil_).
   Proof. trivial. Qed.
 
   Lemma def_compApp_Val :
     forall (fn : Free Shape Pos (Integer Shape Pos))
            (fcode : Free Shape Pos (Code Shape Pos)),
-        compApp (Val_ fn) fcode
+        compApp_ (Val_ fn) fcode
         = Cons_ (PUSH_ fn) fcode.
   Proof. trivial. Qed.
 
   Lemma def_compApp_Add :
     forall (fx fy : Free Shape Pos (Expr Shape Pos))
            (fcode : Free Shape Pos (Code Shape Pos)),
-        compApp (Add0_ fx fy) fcode
-        = compApp fx (compApp fy (Cons_ ADD_ fcode)).
+        compApp_ (Add0_ fx fy) fcode
+        = compApp_ fx (compApp_ fy (Cons_ ADD_ fcode)).
   Proof. trivial. Qed.
 
   Lemma def_comp' :
     forall (fexpr : Free Shape Pos (Expr Shape Pos)),
-        comp' fexpr
-        = compApp fexpr Nil_.
+        comp'_ fexpr
+        = compApp_ fexpr Nil_.
   Proof. trivial. Qed.
 
 End Rewrite_Functions.
@@ -172,30 +182,31 @@ Section Rewrite_Functions_Impure.
 
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
+  Variable S : Strategy Shape Pos.
   Variable Part : Partial Shape Pos.
 
   Lemma def_append_imp_List1 :
-    forall (A : Type)
+    forall (A : Type) `{ShareableArgs Shape Pos A}
            (s : Shape)
            (pf : Pos s -> Free Shape Pos (List Shape Pos A))
            (fl2 : Free Shape Pos (List Shape Pos A)),
-        append (impure s pf) fl2
-        = impure s (fun p => append (pf p) fl2).
+        append_ (impure s pf) fl2
+        = impure s (fun p => append_ (pf p) fl2).
   Proof. trivial. Qed.
 
   Lemma def_eval_imp_Expr :
     forall (s : Shape)
            (pf : Pos s -> Free Shape Pos (Expr Shape Pos)),
-        eval (impure s pf)
-        = impure s (fun p => eval (pf p)).
+        eval_ (impure s pf)
+        = impure s (fun p => eval_ (pf p)).
   Proof. trivial. Qed.
 
   Lemma def_exec_imp_Code :
     forall (s : Shape)
            (pf : Pos s -> Free Shape Pos (Code Shape Pos))
            (fstack : Free Shape Pos (Stack Shape Pos)),
-        exec Part (impure s pf) fstack
-        = impure s (fun p => exec Part (pf p) fstack).
+        exec_ Part (impure s pf) fstack
+        = impure s (fun p => exec_ Part (pf p) fstack).
   Proof. trivial. Qed.
 
   Lemma def_exec_imp_Op :
@@ -203,15 +214,15 @@ Section Rewrite_Functions_Impure.
            (pf : Pos s -> Free Shape Pos (Op Shape Pos))
            (fcode : Free Shape Pos (Code Shape Pos))
            (fstack : Free Shape Pos (Stack Shape Pos)),
-        exec Part (Cons_ (impure s pf) fcode) fstack
-        = impure s (fun p => exec Part (Cons_ (pf p) fcode) fstack).
+        exec_ Part (Cons_ (impure s pf) fcode) fstack
+        = impure s (fun p => exec_ Part (Cons_ (pf p) fcode) fstack).
   Proof. trivial. Qed.
 
   Lemma def_exec_Nil_imp_Stack :
     forall (s : Shape)
            (pf : Pos s -> Free Shape Pos (Stack Shape Pos)),
-        exec Part Nil_ (impure s pf)
-        = impure s (fun p => exec Part Nil_ (pf p)).
+        exec_ Part Nil_ (impure s pf)
+        = impure s (fun p => exec_ Part Nil_ (pf p)).
   Proof. trivial. Qed.
 
   Lemma def_exec_Op_imp_Stack :
@@ -219,8 +230,8 @@ Section Rewrite_Functions_Impure.
            (fcode : Free Shape Pos (Code Shape Pos))
            (s : Shape)
            (pf : Pos s -> Free Shape Pos (Stack Shape Pos)),
-        exec Part (Cons_ (pure op) fcode) (impure s pf)
-        = impure s (fun p => exec Part (Cons_ (pure op) fcode) (pf p)).
+        exec_ Part (Cons_ (pure op) fcode) (impure s pf)
+        = impure s (fun p => exec_ Part (Cons_ (pure op) fcode) (pf p)).
   Proof.
     destruct op; reflexivity.
   Qed.
@@ -230,30 +241,30 @@ Section Rewrite_Functions_Impure.
            (s : Shape)
            (fv1 : Free Shape Pos (Integer Shape Pos))
            (pf : Pos s -> Free Shape Pos (Stack Shape Pos)),
-        exec Part (Cons_ ADD_ fcode) (Cons_ fv1 (impure s pf))
-        = impure s (fun p => exec Part (Cons_ ADD_ fcode) (Cons_ fv1 (pf p))).
+        exec_ Part (Cons_ ADD_ fcode) (Cons_ fv1 (impure s pf))
+        = impure s (fun p => exec_ Part (Cons_ ADD_ fcode) (Cons_ fv1 (pf p))).
   Proof. trivial. Qed.
 
   Lemma def_comp_imp_Expr :
     forall (s : Shape)
            (pf : Pos s -> Free Shape Pos (Expr Shape Pos)),
-        comp (impure s pf)
-        = impure s (fun p => comp (pf p)).
+        comp_ (impure s pf)
+        = impure s (fun p => comp_ (pf p)).
   Proof. trivial. Qed.
 
   Lemma def_compApp_imp_Expr :
     forall (s : Shape)
            (pf : Pos s -> Free Shape Pos (Expr Shape Pos))
            (fcode : Free Shape Pos (Code Shape Pos)),
-        compApp (impure s pf) fcode
-        = impure s (fun p => compApp (pf p) fcode).
+        compApp_ (impure s pf) fcode
+        = impure s (fun p => compApp_ (pf p) fcode).
   Proof. trivial. Qed.
 
   Lemma def_comp'_imp_Expr :
     forall (s : Shape)
            (pf : Pos s -> Free Shape Pos (Expr Shape Pos)),
-        comp' (impure s pf)
-        = impure s (fun p => comp' (pf p)).
+        comp'_ (impure s pf)
+        = impure s (fun p => comp'_ (pf p)).
   Proof. trivial. Qed.
 
 End Rewrite_Functions_Impure.
@@ -274,47 +285,48 @@ Section Rewrite_Helper_Functions.
 
   Variable Shape : Type.
   Variable Pos : Shape -> Type.
+  Variable S : Strategy Shape Pos.
   Variable Part : Partial Shape Pos.
 
   Lemma def_append0 :
-    forall (A : Type)
+    forall (A : Type) `{ShareableArgs Shape Pos A}
            (fl1 fl2 : Free Shape Pos (List Shape Pos A)),
-        append0 Shape Pos A fl2 fl1
-        = append fl1 fl2.
+        append0 Shape Pos A fl2 cbn fl1
+        = append_ fl1 fl2.
   Proof. trivial. Qed.
 
   Lemma def_append1 :
-    forall (A : Type)
+    forall (A : Type) `{ShareableArgs Shape Pos A}
            (l1 : List Shape Pos A)
            (fl2 : Free Shape Pos (List Shape Pos A)),
-        append1 Shape Pos A fl2 l1
-        = append (pure l1) fl2.
+        append1 Shape Pos A fl2 cbn l1
+        = append_ (pure l1) fl2.
   Proof. trivial. Qed.
 
   Lemma def_eval0 :
     forall (expr : Expr Shape Pos),
-        eval0 Shape Pos expr
-        = eval (pure expr).
+        eval0 Shape Pos cbn expr
+        = eval_ (pure expr).
   Proof. trivial. Qed.
 
   Lemma def_exec0 :
     forall (code : Code Shape Pos)
            (fstack : Free Shape Pos (Stack Shape Pos)),
-        exec0 Shape Pos Part code fstack
-        = exec Part (pure code) fstack.
+        exec0 Shape Pos cbn Part code fstack
+        = exec_ Part (pure code) fstack.
   Proof. trivial. Qed.
 
   Lemma def_comp0 :
     forall (expr : Expr Shape Pos),
-        comp0 Shape Pos expr
-        = comp (pure expr).
+        comp0 Shape Pos cbn expr
+        = comp_ (pure expr).
   Proof. trivial. Qed.
 
   Lemma def_compApp0 :
     forall (expr : Expr Shape Pos)
            (fcode : Free Shape Pos (Code Shape Pos)),
-        compApp0 Shape Pos expr fcode
-        = compApp (pure expr) fcode.
+        compApp0 Shape Pos cbn expr fcode
+        = compApp_ (pure expr) fcode.
   Proof. trivial. Qed.
 
 End Rewrite_Helper_Functions.
@@ -337,7 +349,7 @@ Section Rewrite_Maybe.
   Lemma def_Just :
     forall (A : Type)
            (x : A),
-        pure x = Just x.
+        pure x = Just_ x.
   Proof. trivial. Qed.
 
   Lemma def_Nothing :
@@ -352,7 +364,7 @@ Section Rewrite_Maybe.
     forall (A : Type)
            (s : Maybe.Shape)
            (pf : Maybe.Pos s -> Free Maybe.Shape Maybe.Pos A),
-        impure s pf = Nothing.
+        impure s pf = Nothing_.
   Proof.
     intros A s pf.
     unfold Nothing. destruct s.
@@ -363,13 +375,13 @@ Section Rewrite_Maybe.
   (* Partial instance. *)
   Lemma def_undefined_Maybe :
     forall (A : Type),
-      @undefined Shape Pos Part A = Nothing.
+      @undefined Shape Pos Part A = Nothing_.
   Proof. trivial. Qed.
 
   Lemma def_error_Maybe :
     forall (A : Type)
            (err : string),
-    @error Shape Pos Part A err = Nothing.
+    @error Shape Pos Part A err = Nothing_.
   Proof. trivial. Qed.
 
 End Rewrite_Maybe.

@@ -97,10 +97,19 @@
 --     * @coq-name@ (@String@) the identifier of the corresponding Coq
 --       function.
 --     * @arity@ (@Integer@) the number of arguments expected by the function.
+--     * @strict-args@ (@Array@ of @Boolean@) whether the function is strict in
+--       in its arguments.
 --     * @effects@ (@Array@ of @String@) the effects contained in the function,
 --       i.e. which type classes need to be passed.
 --     * @needs-free-args@ (@Boolean@) whether the arguments of the @Free@
 --       monad need to be passed to the function.
+--
+--   Additionally, the following optional key/value pairs are allowed.
+--
+--     * @encapsulates-effects@ (@Boolean@, defaults to @false@) whether the
+--       function encapsulates effects. This property should only be set to
+--       @true@ for selected functions from the base library. For example, the
+--       flag is set for functions from the QuickCheck extension.
 module FreeC.Environment.ModuleInterface.Decoder ( loadModuleInterface ) where
 
 import           Control.Monad                     ( when )
@@ -136,7 +145,7 @@ import           FreeC.Util.Config
 --   that the implementation of the corresponding change in the other module
 --   is forgotten.
 moduleInterfaceFileFormatVersion :: Integer
-moduleInterfaceFileFormatVersion = 4
+moduleInterfaceFileFormatVersion = 6
 
 -- | Parses an IR AST node from an Aeson string.
 parseAesonIR :: Parseable a => String -> Aeson.Parser a
@@ -271,25 +280,28 @@ instance Aeson.FromJSON ModuleInterface where
       arity <- obj .: "arity"
       haskellName <- obj .: "haskell-name"
       haskellType <- obj .: "haskell-type"
+      strictArgs <- obj .: "strict-args"
       effects <- obj .: "effects"
       freeArgsNeeded <- obj .: "needs-free-args"
+      effectsEncapsulated <- obj .:? "encapsulates-effects" .!= False
       coqName <- obj .: "coq-name"
       agdaName <- obj .: "agda-name"
       -- TODO this does not work with vanishing type arguments.
       let (argTypes, returnType) = IR.splitFuncType haskellType arity
           typeArgs               = freeTypeVars haskellType
       return FuncEntry
-        { entrySrcSpan       = NoSrcSpan
-        , entryArity         = arity
-        , entryTypeArgs      = typeArgs
-        , entryArgTypes      = argTypes
-        , entryStrictArgs    = replicate arity False
-        , entryReturnType    = returnType
-        , entryNeedsFreeArgs = freeArgsNeeded
-        , entryEffects       = effects
-        , entryIdent         = coqName
-        , entryAgdaIdent     = agdaName
-        , entryName          = haskellName
+        { entrySrcSpan             = NoSrcSpan
+        , entryArity               = arity
+        , entryTypeArgs            = typeArgs
+        , entryArgTypes            = argTypes
+        , entryStrictArgs          = strictArgs
+        , entryReturnType          = returnType
+        , entryNeedsFreeArgs       = freeArgsNeeded
+        , entryEncapsulatesEffects = effectsEncapsulated
+        , entryEffects             = effects
+        , entryIdent               = coqName
+        , entryAgdaIdent           = agdaName
+        , entryName                = haskellName
         }
 
 -- | Loads a module interface file from a @.toml@ or @.json@ file.

@@ -6,7 +6,7 @@
 # Metadata                                                                   #
 ##############################################################################
 
-version = 4
+version = 6
 module-name = 'Prelude'
 library-name = 'Base'
 exported-types = [
@@ -82,6 +82,7 @@ exported-values = [
   coq-name        = 'otherwise'
   agda-name       = 'otherwise'
   arity           = 0
+  strict-args     = []
   effects         = []
   needs-free-args = true
 
@@ -91,8 +92,10 @@ exported-values = [
   coq-name        = 'andBool'
   agda-name       = '_∧_'
   arity           = 2
+  strict-args     = [false, false]
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Bool -> Prelude.Bool -> Prelude.Bool'
@@ -100,8 +103,10 @@ exported-values = [
   coq-name        = 'orBool'
   agda-name       = '_∨_'
   arity           = 2
+  strict-args     = [false, false]
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 ##############################################################################
 # Integer                                                                    #
@@ -120,8 +125,10 @@ exported-values = [
   coq-name        = 'addInteger'
   agda-name       = '_+_'
   arity           = 2
+  strict-args     = [false, false]
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
@@ -129,8 +136,10 @@ exported-values = [
   coq-name        = 'subInteger'
   agda-name       = '_-_'
   arity           = 2
+  strict-args     = [false, false]
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
@@ -138,8 +147,10 @@ exported-values = [
   coq-name        = 'mulInteger'
   agda-name       = '_*_'
   arity           = 2
+  strict-args     = [false, false]
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Integer'
@@ -147,8 +158,10 @@ exported-values = [
   coq-name        = 'powInteger'
   agda-name       = '_^_'
   arity           = 2
+  strict-args     = [false, false]
   effects         = ['Partiality']
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
@@ -156,8 +169,10 @@ exported-values = [
   coq-name        = 'leInteger'
   agda-name       = '_≤_'
   arity           = 2
+  strict-args     = [false, false]
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
@@ -165,8 +180,10 @@ exported-values = [
   coq-name        = 'ltInteger'
   agda-name       = '_<_'
   arity           = 2
+  strict-args     = [false, false]
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
@@ -174,8 +191,10 @@ exported-values = [
   coq-name        = 'eqInteger'
   agda-name       = '_≟_'
   arity           = 2
+  strict-args     = [false, false]
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
@@ -183,8 +202,10 @@ exported-values = [
   coq-name        = 'neqInteger'
   agda-name       = '_≠_'
   arity           = 2
+  strict-args     = [false, false]
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
@@ -192,8 +213,10 @@ exported-values = [
   coq-name        = 'geInteger'
   agda-name       = '_≥_'
   arity           = 2
+  strict-args     = [false, false]
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer -> Prelude.Bool'
@@ -201,8 +224,10 @@ exported-values = [
   coq-name        = 'gtInteger'
   agda-name       = '_>_'
   arity           = 2
+  strict-args     = [false, false]
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 [[functions]]
   haskell-type    = 'Prelude.Integer -> Prelude.Integer'
@@ -210,8 +235,10 @@ exported-values = [
   coq-name        = 'negate'
   agda-name       = 'neg'
   arity           = 1
+  strict-args     = [false]
   effects         = []
   needs-free-args = true
+  encapsulates-effects = false
 
 ##############################################################################
 # Lists                                                                      #

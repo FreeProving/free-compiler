@@ -182,6 +182,13 @@ conApp srcSpan = app srcSpan . untypedCon srcSpan
 visibleTypeApp :: SrcSpan -> Expr -> [Type] -> Expr
 visibleTypeApp = foldl . untypedTypeAppExpr
 
+-- | Returns the function name of a function application, or @Nothing@ if the
+--   given expression is not a function application.
+getFuncName :: Expr -> Maybe VarName
+getFuncName (Var _ varName _) = Just varName
+getFuncName (App _ lhs _ _)   = getFuncName lhs
+getFuncName _                 = Nothing
+
 -- | Pretty instance for expressions.
 --
 --   If the expression contains type annotations, the output quickly becomes

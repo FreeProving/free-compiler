@@ -71,3 +71,6 @@ Fixpoint compute_log (m : ListMemo) (xs : list (option ID * string)) : list stri
 
 Definition collectMessages (A : Type) (x : (A * list (option ID * string))) : (A * list string) :=
    (fst x,compute_log emptymap (snd x)).
+
+Definition discardMessages (A : Type) (x : (A * list (option ID * string))) : A :=
+   fst x.

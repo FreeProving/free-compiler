@@ -146,6 +146,13 @@ For example, the following entry defines the total function `(++)` ("append") an
   needs-free-args = true
 ```
 
+Additionally, the following optional key/value pairs are allowed.
+
+  * `encapsulates-effects` (`Boolean`, defaults to `false`) whether the
+    function encapsulates effects. This property should only be set to
+    `true` for selected functions from the base library. For example, the
+    flag is set for functions from the QuickCheck extension.
+
 [TOML]:
   https://github.com/toml-lang/toml
   "Tom's Obvious, Minimal Language"

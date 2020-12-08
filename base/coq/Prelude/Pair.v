@@ -1,6 +1,5 @@
 From Base Require Import Free.
 From Base Require Import Free.Instance.Identity.
-From Base Require Import Free.Malias.
 
 From Base Require Import Prelude.Bool.
 
@@ -53,14 +52,16 @@ Section SecNFPair.
 End SecNFPair.
 
 (* ShareableArgs instance for Pair *)
-Instance ShareableArgsPair {Shape : Type} {Pos : Shape -> Type} (A B : Type)
-                        `{Injectable Share.Shape Share.Pos Shape Pos}
-                        `{SAA : ShareableArgs Shape Pos A}
-                        `{SAB : ShareableArgs Shape Pos B}
+Instance ShareableArgsPair (Shape : Type) (Pos : Shape -> Type)
+
+                           (A B : Type)
+                           `{ShareableArgs Shape Pos A}
+                           `{ShareableArgs Shape Pos B}
   : ShareableArgs Shape Pos (Pair Shape Pos A B) := {
-     shareArgs p := match p with
-                    | pair_ fx fy => cbneed Shape Pos (@shareArgs Shape Pos A SAA) fx >>= fun sx =>
-                                     cbneed Shape Pos (@shareArgs Shape Pos B SAB) fy >>= fun sy =>
-                                     (pure (pair_ sx sy))
-                    end
+     shareArgs S p
+       := match p with
+          | pair_ fx fy => share Shape Pos S fx >>= fun sx =>
+                           share Shape Pos S fy >>= fun sy =>
+                             (pure (pair_ sx sy))
+          end
    }.

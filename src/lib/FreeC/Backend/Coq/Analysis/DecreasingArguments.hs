@@ -169,7 +169,7 @@ checkDecArgs decls knownDecArgIndecies decArgIndecies = all
       in checkExpr (initDepthMap decArg) rhs
 
   -- | Tests whether there is a variable that is structurally smaller than the
-  --   potential decreasing argument in the position of the decreasing argumnet
+  --   potential decreasing argument in the position of the decreasing argument
   --   for all applications of functions from the strongly connected component.
   --
   --   The first argument maps variables that are known to be structurally
@@ -282,10 +282,27 @@ extendDepthMap :: Int -> IR.Expr -> DepthMap -> DepthMap
 
 -- The bindings of @let@-expressions introduce variables at the same depth
 -- as the expressions on their right-hand sides.
-extendDepthMap _ (IR.Let _ binds _ _) depthMap
-  = let bindDepths = map (flip lookupDepth depthMap . IR.bindExpr) binds
-        bindPats   = map IR.bindVarPat binds
-    in withDepths (zip bindPats bindDepths) depthMap
+extendDepthMap _ (IR.Let _ binds _ _) depthMap0
+  = let shadowed   = Set.fromList (map IR.declQName binds)
+        depthMap0' = depthMap0 `Map.withoutKeys` shadowed
+    in extendBindDepths depthMap0'
+ where
+  -- | Recursively extends the given depth map by the depths of variables
+  --   declared by the @let@-bindings until the depths don't change anymore.
+  --
+  --   Without recursion @let@-expressions of the form
+  --
+  --   > let { x = y; y = z } in e
+  --
+  --   would set @y@ at the same depth as @z@ but @x@ not.
+  extendBindDepths :: DepthMap -> DepthMap
+  extendBindDepths depthMap
+    = let bindDepths = map (flip lookupDepth depthMap . IR.bindExpr) binds
+          bindPats   = map IR.bindVarPat binds
+          depthMap'  = withDepths (zip bindPats bindDepths) depthMap
+      in if depthMap == depthMap'
+           then depthMap'
+           else extendBindDepths depthMap'
 -- Alternatives of @case@-expressions introduce variables at a depth one
 -- level deeper than the scrutinee.
 extendDepthMap childIndex (IR.Case _ scrutinee alts _) depthMap

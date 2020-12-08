@@ -17,4 +17,4 @@ slug_ref() {
          | cut -c1-63
 }
 
-echo "::set-env name=$2::$(slug_ref "$1")"
+echo "$2=$(slug_ref "$1")" >> $GITHUB_ENV

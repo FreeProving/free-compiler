@@ -175,20 +175,22 @@ transformRecFuncDecl
     -- The helper function uses all effects that are used by the original
     -- function.
     freeArgsNeeded <- inEnv $ needsFreeArgs name
+    encEffects <- inEnv $ encapsulatesEffects name
     effects <- inEnv $ lookupEffects name
     _entry <- renameAndAddEntry
       $ FuncEntry
-      { entrySrcSpan       = NoSrcSpan
-      , entryArity         = length helperArgTypes
-      , entryTypeArgs      = map IR.typeVarDeclIdent helperTypeArgs
-      , entryArgTypes      = map fromJust helperArgTypes
-      , entryStrictArgs    = map IR.varPatIsStrict helperArgs
-      , entryReturnType    = fromJust helperReturnType
-      , entryNeedsFreeArgs = freeArgsNeeded
-      , entryEffects       = effects
-      , entryName          = helperName
-      , entryIdent         = undefined -- filled by renamer
-      , entryAgdaIdent     = undefined -- filled by renamer
+      { entrySrcSpan             = NoSrcSpan
+      , entryArity               = length helperArgTypes
+      , entryTypeArgs            = map IR.typeVarDeclIdent helperTypeArgs
+      , entryArgTypes            = map fromJust helperArgTypes
+      , entryStrictArgs          = map IR.varPatIsStrict helperArgs
+      , entryReturnType          = fromJust helperReturnType
+      , entryNeedsFreeArgs       = freeArgsNeeded
+      , entryEncapsulatesEffects = encEffects
+      , entryEffects             = effects
+      , entryName                = helperName
+      , entryIdent               = undefined -- filled by renamer
+      , entryAgdaIdent           = undefined -- filled by renamer
       }
     -- Determine the index of the decreasing argument.
     let decArgIndex' = fromJust $ elemIndex decArg helperArgNames
@@ -221,8 +223,8 @@ transformRecFuncDecl
 --   is removed.
 --
 --   The purpose of this transformation is to prevent applications of @share@
---   and @call@ to be generated within helper functions for subterms of the
---   decreasing since they interfere with Coq's termination checker.
+--   to be generated within helper functions for subterms of the decreasing
+--   since they interfere with Coq's termination checker.
 eliminateAliases :: IR.FuncDecl -> DecArgIndex -> IR.FuncDecl
 eliminateAliases helperDecl decArgIndex
   = let decArg = IR.varPatQName (IR.funcDeclArgs helperDecl !! decArgIndex)

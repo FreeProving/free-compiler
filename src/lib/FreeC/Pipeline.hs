@@ -17,8 +17,10 @@ import           FreeC.Pass.DependencyAnalysisPass
 import           FreeC.Pass.EffectAnalysisPass
 import           FreeC.Pass.EtaConversionPass
 import           FreeC.Pass.ExportPass
+import           FreeC.Pass.FlattenExprPass
 import           FreeC.Pass.ImplicitPreludePass
 import           FreeC.Pass.ImportPass
+import           FreeC.Pass.InlineLambdaPass
 import           FreeC.Pass.KindCheckPass
 import           FreeC.Pass.LetSortPass
 import           FreeC.Pass.PragmaPass
@@ -38,10 +40,12 @@ pipeline = implicitPreludePass
   >=> letSortPass
   >=> typeSignaturePass
   >=> pragmaPass
+  >=> flattenExprPass
   >=> dependencyAnalysisPass
   (typeInferencePass >=> defineFuncDeclsPass >=> effectAnalysisPass)
   >=> completePatternPass
   >=> etaConversionPass
+  >=> inlineLambdaPass
   >=> exportPass
 
 -- | Runs the compiler pipeline on the given module.

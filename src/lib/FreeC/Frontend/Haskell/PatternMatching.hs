@@ -56,13 +56,12 @@ import           FreeC.Monad.Reporter
 transformPatternMatching
   :: HSE.Module SrcSpan -> Converter (HSE.Module SrcSpan)
 transformPatternMatching inputModule = do
-  let inputSrcSpan      = HSE.ann inputModule
-      inputFilename
-        = [srcSpanFilename inputSrcSpan | hasSrcSpanFilename inputSrcSpan]
-      inputFileContents = [unlines (srcSpanCodeLines inputSrcSpan)
-                          | hasSourceCode inputSrcSpan
-                          ]
-      inputFileMap      = Map.fromList (zip inputFilename inputFileContents)
+  let inputSrcSpan = HSE.ann inputModule
+      inputSrcFile = srcSpanFile inputSrcSpan
+      inputFile    = [(srcFileName inputSrcFile, srcFileContents inputSrcFile)
+                     | hasSrcSpanFile inputSrcSpan
+                     ]
+      inputFileMap = Map.fromList inputFile
   runM
     $ HST.runInputFileNoIO inputFileMap
     $ reportToReporter
@@ -96,8 +95,16 @@ type Frontend = HSE SrcSpan
 
 -- | Converts a source span to an HST source span.
 instance FromHSE.TransformSrcSpan SrcSpan where
-  transformSrcSpan srcSpan = HST.SrcSpan srcSpan HST.MsgSrcSpan
-    { HST.msgSrcSpanFilePath    = srcSpanFilename srcSpan
+  transformSrcSpan NoSrcSpan           = HST.NoSrcSpan
+  transformSrcSpan srcSpan@FileSpan {} = HST.SrcSpan srcSpan HST.MsgSrcSpan
+    { HST.msgSrcSpanFilePath    = srcFileName (srcSpanFile srcSpan)
+    , HST.msgSrcSpanStartLine   = 0
+    , HST.msgSrcSpanStartColumn = 0
+    , HST.msgSrcSpanEndLine     = 0
+    , HST.msgSrcSpanEndColumn   = 0
+    }
+  transformSrcSpan srcSpan@SrcSpan {}  = HST.SrcSpan srcSpan HST.MsgSrcSpan
+    { HST.msgSrcSpanFilePath    = srcFileName (srcSpanFile srcSpan)
     , HST.msgSrcSpanStartLine   = srcSpanStartLine srcSpan
     , HST.msgSrcSpanStartColumn = srcSpanStartColumn srcSpan
     , HST.msgSrcSpanEndLine     = srcSpanEndLine srcSpan
@@ -251,16 +258,14 @@ convertMsgSrcSpan
   :: Member HST.InputFile r => Maybe HST.MsgSrcSpan -> Sem r SrcSpan
 convertMsgSrcSpan Nothing           = return NoSrcSpan
 convertMsgSrcSpan (Just msgSrcSpan) = do
-  contents <- HST.getInputFile (HST.msgSrcSpanFilePath msgSrcSpan)
-  return SrcSpan
-    { srcSpanFilename    = HST.msgSrcSpanFilePath msgSrcSpan
-    , srcSpanStartLine   = HST.msgSrcSpanStartLine msgSrcSpan
-    , srcSpanStartColumn = HST.msgSrcSpanStartColumn msgSrcSpan
-    , srcSpanEndLine     = HST.msgSrcSpanEndLine msgSrcSpan
-    , srcSpanEndColumn   = HST.msgSrcSpanEndColumn msgSrcSpan
-    , srcSpanCodeLines   = take (HST.msgSrcSpanEndLine msgSrcSpan - 1)
-        (drop (HST.msgSrcSpanStartLine msgSrcSpan - 1) (lines contents))
-    }
+  let filename = HST.msgSrcSpanFilePath msgSrcSpan
+  contents <- HST.getInputFile filename
+  return SrcSpan { srcSpanFile        = mkSrcFile filename contents
+                 , srcSpanStartLine   = HST.msgSrcSpanStartLine msgSrcSpan
+                 , srcSpanStartColumn = HST.msgSrcSpanStartColumn msgSrcSpan
+                 , srcSpanEndLine     = HST.msgSrcSpanEndLine msgSrcSpan
+                 , srcSpanEndColumn   = HST.msgSrcSpanEndColumn msgSrcSpan
+                 }
 
 -- | Converts the severity of a message that has been reported by the pattern
 --   matching compiler to our message severity data type.

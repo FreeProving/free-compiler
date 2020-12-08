@@ -33,20 +33,28 @@ Module Maybe.
 
   (* Handler for a program containing Maybe. *)
   Module Import Handler.
-    Definition SMaybe (Shape' : Type) := Comb.Shape Shape Shape'.
-    Definition PMaybe {Shape' : Type} (Pos' : Shape' -> Type)
-    := Comb.Pos Pos Pos'.
+  Section SecMaybeHandler.
+    Context {Shape' : Type}.
+    Context {Pos'   : Shape' -> Type}.
 
-    Fixpoint runMaybe {Shape' : Type}
-                      {Pos' : Shape' -> Type}
-                      {A : Type}
-                      (fm : Free (SMaybe Shape') (PMaybe Pos') A)
-     : Free Shape' Pos' (option A)
-    := match fm with
-       | pure x            => pure (Some x)
-       | impure (inl s) _  => pure None
-       | impure (inr s) pf => impure s (fun p : Pos' s => runMaybe (pf p))
-       end.
+    Notation "'FreeComb'" := (Free (Comb.Shape Shape Shape') (Comb.Pos Pos Pos')).
+    Notation "'Free''" := (Free Shape' Pos').
+
+    Fixpoint runMaybe {A : Type} (fx : FreeComb A) : Free' (option A)
+     := match fx with
+        | pure x            => pure (Some x)
+        | impure (inl s) _  => pure None
+        | impure (inr s) pf => impure s (fun p : Pos' s => runMaybe (pf p))
+        end.
+
+    (* When proving properties about partial computations, consider failed
+       constructions of properties as [False]. *)
+    Definition runMaybeProp (fx : FreeComb Prop) : Free' Prop
+     := runMaybe fx >>= fun mx => match mx with
+                                  | None   => pure False
+                                  | Some x => pure x
+                                  end.
+  End SecMaybeHandler.
   End Handler.
 
   (* Partial instance for the maybe monad. *)

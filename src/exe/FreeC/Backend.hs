@@ -22,6 +22,7 @@ import           FreeC.Backend.Agda.Pretty           ()
 import qualified FreeC.Backend.Coq.Base              as Coq.Base
 import qualified FreeC.Backend.Coq.Converter.Module  as Coq.Converter
 import           FreeC.Backend.Coq.Pretty            ()
+import           FreeC.IR.Strip                      ( stripExprType )
 import qualified FreeC.IR.Syntax                     as IR
 import           FreeC.Monad.Application
 import           FreeC.Pretty                        ( showPretty )
@@ -60,11 +61,12 @@ defaultBackend = backendName coqBackend
 -------------------------------------------------------------------------------
 -- | A dummy backend that just pretty prints the IR.
 irBackend :: Backend
-irBackend = Backend { backendName          = "ir"
-                    , backendConvertModule = return . showPretty
-                    , backendFileExtension = "ir"
-                    , backendSpecialAction = return ()
-                    }
+irBackend = Backend
+  { backendName          = "ir"
+  , backendConvertModule = return . showPretty . stripExprType
+  , backendFileExtension = "ir"
+  , backendSpecialAction = return ()
+  }
 
 -------------------------------------------------------------------------------
 -- Coq Backend                                                               --

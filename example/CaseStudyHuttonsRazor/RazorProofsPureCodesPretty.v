@@ -46,6 +46,7 @@ Section Proofs_PureCodes.
 
   Variable Shape : Type.
   Variable Pos   : Shape -> Type.
+  Variable S     : Strategy Shape Pos.
   Variable Part  : Partial Shape Pos.
 
   (* If the code is pure and the first operation is pure if there is any, an
@@ -53,7 +54,7 @@ Section Proofs_PureCodes.
   Lemma exec_strict_on_stack_arg_Nil :
     UndefinedIsImpure Part ->
     UndefinedHasNoPositions Part ->
-        exec Part Nil_ undefined
+        exec_ Part Nil_ undefined
         = undefined.
   Proof.
     intros HUndefined1 HUndefined2.
@@ -72,7 +73,7 @@ Section Proofs_PureCodes.
     UndefinedHasNoPositions Part ->
     forall (op : Op Shape Pos)
            (fcode : Free Shape Pos (Code Shape Pos)),
-        exec Part (Cons_ (pure op) fcode) undefined
+        exec_ Part (Cons_ (pure op) fcode) undefined
         = undefined.
   Proof.
     intros HUndefined1 HUndefined2 op fcode.
@@ -99,8 +100,8 @@ Section Proofs_PureCodes.
     forall (fcode2 : Free Shape Pos (Code Shape Pos)),
     RecPureCode fcode2 ->
     forall (fstack : Free Shape Pos (Stack Shape Pos)),
-        exec Part (append fcode1 fcode2) fstack
-        = exec Part fcode2 (exec Part fcode1 fstack).
+        exec_ Part (append_ fcode1 fcode2) fstack
+        = exec_ Part fcode2 (exec_ Part fcode1 fstack).
   Proof with pretty; unfold Code; unfold Stack; try reflexivity.
     intros HUndefined1 HUndefined2 fcode1 HPure1 fcode2 HPure2.
     (* As we now that both pieces of code are recursively pure, we can

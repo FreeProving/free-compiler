@@ -194,8 +194,10 @@ library freec-internal
                       , FreeC.Pass.EffectAnalysisPass
                       , FreeC.Pass.EtaConversionPass
                       , FreeC.Pass.ExportPass
+                      , FreeC.Pass.FlattenExprPass
                       , FreeC.Pass.ImplicitPreludePass
                       , FreeC.Pass.ImportPass
+                      , FreeC.Pass.InlineLambdaPass
                       , FreeC.Pass.KindCheckPass
                       , FreeC.Pass.LetSortPass
                       , FreeC.Pass.PragmaPass
@@ -278,6 +280,8 @@ test-suite freec-unit-tests
                     , FreeC.Pass.EffectAnalysisPassTests
                     , FreeC.Pass.EtaConversionPassTests
                     , FreeC.Pass.ExportPassTests
+                    , FreeC.Pass.FlattenExprPassTests
+                    , FreeC.Pass.InlineLambdaPassTests
                     , FreeC.Pass.KindCheckPassTests
                     , FreeC.Pass.LetSortPassTests
                     , FreeC.Pass.ResolverPassTests

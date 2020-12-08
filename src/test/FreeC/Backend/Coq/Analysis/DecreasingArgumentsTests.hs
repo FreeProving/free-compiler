@@ -78,6 +78,13 @@ testDecreasingArguments
         ++ "      Cons x xs' -> tails xs'"
         ++ "    })"
       identifyDecArgs [funcDecl] `shouldReturn` [0]
+    it "allows transitive aliases of the decreasing argument" $ do
+      funcDecl <- expectParseTestFuncDecl
+        $ "tails xs = let { xs1 = xs0; xs0 = xs } in Cons xs1 (case xs1 of {"
+        ++ "      Nil        -> Nil;"
+        ++ "      Cons x xs' -> tails xs'"
+        ++ "    })"
+      identifyDecArgs [funcDecl] `shouldReturn` [0]
     it "allows aliases of structurally smaller variables" $ do
       funcDecl <- expectParseTestFuncDecl
         $ "pow2 n = case n of {"

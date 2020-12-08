@@ -7,8 +7,7 @@ From Base Require Import Free.Monad.
 
 From Base Require Import Free.Instance.Identity.
 
-Class Normalform (Shape : Type) (Pos : Shape -> Type)
-                 (A : Type) :=
+Class Normalform (Shape : Type) (Pos : Shape -> Type) (A : Type) :=
   {
     (** The normalized return type. *)
     nType : Type;
@@ -18,13 +17,13 @@ Class Normalform (Shape : Type) (Pos : Shape -> Type)
   }.
 
 (* Normalizes a Free value. *)
-Definition nf {Shape : Type} {Pos : Shape -> Type} {A : Type}
-                  `{Normalform Shape Pos A} (n : Free Shape Pos A)
+Definition nf {Shape : Type} {Pos : Shape -> Type}
+              {A : Type} `{Normalform Shape Pos A} (n : Free Shape Pos A)
  : Free Shape Pos nType
 := n >>= nf'.
 
-Lemma nfImpure {Shape : Type} {Pos : Shape -> Type} {A : Type}
-                     `{Normalform Shape Pos A}
+Lemma nfImpure {Shape : Type} {Pos : Shape -> Type}
+               {A : Type} `{Normalform Shape Pos A}
   : forall s (pf : _ -> Free Shape Pos A),
   nf (impure s pf) = impure s (fun p => nf (pf p)).
 Proof. trivial. Qed.
