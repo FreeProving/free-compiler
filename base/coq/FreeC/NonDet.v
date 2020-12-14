@@ -9,7 +9,7 @@ Definition choice (Shape : Type) (Pos : Shape -> Type) (ND : NonDet Shape Pos)
   : Free Shape Pos A
  := @Choice Shape Pos A ND x y.
 
-Definition fail (Shape : Type) (Pos : Shape -> Type) (ND : NonDet Shape Pos)
+Definition failed (Shape : Type) (Pos : Shape -> Type) (ND : NonDet Shape Pos)
                 {A : Type}
   : Free Shape Pos A
  := @Fail Shape Pos ND A.

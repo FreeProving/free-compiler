@@ -31,9 +31,9 @@ exported-values = [
 
 [[functions]]
   haskell-type    = 'a'
-  haskell-name    = 'FreeC.NonDet.fail'
-  coq-name        = 'fail'
-  agda-name       = 'fail'
+  haskell-name    = 'FreeC.NonDet.failed'
+  coq-name        = 'failed'
+  agda-name       = 'failed'
   arity           = 2
   effects         = ['NonDet']
   strict-args     = []
