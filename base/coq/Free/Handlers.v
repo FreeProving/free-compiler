@@ -199,7 +199,7 @@ Section TwoEffects.
   Definition SErrorTrc := Comb.Shape (Error.Shape string) (Comb.Shape Trace.Shape Identity.Shape).
   Definition PErrorTrc := Comb.Pos (@Error.Pos string) (Comb.Pos Trace.Pos Identity.Pos).
 
-  Instance HandlerErrorTrc (A : Type) : Handler SErrorTrc PErrorTrc := {
+  Instance HandlerErrorTrace (A : Type) : Handler SErrorTrc PErrorTrc := {
    handle _ _ fx := collectMessages (run (runTracing (runError (nf fx))));
    handleProp fx := discardMessages (run (runTracing (runErrorProp (nf fx))))
   }.
@@ -279,7 +279,7 @@ Section ThreeEffects.
       (Comb.Pos Maybe.Pos
         (Comb.Pos Trace.Pos Identity.Pos)).
 
-  Instance HandlerNDMaybeTrc : Handler SNDMaybeTrc PNDMaybeTrc := {
+  Instance HandlerNDMaybeTrace : Handler SNDMaybeTrc PNDMaybeTrc := {
    handle _ _ fx := let (val,log) := (collectMessages (run (runTracing (runMaybe (runChoice (nf fx))))))
                     in match val with
                        | None => (None, log)

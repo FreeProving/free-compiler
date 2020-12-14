@@ -16,17 +16,18 @@ Since our compiler does not support type classes, the types of `Testable` argume
 In order to pass boolean values to such arguments (`Bool` has a `Testable` instance), the `property` function from `Testable` is exposed for `Bool`.
 
  - `property :: Bool -> Property`  
-   Converts a boolean value to a property that is satisfied if and only if the value is `True` and does not have an effect.
-   `property b` corresponds to `b = True_ Shape Pos` in Coq.
+   Converts a boolean value to a property that is satisfied if and only if the value is `True`.
+   If the computation of the boolean value has an effect, the meaning of the property depends on the chosen effect handler.
 
  - `(==>) :: Bool -> Property -> Property`  
    Creates an implication in Coq (i.e., `->`).
-   The premise of the implication is that the boolean value is `True` and does not have an effect (like `property`).
-   The conclusion is that the second argument is a pure (i.e., effect free) computation of a property that holds.
+   The premise of the implication is that the boolean value is `True` (like `property`).
+   The conclusion is that the property derived from the second argument holds.
+   If the computation of the premise or conclusion has an effect, their meaning depends on the chosen effect handler.
+   Effects in the premise are handled independently of effects in the conclusion.
 
  - `(===) :: a -> a -> Property`  
-   Creates a property that tests whether the given arguments are structurally equal (i.e., `=` in Coq).
-   If the arguments have effects, it must be the same one.
+   Creates a property that tests whether the results of handling the given arguments are structurally equal (i.e., `=` in Coq).
    Since we do not require an `Eq` instance, you can even compare functions.
 
  - `(=/=) :: a -> a -> Property`  
@@ -34,21 +35,110 @@ In order to pass boolean values to such arguments (`Bool` has a `Testable` insta
 
  - `(.&&.) :: Property -> Property -> Property`  
    Creates the conjunction of the given properties (i.e., `/\` in Coq).
-   Both arguments must be pure computations of properties.
+   When one of the arguments is not a pure computation, the interpretation of the resulting property depends on the chosen effect handler.
 
  - `(.||.) :: Property -> Property -> Property`  
    Creates the disjunction of the given properties (i.e., `\/` in Coq).
-   Both arguments must be pure computations of properties.
+   When one of the arguments is not a pure computation, the interpretation of the resulting property depends on the chosen effect handler.
 
-Furthermore, there is the function `quickCheck` in our Coq version of the `Test.QuickCheck` module.
+## Converting QuickCheck Properties To Coq
+
+In addition to the functions listed in the previous section, there is the function `quickCheck` in our Coq version of the `Test.QuickCheck` module.
 In Haskell `quickCheck` is used to test whether a QuickCheck property holds and has the type
 `Testable prop => prop -> IO ()`.
 In Coq we are using it to convert a QuickCheck property into a Coq property (i.e., a `Prop`) that can be used in `Theorem` sentences.
 The argument does not have to be a `Property` since we have recreated the `Testable` type class in Coq.
-If the argument of `quickCheck` is a monadic value, it must not have an effect and is converted recursively.
 If the argument is a function, the function arguments are universally quantified and the result is converted recursively.
 
-How QuickCheck properties can be proven in Coq is demonstrated below.
+```coq
+Theorem foo: quickCheck prop_foo.
+```
+
+If the construction of a property involves an effect, the interpretation of the resulting Coq property depends on the chosen effect handler.
+In case of `quickCheck`, the effect handler is always instantiated with `NoHandler` which leaves the computation tree unchanged and interprets a property as `False` when its construction has an effect.
+For example, the following property is `False` under the `NoHandler`.
+
+```coq
+prop_undefined :: Property
+prop_undefined = undefined
+```
+
+In order to choose a different interpretation, use the `quickCheckHandle` function.
+It has an additional parameter for the effect handler.
+The following effect handlers are available for common combinations of effects.
+
+| Effect Handler                  | Effect Stack                                  | Result                              | Interpretation of Impure Properties                                                                                                 |
+|---------------------------------|-----------------------------------------------|-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| `HandlerNoEffect`               | `Identity`                                    | `A`                                 | There are no impure values                                                                                                          |
+| `HandlerShare`                  | `Share :+: Identity`                          | `A`                                 | Shared properties are evaluated at most once                                                                                        |
+|  **Partiality**                 |                                               |                                     |                                                                                                                                     |
+| `HandlerMaybe`                  | `Maybe :+: Identity`                          | `option A`                          | `undefined` properties are `False`                                                                                                  |
+| `HandlerShareMaybe`             | `Share :+: Maybe :+: Identity`                | `option A`                          | `undefined` properties are `False`                                                                                                  |
+| `HandlerError`                  | `Error :+: Identity`                          | `A + string`                        | Properties with `error`s are `False`                                                                                                |
+| `HandlerShareError`             | `Share :+: Error :+: Identity`                | `A + string`                        | Properties with `error`s are `False`                                                                                                |
+| **Non-Determinism**             |                                               |                                     |                                                                                                                                     |
+| `HandlerND`                     | `ND :+: Identity`                             | `list A`                            | All properties must be satisfied, empty choices are `True`                                                                          |
+| `HandlerShareND`                | `Share :+: ND :+: Identity`                   | `list A`                            | All properties must be satisfied, empty choices are `True`                                                                          |
+| `HandlerNDMaybe`                | `ND :+: Maybe :+: Identity`                   | `option (list A)`                   | All properties must be satisfied, empty choices are `True`, but `undefined` properties are `False`                                  |
+| `HandlerShareNDMaybe`           | `Share :+: ND :+: Maybe :+: Identity`         | `option (list A)`                   | All properties must be satisfied, empty choices are `True`, but `undefined` properties are `False`                                  |
+| `HandlerNDError`                | `ND :+: Error :+: Identity`                   | `list A + string`                   | All properties must be satisfied, empty choices are `True`, but properties with `error`s are `False`                                |
+| `HandlerShareNDError`           | `Share :+: ND :+: Error :+: Identity`         | `list A + string`                   | All properties must be satisfied, empty choices are `True`, but properties with `error`s are `False`                                |
+| **Tracing**                     |                                               |                                     |                                                                                                                                     |
+| `HandlerTrace`                  | `Trace :+: Identity`                          | `A * list string`                   | Logged messages are discarded                                                                                                       |
+| `HandlerShareTrace`             | `Share :+: Trace :+: Identity`                | `A * list string`                   | Logged messages are discarded                                                                                                       |
+| `HandlerMaybeTrace`             | `Maybe :+: Trace :+: Identity`                | `option A * list string`            | Logged messages are discarded, `undefined` properties are `False`                                                                   |
+| `HandlerMaybeShareTrace`        | `Maybe :+: Share :+: Trace :+: Identity`      | `option A * list string`            | Logged messages are discarded, `undefined` properties are `False`                                                                   |
+| `HandlerErrorTrace`             | `Error :+: Trace :+: Identity`                | `(A + string) * list string`        | Logged messages are discarded, properties with `error`s are `False`                                                                 |
+| `HandlerErrorShareTrace`        | `Error :+: Share :+: Trace :+: Identity`      | `(A + string) * list string`        | Logged messages are discarded, properties with `error`s are `False`                                                                 |
+| **Tracing and Non-Determinism** |                                               |                                     |                                                                                                                                     |
+| `HandlerTraceND`                | `Trace :+: ND :+: Identity`                   | `list (A * list string)`            | Logged messages are discarded, all properties must be satisfied, empty choices are `True`                                           |
+| `HandlerNDMaybeTrace`           | `ND :+: Maybe :+: Trace :+: Identity`         | `option (list A) * string string`   | Logged messages are discarded, all properties must be satisfied, empty choices are `True`, but `undefined` properties are `False`   |
+| `HandlerNDErrorTrace`           | `ND :+: Error :+: Trace :+: Identity`         | `(list A + string) * string string` | Logged messages are discarded, all properties must be satisfied, empty choices are `True`, but properties with `error`s are `False` |
+
+In contrast to `NoHandler` all handlers above are normalizing (where `A` is the normalized result type), i.e., all nested computations in the result are forced recursively.
+For example, the property `[undefined] === undefined` does not hold with `NoHandler` because the left-hand side is pure and the right-hand side is impure.
+But when another handler is used, the single element of `[undefined]` is forced which results in the left-hand side to evaluate to `undefined`, too.
+
+## Selecting Evaluation Strategies
+
+The compiler generates code that can be evaluated with arbitrary evaluation strategies that can be selected at runtime.
+By default, properties are universally quantified over the evaluation strategy.
+The evaluation `Strategy` type is an inductive data type with three constructors — one for every supported strategy.
+Additionally there are smart constructors that take the `Shape` and `Pos`ition explicitly like all other constructors in our framework.
+
+| Evaluation Strategy | Constructor | Smart Constructor  |
+|---------------------|-------------|--------------------|
+| Call-By-Name        | `cbn`       | `Cbn Shape Pos`    |
+| Call-By-Need        | `cbneed`    | `Cbneed Shape Pos` |
+| Call-By-Value       | `cbv`       | `Cbv Shape Pos`    |
+
+You can `destruct` the evaluation strategy in order to prove a property that holds for every evaluation strategy.
+However, most properties are evaluation strategy specific.
+To select the call-by-name or call-by-value strategy, use the following notation.
+
+```coq
+Theorem foo_cbn: quickCheck (withStrategy Cbn prop_foo).
+Theorem foo_cbv: quickCheck (withStrategy Cbv prop_foo).
+```
+
+The call-by-need strategy needs an additional `Injectable` constraint for the `Share` syntax.
+Thus, the following alternative syntax must be used.
+
+```coq
+Theorem foo_cbneed: quickCheck (withSharing prop_foo).
+```
+
+`withStrategy` leaves the effect stack universally quantified.
+However, when using `quickCheckHandle`, the effect stack is fixed and `withStrategy` cannot be used.
+In this case, the following notation is needed.
+
+```coq
+Theorem foo_cbn:    quickCheckHandle (@prop_foo _ _ cbn)    SomeHandler.
+Theorem foo_cbneed: quickCheckHandle (@prop_foo _ _ cbneed) SomeHandler.
+Theorem foo_cbv:    quickCheckHandle (@prop_foo _ _ cbv)    SomeHandler.
+```
+
+In the next sections we want to demonstrate how to prove converted QuickCheck properties.
 
 ## Effect-Generic Proofs
 
@@ -100,12 +190,13 @@ Just create a new `.v` file where you want to write your proofs.
 
 In the newly created `.v` file we first import the generated code and the QuickCheck library.
 Then we can use the `quickCheck` function to transform our QuickCheck property to a Coq property that we can proof.
+Let's consider call-by-name evaluation in this example.
 
 ```coq
 From Base Require Import Test.QuickCheck.
 From Generated Require Import Proofs.AppendAssoc.
 
-Theorem append_assocs: quickCheck prop_append_assoc.
+Theorem append_assoc: quickCheck (withStrategy Cbn prop_append_assoc).
 Proof.
   (* FILL IN HERE *)
 Qed.
@@ -114,7 +205,7 @@ Qed.
 Use your favorite editor with Coq integration to carry out the proof.
 See [`example/Proofs/AppendAssocProofs.v`][] where we have carried out the proof for `append_assocs` already.
 Proving the associativity of `append` requires some auxiliary lemmas.
-A simpler [example][`example/Proofs/ListFunctor.hs`] for proving a QuickCheck property can be found in [`example/Proofs/ListFunctorProofs.v`][] where we proved that lists satisfy the functor law.
+A simpler [example][`example/Proofs/ListFunctor.hs`] for proving a QuickCheck property can be found in [`example/Proofs/ListFunctorProofs.v`][] where we proved that lists satisfy the functor identity law.
 
 ## Non-Effect-Generic Proofs
 
@@ -174,6 +265,35 @@ Qed.
 ```
 
 As usual the full proofs can be found in [`example/Proofs/ReverseInvolutiveProofs.v`][].
+
+## Limitations of Sharing in Proofs
+
+The current implementation of sharing is quite difficult to work with.
+While it is usually trivial to prove properties without parameters (since Coq can simply evaluate all expressions and makes sure that the equalities hold), it is very difficult to prove properties even with just a single parameter if the sharing effect is considered.
+Additionally, arguments of QuickCheck properties are universally quantified when converted to Coq.
+However, the generated Coq code expects all function and constructor applications to be in a flat form (i.e., all arguments are shared variables).
+Thus, properties with arguments may behave unexpectedly.
+For example, consider the following QuickCheck property.
+
+```haskell
+double :: Integer -> Integer
+double x = x + x
+
+prop_double :: Integer -> Property
+prop_double x = double x === 2 * x
+```
+
+The property should be satisfied if we consider call-by-need or call-by-value evaluation.
+However, since `double x` and `x + x` are in flat form already, the compiler generates no sharing syntax but correctly assumes the caller of `double` and `prop_double` to apply the function only with shared variables.
+The universal quantification of `x` by our QuickCheck extension breaks this assumption, though.
+As a workaround, you can introduce sharing syntax yourself.
+
+```haskell
+prop_double :: Integer -> Property
+prop_double x = (let y = x in double y) === 2 * x
+```
+
+Since the framework supports deep sharing, this also works when `x` is a more complex data structure.
 
 [`example/Proofs/AppendAssoc.hs`]:
   ../example/Proofs/AppendAssoc.hs

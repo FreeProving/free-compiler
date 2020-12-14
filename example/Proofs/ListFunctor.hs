@@ -1,6 +1,6 @@
 -- | This example demonstrates how to use the translation of QuickCheck
 --   properties to prove properties like that lists fulfill the functor
---   law.
+--   identity law.
 --
 --   This is an example for a simple effect-generic proof.
 module Proofs.ListFunctor where
