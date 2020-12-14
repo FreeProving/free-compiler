@@ -7,7 +7,8 @@
 ![CI Pipeline](https://github.com/FreeProving/free-compiler/workflows/CI%20Pipeline/badge.svg)
 
 <!-- Short description -->
-A compiler for the monadic translation of Haskell programs to Coq that uses the `Free` monad as presented by [Dylus et al.][paper/DylusEtAl2018] to model partiality and other ambient effects.
+A compiler for the monadic translation of Haskell programs to Coq or Agda that uses the `Free` monad as presented by [Dylus et al.][paper/DylusEtAl2018] to model partiality and other ambient effects.
+Sharing is modeled in Coq as an effect based on the master's thesis by [Niels Bunkenburg][thesis/bunkenburg2019].
 
 ## Table of Contents
 
@@ -38,7 +39,7 @@ A compiler for the monadic translation of Haskell programs to Coq that uses the 
 ## Documentation
 
 This compiler was originally developed as part of a [bachelor's thesis][thesis/Andresen2019].
-The compiler has been extended with additional features and its architecture changed compared to the [version presented in the thesis][tag/v0.1.0.0], but the explanation of the monadic translation in the thesis is still up to date.
+The compiler has been extended with additional features and its architecture changed compared to the [version presented in the thesis][tag/v0.1.0.0], but the explanation of the monadic translation in the thesis is still mostly up to date.
 Read the [changelog][freec/CHANGELOG] for more information on what has changed since the initial release.
 
 The compiler's source code is documented using [Haddock][software/haddock].
@@ -205,6 +206,8 @@ To build and install the compiler and its dependencies, change into the compiler
 ```bash
 cabal new-install freec
 ```
+
+>  **Note**: Due to the dependency on the Agda compiler as a library, the first compilation of the Free Compiler can take over half an hour.
 
 The command above copies the base library and the compiler’s executable to Cabal’s installation directory and creates a symbolic link to the executable in
 `~/.cabal/bin`.
@@ -511,3 +514,6 @@ See the [LICENSE][freec/LICENSE] file for details.
 [thesis/Andresen2019]:
   https://freeproving.github.io/free-compiler/thesis/Andresen2019.pdf
   "Implementation of a Monadic Translation of Haskell Code to Coq"
+[thesis/bunkenburg2019]:
+  https://github.com/nbun/mathesis/blob/5d84d85a8c6eeb2aa12a4648ef1bec346faaa69c/Thesis/Mathesis.pdf
+  "Modeling Call-Time Choice as Effect using Scoped Free Monads"

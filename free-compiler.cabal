@@ -9,10 +9,13 @@ version:             0.2.0.0
 category:            Language
 synopsis:            A Haskell to Coq compiler.
 description:
-  This compiler converts Haskell code to Coq. Partial Haskell functions are
-  modelled in Coq by applying a monadic transformation. We use the free monad
-  for this purpose such that proofs about the converted Coq code can be effect
-  generic.
+  This compiler converts Haskell code to Coq and Agda. Effectfull Haskell code
+  is modelled in Coq and Agda by applying a monadic transformation. We use the
+  free monad for this purpose such that it is possible to reason about the code
+  in an effect generic fashion. The Coq back end of the compiler can model
+  sharing. The user can select at runtime between call-by-name, call-by-need and
+  call-by-value semantics. The Agda back end is limited to call-by-name at the
+  moment.
 
   This package is based on an early
   <https://github.com/beje8442/haskellToCoqCompiler prototype>
@@ -32,8 +35,7 @@ homepage:            https://github.com/FreeProving/free-compiler
 bug-reports:         https://github.com/FreeProving/free-compiler/labels/bug
 
 -- Additional files.
-data-files:          base/Prelude.toml
-                   , base/Test/QuickCheck.toml
+data-files:          base/**/*.toml
                    , base/**/*.v
                    , base/**/*.vo
                    , base/**/*.agda
