@@ -1,6 +1,6 @@
 # Changelog
 
-## Unrealeased
+## [0.3.0.0][tag/v0.3.0.0] / 2020-12-14
 
  - **Added support for sharing**
     + The evaluation strategy can be selected at runtime.
@@ -67,3 +67,6 @@
 [tag/v0.2.0.0]:
   https://github.com/FreeProving/free-compiler/tree/v0.2.0.0
   "Free Compiler v0.2.0.0"
+[tag/v0.3.0.0]:
+  https://github.com/FreeProving/free-compiler/tree/v0.3.0.0
+  "Free Compiler v0.3.0.0"
