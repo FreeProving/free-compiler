@@ -9,7 +9,7 @@ version:             0.2.0.0
 category:            Language
 synopsis:            A Haskell to Coq compiler.
 description:
-  This compiler converts Haskell code to Coq and Agda. Effectfull Haskell code
+  This compiler converts Haskell code to Coq and Agda. Effectful Haskell code
   is modelled in Coq and Agda by applying a monadic transformation. We use the
   free monad for this purpose such that it is possible to reason about the code
   in an effect generic fashion. The Coq back end of the compiler can model

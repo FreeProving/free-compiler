@@ -20,7 +20,7 @@ In addition, the module interface file contains meta information in the top-leve
 The top-level table must contain the following key/value pairs:
 
  - `version` (`Integer`) the version of the configuration file format.
-   The current version is `1`. If there is a breaking change in the future, the module interface file format version is updated.
+   The current version is `6`. If there is a breaking change in the future, the module interface file format version is updated.
    The parser accepts module interface files that use the most recent version only.
  - `module-name` (`String`) the name of the module that is described by the module interface file.
  - `library-name` (`String`) the name of the Coq library that contains the module.
@@ -148,10 +148,13 @@ For example, the following entry defines the total function `(++)` ("append") an
 
 Additionally, the following optional key/value pairs are allowed.
 
-  * `encapsulates-effects` (`Boolean`, defaults to `false`) whether the
-    function encapsulates effects. This property should only be set to
-    `true` for selected functions from the base library. For example, the
-    flag is set for functions from the QuickCheck extension.
+  * `encapsulates-effects` (`Boolean`, defaults to `false`) whether the function encapsulates effects.
+    This property should only be set to `true` for selected functions from the base library.
+    In particularm, the flag is set for functions from the QuickCheck extension.
+    Functions like `(===)`, for example, apply the effect handler to their left and right-hand side.
+    Thus, effects do not have an influence across the equality operator and effects on the left- or right-hand side do not make the construction of the property effectful.
+    If the flag is set to `true`, the compiler will not convert calls to the function into the flat form.
+    Otherwise, effects would be moved outside of the encapsulating function.
 
 [TOML]:
   https://github.com/toml-lang/toml
