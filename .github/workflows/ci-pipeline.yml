@@ -312,11 +312,6 @@ jobs:
       if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Checkout
       uses: actions/checkout@v2
-    - if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
-      name: Install SSH Client
-      uses: webfactory/ssh-agent@v0.4.1
-      with:
-        ssh-private-key: ${{ secrets.DEPLOY_KEY }}
     - if: ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Slug branch name
       run: ./.github/scripts/slug.sh "$GITHUB_REF" "GITHUB_REF_SLUG"
@@ -328,13 +323,13 @@ jobs:
         path: ./build/docs
     - if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Deploy to GitHub pages
-      uses: JamesIves/github-pages-deploy-action@3.7.1
+      uses: JamesIves/github-pages-deploy-action@v4.3.3
       with:
-        SSH: true
-        CLEAN: true
-        BRANCH: gh-pages
-        FOLDER: build/docs
-        TARGET_FOLDER: docs/${{ env.GITHUB_REF_SLUG }}
+        ssh-key: ${{ secrets.DEPLOY_KEY }}
+        clean: true
+        branch: gh-pages
+        folder: build/docs
+        target-folder: docs/${{ env.GITHUB_REF_SLUG }}
 
   #############################################################################
   # Coq Base library                                                          #
@@ -347,18 +342,18 @@ jobs:
   build-coq-base-library:
     name: Build Coq base library
     runs-on: ubuntu-latest
-    container: coqorg/coq:${{ matrix.coq }}
+    container:
+      image: coqorg/coq:${{ matrix.coq }}
+      options: --user root
     strategy:
       matrix:
         coq: ["8.10", "8.11", "8.12"]
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
-    - name: Fix file permissions
-      run: sudo chown -R coq:coq .
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup Coq
-      run: sudo sh -c "echo '/home/coq/.opam/$COMPILER/bin' >> $GITHUB_PATH"
+      run: echo "/home/coq/.opam/$COMPILER/bin" >> $GITHUB_PATH
     - name: Build Coq base library
       run: ./tool/compile-coq.sh base/coq
     - name: Copy compiled base library to build directory
@@ -456,13 +451,13 @@ jobs:
     name: Test generated Coq code
     needs: [test-examples, build-coq-base-library]
     runs-on: ubuntu-latest
-    container: coqorg/coq:${{ matrix.coq }}
+    container:
+      image: coqorg/coq:${{ matrix.coq }}
+      options: --user root
     strategy:
       matrix:
         coq: ["8.10", "8.11", "8.12"]
     steps:
-    - name: Fix file permissions
-      run: sudo chown -R coq:coq .
     - name: Checkout
       uses: actions/checkout@v2
     - name: Download base library for Coq ${{ matrix.coq }}
@@ -476,7 +471,7 @@ jobs:
         name: examples
         path: ./example
     - name: Setup Coq
-      run: sudo sh -c "echo '/home/coq/.opam/$COMPILER/bin' >> $GITHUB_PATH"
+      run: echo "/home/coq/.opam/$COMPILER/bin" >> $GITHUB_PATH
     - name: Compile (generated) Coq code
       run: ./tool/compile-coq.sh ./example
 
