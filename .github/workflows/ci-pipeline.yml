@@ -312,11 +312,6 @@ jobs:
       if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Checkout
       uses: actions/checkout@v2
-    - if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
-      name: Install SSH Client
-      uses: webfactory/ssh-agent@v0.4.1
-      with:
-        ssh-private-key: ${{ secrets.DEPLOY_KEY }}
     - if: ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Slug branch name
       run: ./.github/scripts/slug.sh "$GITHUB_REF" "GITHUB_REF_SLUG"
@@ -328,13 +323,13 @@ jobs:
         path: ./build/docs
     - if:   ${{ env.HAS_DEPLOY_KEY == 'true' }}
       name: Deploy to GitHub pages
-      uses: JamesIves/github-pages-deploy-action@3.7.1
+      uses: JamesIves/github-pages-deploy-action@v4.3.3
       with:
-        SSH: true
-        CLEAN: true
-        BRANCH: gh-pages
-        FOLDER: build/docs
-        TARGET_FOLDER: docs/${{ env.GITHUB_REF_SLUG }}
+        ssh-key: ${{ secrets.DEPLOY_KEY }}
+        clean: true
+        branch: gh-pages
+        folder: build/docs
+        target-folder: docs/${{ env.GITHUB_REF_SLUG }}
 
   #############################################################################
   # Coq Base library                                                          #
