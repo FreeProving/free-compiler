@@ -347,18 +347,18 @@ jobs:
   build-coq-base-library:
     name: Build Coq base library
     runs-on: ubuntu-latest
-    container: coqorg/coq:${{ matrix.coq }}
+    container:
+      image: coqorg/coq:${{ matrix.coq }}
+      options: --user root
     strategy:
       matrix:
         coq: ["8.10", "8.11", "8.12"]
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
-    - name: Fix file permissions
-      run: sudo chown -R coq:coq .
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup Coq
-      run: sudo sh -c "echo '/home/coq/.opam/$COMPILER/bin' >> $GITHUB_PATH"
+      run: echo "/home/coq/.opam/$COMPILER/bin" >> $GITHUB_PATH
     - name: Build Coq base library
       run: ./tool/compile-coq.sh base/coq
     - name: Copy compiled base library to build directory
@@ -456,13 +456,13 @@ jobs:
     name: Test generated Coq code
     needs: [test-examples, build-coq-base-library]
     runs-on: ubuntu-latest
-    container: coqorg/coq:${{ matrix.coq }}
+    container:
+      image: coqorg/coq:${{ matrix.coq }}
+      options: --user root
     strategy:
       matrix:
         coq: ["8.10", "8.11", "8.12"]
     steps:
-    - name: Fix file permissions
-      run: sudo chown -R coq:coq .
     - name: Checkout
       uses: actions/checkout@v2
     - name: Download base library for Coq ${{ matrix.coq }}
@@ -476,7 +476,7 @@ jobs:
         name: examples
         path: ./example
     - name: Setup Coq
-      run: sudo sh -c "echo '/home/coq/.opam/$COMPILER/bin' >> $GITHUB_PATH"
+      run: echo "/home/coq/.opam/$COMPILER/bin" >> $GITHUB_PATH
     - name: Compile (generated) Coq code
       run: ./tool/compile-coq.sh ./example
 
