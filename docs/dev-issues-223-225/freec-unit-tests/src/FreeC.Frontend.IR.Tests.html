@@ -1,0 +1,14 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module contains tests for modules with the @FreeC.Frontend.IR@ prefix.</span><span>
+</span><a name="line-2"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">FreeC.Frontend.IR.Tests</span><span> </span><span class="hs-special">(</span><span> </span><a href="FreeC.Frontend.IR.Tests.html#testIRFrontend"><span class="hs-identifier hs-var">testIRFrontend</span></a><span> </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-3"></a><span>
+</span><a name="line-4"></a><span class="hs-keyword">import</span><span>           </span><span class="hs-identifier">Test.Hspec</span><span>
+</span><a name="line-5"></a><span>
+</span><a name="line-6"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Frontend.IR.ParserTests.html"><span class="hs-identifier">FreeC.Frontend.IR.ParserTests</span></a><span>
+</span><a name="line-7"></a><span class="hs-keyword">import</span><span>           </span><a href="FreeC.Frontend.IR.ScannerTests.html"><span class="hs-identifier">FreeC.Frontend.IR.ScannerTests</span></a><span>
+</span><a name="line-8"></a><span>
+</span><a name="line-9"></a><span class="hs-comment">-- | Test group for tests of modules with the @FreeC.Frontend.IR@ prefix.</span><span>
+</span><a name="line-10"></a><span class="hs-identifier">testIRFrontend</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Spec</span><span>
+</span><a name="line-11"></a><a name="testIRFrontend"><a href="FreeC.Frontend.IR.Tests.html#testIRFrontend"><span class="hs-identifier">testIRFrontend</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a name="line-12"></a><span>  </span><a href="FreeC.Frontend.IR.ScannerTests.html#testIRScanner"><span class="hs-identifier hs-var">testIRScanner</span></a><span>
+</span><a name="line-13"></a><span>  </span><a href="FreeC.Frontend.IR.ParserTests.html#testIRParser"><span class="hs-identifier hs-var">testIRParser</span></a><span>
+</span><a name="line-14"></a></pre></body></html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>FreeC.Pass.ImportPass</title><link href="ocean.css" rel="stylesheet" type="text/css" title="Ocean" /><link rel="stylesheet" type="text/css" href="quick-jump.css" /><script src="haddock-bundle.min.js" async="async" type="text/javascript"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script></head><body><div id="package-header"><ul class="links" id="page-menu"><li><a href="src/FreeC.Pass.ImportPass.html">Source</a></li><li><a href="index.html">Contents</a></li><li><a href="doc-index.html">Index</a></li></ul><p class="caption">free-compiler-0.3.0.0: A Haskell to Coq compiler.</p></div><div id="content"><div id="module-header"><table class="info"><tr><th>Safe Haskell</th><td>None</td></tr><tr><th>Language</th><td>Haskell2010</td></tr></table><p class="caption">FreeC.Pass.ImportPass</p></div><div id="description"><p class="caption">Description</p><div class="doc"><p>This module contains a compiler pass that adds all entries from imported
+   modules to the environment.</p><h1>Example</h1><p>When a module <code>A</code> that exports a data type <code>Foo</code></p><pre>module A where
+
+data Foo = Foo</pre><p>is imported by a module <code>B</code></p><pre>module B where
+
+import A
+
+type Bar a = Foo -&gt; a</pre><p>then an entry for <code>Foo</code> is added to the environment under its original
+   name <code>A.Foo</code>. The resolver pass will make sure that the reference to <code>Foo</code>
+   in the declaration of <code>Bar</code> is resolved to <code>A.Foo</code>. Thus, the entry for
+   <code>Foo</code> can be looked up in the translation of <code>B</code>.</p><p>When a module <code>C</code> imports <code>B</code></p><pre>module C where
+
+import B
+
+baz :: Bar ()
+baz x = ()</pre><p>both <code>A.Foo</code> and <code>B.Bar</code> are added to the environment of <code>C</code> since all
+   entries imported by <code>B</code> are part of the <code>B</code>'s module interface.
+   In the example above this is needed among others during type inference.
+   To infer the type of <code>x</code> the type synonym <code>Bar</code> needs to be expanded.
+   The type of <code>x</code> is <code>A.Foo</code>. Thus, the corresponding entry must be visible.
+   The resolver pass will make sure that <code>C</code> does not directly refer to the
+   hidden entries of <code>B</code>'s module interface.</p><h1>Specification</h1><h2>Preconditions</h2><p>Module interfaces for all imported modules must be available.</p><h2>Translation</h2><p>No modifications are made to the AST. All entries from module interfaces
+   of imported modules are added to the environment. This includes entries
+   that are not exported by the imported module.</p><h2>Postconditions</h2><p>All external entries that could be referenced (directly or indirectly)
+   by the module are in the environment.</p><h2>Error cases</h2><ul><li>A fatal error is reported if there is an import for a module <code>M</code> but
+     there is no such module interface available.</li></ul></div></div><div id="synopsis"><details id="syn"><summary>Synopsis</summary><ul class="details-toggle" data-details-id="syn"><li class="src short"><a href="#v:importPass">importPass</a> :: <a href="FreeC-Pass.html#t:Pass" title="FreeC.Pass">Pass</a> <a href="FreeC-IR-Syntax-Module.html#t:Module" title="FreeC.IR.Syntax.Module">Module</a> <a href="FreeC-IR-Syntax-Module.html#t:Module" title="FreeC.IR.Syntax.Module">Module</a></li></ul></details></div><div id="interface"><h1>Documentation</h1><div class="top"><p class="src"><a id="v:importPass" class="def">importPass</a> :: <a href="FreeC-Pass.html#t:Pass" title="FreeC.Pass">Pass</a> <a href="FreeC-IR-Syntax-Module.html#t:Module" title="FreeC.IR.Syntax.Module">Module</a> <a href="FreeC-IR-Syntax-Module.html#t:Module" title="FreeC.IR.Syntax.Module">Module</a> <a href="src/FreeC.Pass.ImportPass.html#importPass" class="link">Source</a> <a href="#v:importPass" class="selflink">#</a></p><div class="doc"><p>Compiler pass that adds entries imported by the given module to the
+   environment.</p></div></div></div></div><div id="footer"><p>Produced by <a href="http://www.haskell.org/haddock/">Haddock</a> version 2.22.0</p></div></body></html>
