@@ -16,6 +16,8 @@ name: CI Pipeline
 # Most jobs below are disabled in draft pull requests. When the such a draft
 # pull request becomes ready for review, the CI pipeline is triggered again
 # such that the remaining jobs run as well.
+#
+# An additional run of the CI pipeline is scheduled at 2am every monday.
 on:
   pull_request:
     types:
@@ -41,6 +43,8 @@ on:
     - 'example/**'
     - 'src/**'
     - '.github/workflows/ci-pipeline.yml'
+  schedule:
+    - cron: '0 2 * * 1'
 
 jobs:
   #############################################################################
