@@ -10,6 +10,10 @@
 A compiler for the monadic translation of Haskell programs to Coq or Agda that uses the `Free` monad as presented by [Dylus et al.][paper/DylusEtAl2018] to model partiality and other ambient effects.
 Sharing is modeled in Coq as an effect based on the master's thesis by [Niels Bunkenburg][thesis/bunkenburg2019].
 
+## Contact
+
+[Contact us via e-mail](mailto:ichistmeinname@aim.com;jandresen@gmail.com?subject=[GitHub-FreeProving])
+
 ## Table of Contents
 
 1. [Documentation](#documentation)
